@@ -3867,7 +3867,7 @@ static int vfio_initfn(PCIDevice *pdev)
         }
     }
 
-    add_boot_device_path(vdev->bootindex, &pdev->qdev, NULL);
+    add_boot_device_path(vdev->bootindex, DEVICE(pdev), NULL);
     vfio_register_err_notifier(vdev);
 
     return 0;
@@ -3904,7 +3904,7 @@ static void vfio_exitfn(PCIDevice *pdev)
 
 static void vfio_pci_reset(DeviceState *dev)
 {
-    PCIDevice *pdev = DO_UPCAST(PCIDevice, qdev, dev);
+    PCIDevice *pdev = PCI_DEVICE(dev);
     VFIODevice *vdev = DO_UPCAST(VFIODevice, pdev, pdev);
 
     DPRINTF("%s(%04x:%02x:%02x.%x)\n", __func__, vdev->host.domain,

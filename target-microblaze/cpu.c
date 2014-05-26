@@ -26,7 +26,6 @@
 #include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
 
-
 static void mb_cpu_set_pc(CPUState *cs, vaddr value)
 {
     MicroBlazeCPU *cpu = MICROBLAZE_CPU(cs);
@@ -58,18 +57,23 @@ static void microblaze_cpu_set_irq(void *opaque, int irq, int level)
 static void mb_cpu_reset(CPUState *s)
 {
     MicroBlazeCPU *cpu = MICROBLAZE_CPU(s);
-    MicroBlazeCPUClass *mcc = MICROBLAZE_CPU_GET_CLASS(cpu);
+    CPUClass *cc_parent = CPU_CLASS(MICROBLAZE_CPU_PARENT_CLASS);
     CPUMBState *env = &cpu->env;
 
-    mcc->parent_reset(s);
+    cc_parent->reset(s);
 
+    /* FIXME: FIX the dtb options for resets.  */
+    if (env->pvr.regs[0] == 0) {
     memset(env, 0, sizeof(CPUMBState));
+    }
     env->res_addr = RES_ADDR_NONE;
     tlb_flush(s, 1);
 
     /* Disable stack protector.  */
     env->shr = ~0;
 
+    /* FIXME: FIX the dtb options for resets.  */
+    if (env->pvr.regs[0] == 0) {
     env->pvr.regs[0] = PVR0_PVR_FULL_MASK \
                        | PVR0_USE_BARREL_MASK \
                        | PVR0_USE_DIV_MASK \
@@ -95,6 +99,7 @@ static void mb_cpu_reset(CPUState *s)
                         | 0;
     env->pvr.regs[10] = 0x0c000000; /* Default to spartan 3a dsp family.  */
     env->pvr.regs[11] = PVR11_USE_MMU | (16 << 17);
+    }
 
     env->sregs[SR_PC] = cpu->base_vectors;
 
@@ -114,12 +119,12 @@ static void mb_cpu_reset(CPUState *s)
 static void mb_cpu_realizefn(DeviceState *dev, Error **errp)
 {
     CPUState *cs = CPU(dev);
-    MicroBlazeCPUClass *mcc = MICROBLAZE_CPU_GET_CLASS(dev);
+    DeviceClass *dc_parent = DEVICE_CLASS(MICROBLAZE_CPU_PARENT_CLASS);
 
     cpu_reset(cs);
     qemu_init_vcpu(cs);
 
-    mcc->parent_realize(dev, errp);
+    dc_parent->realize(dev, errp);
 }
 
 static void mb_cpu_initfn(Object *obj)
@@ -151,7 +156,7 @@ static const VMStateDescription vmstate_mb_cpu = {
 };
 
 static Property mb_properties[] = {
-    DEFINE_PROP_UINT32("xlnx.base-vectors", MicroBlazeCPU, base_vectors, 0),
+    DEFINE_PROP_UINT32("base-vectors", MicroBlazeCPU, base_vectors, 0),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -159,12 +164,9 @@ static void mb_cpu_class_init(ObjectClass *oc, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(oc);
     CPUClass *cc = CPU_CLASS(oc);
-    MicroBlazeCPUClass *mcc = MICROBLAZE_CPU_CLASS(oc);
 
-    mcc->parent_realize = dc->realize;
     dc->realize = mb_cpu_realizefn;
 
-    mcc->parent_reset = cc->reset;
     cc->reset = mb_cpu_reset;
 
     cc->has_work = mb_cpu_has_work;
@@ -189,7 +191,6 @@ static const TypeInfo mb_cpu_type_info = {
     .parent = TYPE_CPU,
     .instance_size = sizeof(MicroBlazeCPU),
     .instance_init = mb_cpu_initfn,
-    .class_size = sizeof(MicroBlazeCPUClass),
     .class_init = mb_cpu_class_init,
 };
 

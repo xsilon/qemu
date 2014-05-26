@@ -1720,7 +1720,8 @@ static void musicpal_init(QEMUMachineInitArgs *args)
     musicpal_binfo.kernel_filename = kernel_filename;
     musicpal_binfo.kernel_cmdline = kernel_cmdline;
     musicpal_binfo.initrd_filename = initrd_filename;
-    arm_load_kernel(cpu, &musicpal_binfo);
+	musicpal_binfo.primary_cpu = cpu;
+    arm_load_kernel(&musicpal_binfo);
 }
 
 static QEMUMachine musicpal_machine = {

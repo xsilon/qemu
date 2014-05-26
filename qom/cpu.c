@@ -252,6 +252,25 @@ static bool cpu_common_has_work(CPUState *cs)
     return false;
 }
 
+static void cpu_device_reset(DeviceState *dev)
+{
+    cpu_reset(CPU(dev));
+}
+
+static void cpu_common_halt(DeviceState *dev)
+{
+    CPUState *s = CPU(dev);
+
+    s->halted = 1;
+}
+
+static void cpu_common_unhalt(DeviceState *dev)
+{
+    CPUState *s = CPU(dev);
+
+    s->halted = 0;
+}
+
 ObjectClass *cpu_class_by_name(const char *typename, const char *cpu_model)
 {
     CPUClass *cc = CPU_CLASS(object_class_by_name(typename));
@@ -309,6 +328,8 @@ static void cpu_common_initfn(Object *obj)
     CPUClass *cc = CPU_GET_CLASS(obj);
 
     cpu->gdb_num_regs = cpu->gdb_num_g_regs = cc->gdb_num_core_regs;
+    qdev_init_gpio_in_named(DEVICE(obj), cpu_reset_gpio, "reset",1);
+    qdev_init_gpio_in_named(DEVICE(obj), cpu_halt_gpio, "halt", 1);
 }
 
 static int64_t cpu_common_get_arch_id(CPUState *cpu)
@@ -334,6 +355,9 @@ static void cpu_class_init(ObjectClass *klass, void *data)
     k->write_elf64_note = cpu_common_write_elf64_note;
     k->gdb_read_register = cpu_common_gdb_read_register;
     k->gdb_write_register = cpu_common_gdb_write_register;
+    dc->reset = cpu_device_reset;
+    dc->halt = cpu_common_halt;
+    dc->unhalt = cpu_common_unhalt;
     dc->realize = cpu_common_realizefn;
     /*
      * Reason: CPUs still need special care by board code: wiring up

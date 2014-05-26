@@ -287,7 +287,8 @@ static void stream_process_mem2s(struct Stream *s, StreamSlave *tx_data_dev,
 
         if (stream_desc_sof(&s->desc)) {
             s->pos = 0;
-            stream_push(tx_control_dev, s->desc.app, sizeof(s->desc.app));
+            stream_push(tx_control_dev, s->desc.app, sizeof(s->desc.app),
+                        STREAM_ATTR_EOP);
         }
 
         txlen = s->desc.control & SDESC_CTRL_LEN_MASK;
@@ -301,7 +302,7 @@ static void stream_process_mem2s(struct Stream *s, StreamSlave *tx_data_dev,
         s->pos += txlen;
 
         if (stream_desc_eof(&s->desc)) {
-            stream_push(tx_data_dev, txbuf, s->pos);
+            stream_push(tx_data_dev, txbuf, s->pos, STREAM_ATTR_EOP);
             s->pos = 0;
             stream_complete(s);
         }
@@ -321,7 +322,7 @@ static void stream_process_mem2s(struct Stream *s, StreamSlave *tx_data_dev,
 }
 
 static size_t stream_process_s2mem(struct Stream *s, unsigned char *buf,
-                                   size_t len)
+                                   size_t len, uint32_t attr)
 {
     uint32_t prev_d;
     unsigned int rxlen;
@@ -351,7 +352,7 @@ static size_t stream_process_s2mem(struct Stream *s, unsigned char *buf,
         pos += rxlen;
 
         /* Update the descriptor.  */
-        if (!len) {
+        if (!len && stream_attr_has_eop(attr)) {
             stream_complete(s);
             memcpy(s->desc.app, s->app, sizeof(s->desc.app));
             s->desc.status |= SDESC_STATUS_EOF;
@@ -386,7 +387,7 @@ static void xilinx_axidma_reset(DeviceState *dev)
 
 static size_t
 xilinx_axidma_control_stream_push(StreamSlave *obj, unsigned char *buf,
-                                  size_t len)
+                                  size_t len, uint32_t attr)
 {
     XilinxAXIDMAStreamSlave *cs = XILINX_AXI_DMA_CONTROL_STREAM(obj);
     struct Stream *s = &cs->dma->streams[1];
@@ -418,13 +419,14 @@ xilinx_axidma_data_stream_can_push(StreamSlave *obj,
 }
 
 static size_t
-xilinx_axidma_data_stream_push(StreamSlave *obj, unsigned char *buf, size_t len)
+xilinx_axidma_data_stream_push(StreamSlave *obj, unsigned char *buf, size_t len,
+                               uint32_t attr)
 {
     XilinxAXIDMAStreamSlave *ds = XILINX_AXI_DMA_DATA_STREAM(obj);
     struct Stream *s = &ds->dma->streams[1];
     size_t ret;
 
-    ret = stream_process_s2mem(s, buf, len);
+    ret = stream_process_s2mem(s, buf, len, attr);
     stream_update_irq(s);
     return ret;
 }

@@ -118,6 +118,9 @@ typedef struct DeviceClass {
 
     /* callbacks */
     void (*reset)(DeviceState *dev);
+    void (*halt)(DeviceState *dev);
+    void (*unhalt)(DeviceState *dev);
+
     DeviceRealize realize;
     DeviceUnrealize unrealize;
 
@@ -131,6 +134,17 @@ typedef struct DeviceClass {
     const char *bus_type;
 } DeviceClass;
 
+typedef struct NamedGPIOList NamedGPIOList;
+
+struct NamedGPIOList {
+    char *name;
+    qemu_irq *in;
+    int num_in;
+    qemu_irq *out;
+    int num_out;
+    QLIST_ENTRY(NamedGPIOList) node;
+};
+
 /**
  * DeviceState:
  * @realized: Indicates whether the device has been fully constructed.
@@ -143,15 +157,12 @@ struct DeviceState {
     Object parent_obj;
     /*< public >*/
 
-    const char *id;
+    char *id;
     bool realized;
     QemuOpts *opts;
     int hotplugged;
     BusState *parent_bus;
-    int num_gpio_out;
-    qemu_irq *gpio_out;
-    int num_gpio_in;
-    qemu_irq *gpio_in;
+    QLIST_HEAD(, NamedGPIOList) gpios;
     QLIST_HEAD(, BusState) child_bus;
     int num_child_bus;
     int instance_id_alias;
@@ -252,7 +263,13 @@ void qdev_machine_creation_done(void);
 bool qdev_machine_modified(void);
 
 qemu_irq qdev_get_gpio_in(DeviceState *dev, int n);
+qemu_irq qdev_get_gpio_in_named(DeviceState *dev, const char *name, int n);
+qemu_irq qdev_get_gpio_out(DeviceState *dev, int n);
+qemu_irq qdev_get_gpio_out_named(DeviceState *dev, const char *name, int n);
+
 void qdev_connect_gpio_out(DeviceState *dev, int n, qemu_irq pin);
+void qdev_connect_gpio_out_named(DeviceState *dev, const char *name, int n,
+                                 qemu_irq pin);
 
 BusState *qdev_get_child_bus(DeviceState *dev, const char *name);
 
@@ -262,6 +279,12 @@ BusState *qdev_get_child_bus(DeviceState *dev, const char *name);
 /* GPIO inputs also double as IRQ sinks.  */
 void qdev_init_gpio_in(DeviceState *dev, qemu_irq_handler handler, int n);
 void qdev_init_gpio_out(DeviceState *dev, qemu_irq *pins, int n);
+void qdev_init_gpio_in_named(DeviceState *dev, qemu_irq_handler handler,
+                             const char *name, int n);
+void qdev_init_gpio_out_named(DeviceState *dev, qemu_irq *pins,
+                              const char *name, int n);
+
+void qdev_pass_all_gpios(DeviceState *dev, DeviceState *container);
 
 BusState *qdev_get_parent_bus(DeviceState *dev);
 
@@ -322,6 +345,20 @@ void qdev_machine_init(void);
  * Reset a single device (by calling the reset method).
  */
 void device_reset(DeviceState *dev);
+
+/**
+ * @device_halt
+ *
+ * Halt a single device (by calling the halt method).
+ */
+void device_halt(DeviceState *dev);
+
+/**
+ * @device_unhalt
+ *
+ * Unhalt a single device (by calling the unhalt method).
+ */
+void device_unhalt(DeviceState *dev);
 
 const struct VMStateDescription *qdev_get_vmsd(DeviceState *dev);
 

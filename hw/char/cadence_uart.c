@@ -175,8 +175,10 @@ static void uart_send_breaks(UartState *s)
 {
     int break_enabled = 1;
 
-    qemu_chr_fe_ioctl(s->chr, CHR_IOCTL_SERIAL_SET_BREAK,
-                               &break_enabled);
+    if (s->chr) {
+        qemu_chr_fe_ioctl(s->chr, CHR_IOCTL_SERIAL_SET_BREAK,
+                          &break_enabled);
+    }
 }
 
 static void uart_parameters_setup(UartState *s)
@@ -227,7 +229,9 @@ static void uart_parameters_setup(UartState *s)
 
     packet_size += ssp.data_bits + ssp.stop_bits;
     s->char_tx_time = (get_ticks_per_sec() / ssp.speed) * packet_size;
-    qemu_chr_fe_ioctl(s->chr, CHR_IOCTL_SERIAL_SET_PARAMS, &ssp);
+    if (s->chr) {
+        qemu_chr_fe_ioctl(s->chr, CHR_IOCTL_SERIAL_SET_PARAMS, &ssp);
+    }
 }
 
 static int uart_can_receive(void *opaque)
@@ -301,9 +305,12 @@ static gboolean cadence_uart_xmit(GIOChannel *chan, GIOCondition cond,
         return FALSE;
     }
 
-    ret = qemu_chr_fe_write(s->chr, s->tx_fifo, s->tx_count);
-    s->tx_count -= ret;
-    memmove(s->tx_fifo, s->tx_fifo + ret, s->tx_count);
+    ret = qemu_chr_fe_write_all(s->chr, s->tx_fifo, s->tx_count);
+
+    if (ret >= 0) {
+        s->tx_count -= ret;
+        memmove(s->tx_fifo, s->tx_fifo + ret, s->tx_count);
+    }
 
     if (s->tx_count) {
         int r = qemu_chr_fe_add_watch(s->chr, G_IO_OUT, cadence_uart_xmit, s);
@@ -374,7 +381,9 @@ static void uart_read_rx_fifo(UartState *s, uint32_t *c)
         *c = s->rx_fifo[rx_rpos];
         s->rx_count--;
 
-        qemu_chr_accept_input(s->chr);
+        if (s->chr) {
+            qemu_chr_accept_input(s->chr);
+        }
     } else {
         *c = 0;
     }
@@ -455,7 +464,7 @@ static void cadence_uart_reset(DeviceState *dev)
 {
     UartState *s = CADENCE_UART(dev);
 
-    s->r[R_CR] = 0x00000128;
+    s->r[R_CR] = UART_CR_RX_EN | UART_CR_TX_EN | UART_CR_STOPBRK;
     s->r[R_IMR] = 0;
     s->r[R_CISR] = 0;
     s->r[R_RTRIG] = 0x00000020;

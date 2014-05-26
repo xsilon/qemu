@@ -95,6 +95,16 @@ void tlb_fill(CPUState *cs, target_ulong addr, int is_write, int mmu_idx,
 }
 #endif
 
+void HELPER(print_tcg32)(uint32_t a)
+{
+    fprintf(stderr, "TCG variable is %" PRIx32 "\n", a);
+}
+
+void HELPER(print_tcg64)(uint64_t a)
+{
+    fprintf(stderr, "TCG variable is %" PRIx64 "\n", a);
+}
+
 uint32_t HELPER(add_setq)(CPUARMState *env, uint32_t a, uint32_t b)
 {
     uint32_t res = a + b;

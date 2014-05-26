@@ -8,9 +8,7 @@
 #include "exec/cpu-common.h"
 #endif
 
-#include "exec/ioport.h"
 #include "hw/irq.h"
-#include "block/aio.h"
 #include "migration/vmstate.h"
 #include "qemu/log.h"
 

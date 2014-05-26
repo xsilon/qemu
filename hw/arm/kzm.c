@@ -137,7 +137,8 @@ static void kzm_init(QEMUMachineInitArgs *args)
     kzm_binfo.kernel_cmdline = kernel_cmdline;
     kzm_binfo.initrd_filename = initrd_filename;
     kzm_binfo.nb_cpus = 1;
-    arm_load_kernel(cpu, &kzm_binfo);
+	kzm_binfo.primary_cpu = cpu;
+    arm_load_kernel(&kzm_binfo);
 }
 
 static QEMUMachine kzm_machine = {

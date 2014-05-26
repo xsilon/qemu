@@ -198,6 +198,7 @@ char *get_boot_devices_list(size_t *size, bool ignore_suffixes);
 DeviceState *get_boot_device(uint32_t position);
 
 QemuOpts *qemu_get_machine_opts(void);
+QemuOpts *qemu_get_boot_opts(void);
 
 bool usb_enabled(bool default_usb);
 

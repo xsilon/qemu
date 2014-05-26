@@ -371,7 +371,8 @@ static void z2_init(QEMUMachineInitArgs *args)
     z2_binfo.kernel_cmdline = kernel_cmdline;
     z2_binfo.initrd_filename = initrd_filename;
     z2_binfo.board_id = 0x6dd;
-    arm_load_kernel(mpu->cpu, &z2_binfo);
+	z2_binfo.primary_cpu = mpu->cpu;
+    arm_load_kernel(&z2_binfo);
 }
 
 static QEMUMachine z2_machine = {

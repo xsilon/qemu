@@ -612,6 +612,8 @@ static void spapr_phb_realize(DeviceState *dev, Error **errp)
     }
     address_space_init(&sphb->iommu_as, spapr_tce_get_iommu(sphb->tcet),
                        sphb->dtbusname);
+    object_property_set_bool(OBJECT(&sphb->iommu_as), true, "realized",
+                             &error_abort);
 
     pci_setup_iommu(bus, spapr_pci_dma_iommu, sphb);
 

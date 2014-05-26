@@ -469,7 +469,8 @@ static void machvirt_init(QEMUMachineInitArgs *args)
     vbi->bootinfo.board_id = -1;
     vbi->bootinfo.loader_start = vbi->memmap[VIRT_MEM].base;
     vbi->bootinfo.get_dtb = machvirt_dtb;
-    arm_load_kernel(ARM_CPU(first_cpu), &vbi->bootinfo);
+	vbi->bootinfo.primary_cpu = ARM_CPU(first_cpu);
+    arm_load_kernel(&vbi->bootinfo);
 }
 
 static QEMUMachine machvirt_a15_machine = {

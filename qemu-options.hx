@@ -168,7 +168,7 @@ DEF("boot", HAS_ARG, QEMU_OPTION_boot,
     "                'rb_timeout': the timeout before guest reboot when boot failed, unit is ms\n",
     QEMU_ARCH_ALL)
 STEXI
-@item -boot [order=@var{drives}][,once=@var{drives}][,menu=on|off][,splash=@var{sp_name}][,splash-time=@var{sp_time}][,reboot-timeout=@var{rb_timeout}][,strict=on|off]
+@item -boot [order=@var{drives}][,once=@var{drives}][,menu=on|off][,splash=@var{sp_name}][,splash-time=@var{sp_time}][,reboot-timeout=@var{rb_timeout}][,strict=on|off][,mode=@var{mode}][,cpu=@var{cpu}]
 @findex -boot
 Specify boot order @var{drives} as a string of drive letters. Valid
 drive letters depend on the target achitecture. The x86 PC uses: a, b
@@ -2389,6 +2389,16 @@ Use @var{file1} and @var{file2} as modules and pass arg=foo as parameter to the
 first module.
 ETEXI
 
+DEF("hw-dtb", HAS_ARG, QEMU_OPTION_hw_dtb, \
+    "-hw-dtb file    use 'file' as device tree image\n", QEMU_ARCH_ALL)
+STEXI
+@item -hw-dtb @var{file}
+@findex -hw-dtb
+Use @var{file} as a device tree binary (dtb) image used to create the
+emulated machine. This dtb will not be passed to the kernel, use -dtb
+for that.
+ETEXI
+
 DEF("dtb", HAS_ARG, QEMU_OPTION_dtb, \
     "-dtb    file    use 'file' as device tree image\n", QEMU_ARCH_ALL)
 STEXI
@@ -2941,6 +2951,14 @@ STEXI
 @item -tb-size @var{n}
 @findex -tb-size
 Set TB size.
+ETEXI
+
+DEF("no-tb-chain", 0, QEMU_OPTION_no_tb_chain, \
+    "-no-tb-chain      Disable TB chaining\n", QEMU_ARCH_ALL)
+STEXI
+@item -no-tb-chain
+@findex -no-tb-chain
+Disable TB chaining.
 ETEXI
 
 DEF("incoming", HAS_ARG, QEMU_OPTION_incoming, \

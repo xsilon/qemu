@@ -1334,7 +1334,8 @@ static void n8x0_init(QEMUMachineInitArgs *args,
         binfo->kernel_filename = args->kernel_filename;
         binfo->kernel_cmdline = args->kernel_cmdline;
         binfo->initrd_filename = args->initrd_filename;
-        arm_load_kernel(s->mpu->cpu, binfo);
+		binfo->primary_cpu = s->mpu->cpu;
+        arm_load_kernel(binfo);
 
         qemu_register_reset(n8x0_boot_init, s);
     }

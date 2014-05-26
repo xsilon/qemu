@@ -9,6 +9,7 @@
 #include "qemu/timer.h"
 #include "hw/ptimer.h"
 #include "qemu/host-utils.h"
+#include "block/aio.h"
 
 struct ptimer_state
 {

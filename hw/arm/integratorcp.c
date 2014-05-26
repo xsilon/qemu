@@ -527,7 +527,8 @@ static void integratorcp_init(QEMUMachineInitArgs *args)
     integrator_binfo.kernel_filename = kernel_filename;
     integrator_binfo.kernel_cmdline = kernel_cmdline;
     integrator_binfo.initrd_filename = initrd_filename;
-    arm_load_kernel(cpu, &integrator_binfo);
+    integrator_binfo.primary_cpu = cpu;
+    arm_load_kernel(&integrator_binfo);
 }
 
 static QEMUMachine integratorcp_machine = {

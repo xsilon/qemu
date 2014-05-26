@@ -162,7 +162,7 @@ int pci_drive_hot_add(Monitor *mon, const QDict *qdict, DriveInfo *dinfo)
             monitor_printf(mon, "no pci device with address %s\n", pci_addr);
             goto err;
         }
-        if (scsi_hot_add(mon, &dev->qdev, dinfo, 1) != 0) {
+        if (scsi_hot_add(mon, DEVICE(dev), dinfo, 1) != 0) {
             goto err;
         }
         break;
@@ -232,11 +232,12 @@ static PCIDevice *qemu_pci_hot_add_storage(Monitor *mon,
     switch (type) {
     case IF_SCSI:
         dev = pci_create(bus, devfn, "lsi53c895a");
-        if (qdev_init(&dev->qdev) < 0)
+        if (qdev_init(DEVICE(dev)) < 0) {
             dev = NULL;
+        }
         if (dev && dinfo) {
-            if (scsi_hot_add(mon, &dev->qdev, dinfo, 0) != 0) {
-                qdev_unplug(&dev->qdev, NULL);
+            if (scsi_hot_add(mon, DEVICE(dev), dinfo, 0) != 0) {
+                qdev_unplug(DEVICE(dev), NULL);
                 dev = NULL;
             }
         }
@@ -247,13 +248,14 @@ static PCIDevice *qemu_pci_hot_add_storage(Monitor *mon,
             return NULL;
         }
         dev = pci_create(bus, devfn, "virtio-blk-pci");
-        if (qdev_prop_set_drive(&dev->qdev, "drive", dinfo->bdrv) < 0) {
+        if (qdev_prop_set_drive(DEVICE(dev), "drive", dinfo->bdrv) < 0) {
             object_unparent(OBJECT(dev));
             dev = NULL;
             break;
         }
-        if (qdev_init(&dev->qdev) < 0)
+        if (qdev_init(DEVICE(dev)) < 0) {
             dev = NULL;
+        }
         break;
     default:
         dev = NULL;
@@ -321,7 +323,7 @@ static int pci_device_hot_remove(Monitor *mon, const char *pci_addr)
         return -1;
     }
 
-    qdev_unplug(&d->qdev, &local_err);
+    qdev_unplug(DEVICE(d), &local_err);
     if (local_err) {
         monitor_printf(mon, "%s\n", error_get_pretty(local_err));
         error_free(local_err);

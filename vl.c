@@ -215,6 +215,7 @@ bool xen_allowed;
 uint32_t xen_domid;
 enum xen_mode xen_mode = XEN_EMULATE;
 static int tcg_tb_size;
+bool tcg_tb_chain = true;
 
 static int has_defaults = 1;
 static int default_serial = 1;
@@ -351,6 +352,10 @@ static QemuOptsList qemu_machine_opts = {
             .type = QEMU_OPT_STRING,
             .help = "Linux kernel device tree file",
         }, {
+            .name = "hw-dtb",
+            .type = QEMU_OPT_STRING,
+            .help = "Machine creation device tree file",
+        }, {
             .name = "dumpdtb",
             .type = QEMU_OPT_STRING,
             .help = "Dump current dtb to a file and quit",
@@ -362,6 +367,10 @@ static QemuOptsList qemu_machine_opts = {
             .name = "dt_compatible",
             .type = QEMU_OPT_STRING,
             .help = "Overrides the \"compatible\" property of the dt root node",
+        },{
+            .name = "trial",
+            .type = QEMU_OPT_BOOL,
+            .help = "Trial mode - Just create the machine and exit"
         }, {
             .name = "dump-guest-core",
             .type = QEMU_OPT_BOOL,
@@ -382,6 +391,10 @@ static QemuOptsList qemu_machine_opts = {
             .name = "kvm-type",
             .type = QEMU_OPT_STRING,
             .help = "Specifies the KVM virtualization mode (HV, PR)",
+        },{
+            .name = "linux",
+            .type = QEMU_OPT_BOOL,
+            .help = "Bootstrap Linux",
         },
         { /* End of list */ }
     },
@@ -414,6 +427,12 @@ static QemuOptsList qemu_boot_opts = {
         }, {
             .name = "strict",
             .type = QEMU_OPT_BOOL,
+        }, {
+            .name = "mode",
+            .type = QEMU_OPT_NUMBER,
+        }, {
+            .name = "cpu",
+            .type = QEMU_OPT_NUMBER,
         },
         { /*End of list */ }
     },
@@ -532,6 +551,17 @@ static QemuOptsList qemu_mem_opts = {
 QemuOpts *qemu_get_machine_opts(void)
 {
     return qemu_find_opts_singleton("machine");
+}
+
+/**
+ * Get boot options
+ *
+ * Returns: boot options (never null).
+ */
+
+QemuOpts *qemu_get_boot_opts(void)
+{
+    return qemu_find_opts_singleton("boot-opts");
 }
 
 const char *qemu_get_vm_name(void)
@@ -2960,7 +2990,7 @@ int main(int argc, char **argv, char **envp)
     const char *boot_order;
     DisplayState *ds;
     int cyls, heads, secs, translation;
-    QemuOpts *hda_opts = NULL, *opts, *machine_opts;
+    QemuOpts *hda_opts = NULL, *opts, *machine_opts, *boot_opts;
     QemuOptsList *olist;
     int optind;
     const char *optarg;
@@ -2988,6 +3018,9 @@ int main(int argc, char **argv, char **envp)
     const char *trace_file = NULL;
     const ram_addr_t default_ram_size = (ram_addr_t)DEFAULT_RAM_SIZE *
                                         1024 * 1024;
+
+    char *normal_boot_order;
+    const char *order, *once;
 
     atexit(qemu_run_exit_notifiers);
     error_set_progname(argv[0]);
@@ -3252,6 +3285,9 @@ int main(int argc, char **argv, char **envp)
                 break;
             case QEMU_OPTION_append:
                 qemu_opts_set(qemu_find_opts("machine"), 0, "append", optarg);
+                break;
+            case QEMU_OPTION_hw_dtb:
+                qemu_opts_set(qemu_find_opts("machine"), 0, "hw-dtb", optarg);
                 break;
             case QEMU_OPTION_dtb:
                 qemu_opts_set(qemu_find_opts("machine"), 0, "dtb", optarg);
@@ -3830,6 +3866,9 @@ int main(int argc, char **argv, char **envp)
                     tcg_tb_size = 0;
                 }
                 break;
+            case QEMU_OPTION_no_tb_chain:
+                tcg_tb_chain = false;
+                break;
             case QEMU_OPTION_icount:
                 icount_option = optarg;
                 break;
@@ -4233,28 +4272,24 @@ int main(int argc, char **argv, char **envp)
     bios_name = qemu_opt_get(machine_opts, "firmware");
 
     boot_order = machine_class->default_boot_order;
-    opts = qemu_opts_find(qemu_find_opts("boot-opts"), NULL);
-    if (opts) {
-        char *normal_boot_order;
-        const char *order, *once;
+    boot_opts = qemu_get_boot_opts();
 
-        order = qemu_opt_get(opts, "order");
-        if (order) {
-            validate_bootdevices(order);
-            boot_order = order;
-        }
-
-        once = qemu_opt_get(opts, "once");
-        if (once) {
-            validate_bootdevices(once);
-            normal_boot_order = g_strdup(boot_order);
-            boot_order = once;
-            qemu_register_reset(restore_boot_order, normal_boot_order);
-        }
-
-        boot_menu = qemu_opt_get_bool(opts, "menu", boot_menu);
-        boot_strict = qemu_opt_get_bool(opts, "strict", false);
+    order = qemu_opt_get(boot_opts, "order");
+    if (order) {
+        validate_bootdevices(order);
+        boot_order = order;
     }
+
+    once = qemu_opt_get(boot_opts, "once");
+    if (once) {
+        validate_bootdevices(once);
+        normal_boot_order = g_strdup(boot_order);
+        boot_order = once;
+        qemu_register_reset(restore_boot_order, normal_boot_order);
+    }
+
+    boot_menu = qemu_opt_get_bool(boot_opts, "menu", boot_menu);
+    boot_strict = qemu_opt_get_bool(boot_opts, "strict", false);
 
     if (!kernel_cmdline) {
         kernel_cmdline = "";
@@ -4272,10 +4307,12 @@ int main(int argc, char **argv, char **envp)
         exit(1);
     }
 
+#if 0
     if (!linux_boot && qemu_opt_get(machine_opts, "dtb")) {
         fprintf(stderr, "-dtb only allowed with -kernel option\n");
         exit(1);
     }
+#endif
 
     os_set_line_buffering();
 
@@ -4530,6 +4567,10 @@ int main(int argc, char **argv, char **envp)
         if (load_vmstate(loadvm) < 0) {
             autostart = 0;
         }
+    }
+
+    if (machine_opts && qemu_opt_get_bool(machine_opts, "trial", 0)) {
+        exit(0);
     }
 
     if (incoming) {

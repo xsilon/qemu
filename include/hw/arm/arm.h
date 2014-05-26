@@ -21,11 +21,15 @@ qemu_irq *armv7m_init(MemoryRegion *address_space_mem,
 
 /* arm_boot.c */
 struct arm_boot_info {
+	ARMCPU *primary_cpu;
+
     uint64_t ram_size;
     const char *kernel_filename;
     const char *kernel_cmdline;
     const char *initrd_filename;
     const char *dtb_filename;
+    void *fdt;
+    int fdt_size;
     hwaddr loader_start;
     /* multicore boards that use the default secondary core boot functions
      * need to put the address of the secondary boot code, the boot reg,
@@ -67,7 +71,7 @@ struct arm_boot_info {
     hwaddr initrd_size;
     hwaddr entry;
 };
-void arm_load_kernel(ARMCPU *cpu, struct arm_boot_info *info);
+void arm_load_kernel(struct arm_boot_info *info);
 
 /* Multiplication factor to convert from system clock ticks to qemu timer
    ticks.  */

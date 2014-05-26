@@ -201,7 +201,6 @@ static void aarch64_cpu_register(const ARMCPUInfo *info)
         .parent = TYPE_AARCH64_CPU,
         .instance_size = sizeof(ARMCPU),
         .instance_init = info->initfn,
-        .class_size = sizeof(ARMCPUClass),
         .class_init = info->class_init,
     };
 
@@ -217,7 +216,6 @@ static const TypeInfo aarch64_cpu_type_info = {
     .instance_init = aarch64_cpu_initfn,
     .instance_finalize = aarch64_cpu_finalizefn,
     .abstract = true,
-    .class_size = sizeof(AArch64CPUClass),
     .class_init = aarch64_cpu_class_init,
 };
 

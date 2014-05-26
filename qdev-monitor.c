@@ -535,7 +535,8 @@ DeviceState *qdev_device_add(QemuOpts *opts)
 
     id = qemu_opts_id(opts);
     if (id) {
-        dev->id = id;
+        /* FIXME: Qdev String props cant handle consts */
+        dev->id = (char *)id;
     }
 
     if (dev->id) {
@@ -613,21 +614,30 @@ static void qdev_print(Monitor *mon, DeviceState *dev, int indent)
 {
     ObjectClass *class;
     BusState *child;
+    NamedGPIOList *ngl;
+
     qdev_printf("dev: %s, id \"%s\"\n", object_get_typename(OBJECT(dev)),
                 dev->id ? dev->id : "");
     indent += 2;
-    if (dev->num_gpio_in) {
-        qdev_printf("gpio-in %d\n", dev->num_gpio_in);
-    }
-    if (dev->num_gpio_out) {
-        qdev_printf("gpio-out %d\n", dev->num_gpio_out);
+    QLIST_FOREACH(ngl, &dev->gpios, node) {
+        if (ngl->num_in) {
+            qdev_printf("gpio-in \"%s\" %d\n", ngl->name ? ngl->name : "",
+                        ngl->num_in);
+        }
+        if (ngl->num_out) {
+            qdev_printf("gpio-out \"%s\" %d\n", ngl->name ? ngl->name : "",
+                        ngl->num_out);
+        }
     }
     class = object_get_class(OBJECT(dev));
     do {
         qdev_print_props(mon, dev, DEVICE_CLASS(class)->props, indent);
         class = object_class_get_parent(class);
     } while (class != object_class_by_name(TYPE_DEVICE));
-    bus_print_dev(dev->parent_bus, mon, dev, indent);
+
+    if (class == object_class_by_name(TYPE_SYS_BUS_DEVICE)) {
+        bus_print_dev(dev->parent_bus, mon, dev, indent);
+    }
     QLIST_FOREACH(child, &dev->child_bus, sibling) {
         qbus_print(mon, child, indent);
     }

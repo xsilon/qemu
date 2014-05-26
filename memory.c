@@ -16,6 +16,7 @@
 #include "exec/memory.h"
 #include "exec/address-spaces.h"
 #include "exec/ioport.h"
+#include "qapi/visitor.h"
 #include "qemu/bitops.h"
 #include "qom/object.h"
 #include "trace.h"
@@ -828,47 +829,201 @@ static void memory_region_destructor_rom_device(MemoryRegion *mr)
     qemu_ram_free(mr->ram_addr & TARGET_PAGE_MASK);
 }
 
+static void do_memory_region_add_subregion_common(MemoryRegion *subregion);
+
+static void memory_region_readd_subregion(MemoryRegion *mr)
+{
+    if (mr->contained) {
+        memory_region_transaction_begin();
+        memory_region_ref(mr);
+        memory_region_del_subregion(mr->parent, mr);
+        do_memory_region_add_subregion_common(mr);
+        memory_region_unref(mr);
+        memory_region_transaction_commit();
+        }
+}
+
 void memory_region_init(MemoryRegion *mr,
                         Object *owner,
                         const char *name,
                         uint64_t size)
 {
-    mr->ops = &unassigned_mem_ops;
-    mr->opaque = NULL;
+    object_initialize(mr, sizeof(*mr), TYPE_MEMORY_REGION);
+
+    /* FIXME: convert all to Properties */
     mr->owner = owner;
-    mr->iommu_ops = NULL;
-    mr->parent = NULL;
     mr->size = int128_make64(size);
     if (size == UINT64_MAX) {
         mr->size = int128_2_64();
     }
-    mr->addr = 0;
-    mr->subpage = false;
+    mr->name = g_strdup(name);
+}
+
+static void memory_region_get_addr(Object *obj, Visitor *v, void *opaque,
+                                   const char *name, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+    Error *local_err = NULL;
+    uint64_t value = mr->addr;
+
+    visit_type_uint64(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+    }
+}
+
+static void memory_region_set_addr(Object *obj, Visitor *v, void *opaque,
+                                   const char *name, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+    Error *local_err = NULL;
+    uint64_t value;
+
+    visit_type_uint64(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+
+    /* In an ideal world we wait until both the parent and address is set in
+     * either order, then call do_memory_region_add_subregion_common()
+     * from the latter property setter. However, as parent is just a dumb link
+     * we only support setting from the address setter. We therefore assert
+     * here that the two props are set in correct order.
+     */
+    assert(mr->parent);
+    if (!mr->contained) {
+        mr->addr = value;
+        do_memory_region_add_subregion_common(mr);
+    } else {
+        memory_region_set_address(mr, value);
+    }
+}
+
+static void memory_region_get_priority(Object *obj, Visitor *v, void *opaque,
+                                       const char *name, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+    Error *local_err = NULL;
+    uint32_t value = mr->addr;
+
+    visit_type_uint32(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+    }
+}
+
+static void memory_region_set_priority(Object *obj, Visitor *v, void *opaque,
+                                       const char *name, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+    Error *local_err = NULL;
+    uint32_t value;
+
+    visit_type_uint32(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+
+    if (mr->priority != value) {
+        mr->priority = value;
+        memory_region_readd_subregion(mr);
+    }
+}
+
+static bool memory_region_get_may_overlap(Object *obj, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+
+    return mr->may_overlap;
+}
+
+static void memory_region_set_may_overlap(Object *obj, bool value, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+
+    if (mr->may_overlap != value) {
+        mr->may_overlap = value;
+        memory_region_readd_subregion(mr);
+    }
+}
+
+static void memory_region_get_size(Object *obj, Visitor *v, void *opaque,
+                                   const char *name, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+    Error *local_err = NULL;
+    uint64_t value = int128_get64(mr->size);
+
+    visit_type_uint64(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+    }
+}
+
+static void memory_region_set_size(Object *obj, Visitor *v, void *opaque,
+                                   const char *name, Error **errp)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+    Error *local_err = NULL;
+    uint64_t value;
+    Int128 v128;
+
+    visit_type_uint64(v, &value, name, &local_err);
+    v128 = int128_make64(value);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+
+    if (!int128_eq(v128, mr->size)) {
+        mr->size = v128;
+        memory_region_readd_subregion(mr);
+    }
+}
+
+static void memory_region_initfn(Object *obj)
+{
+    MemoryRegion *mr = MEMORY_REGION(obj);
+
+    mr->ops = &unassigned_mem_ops;
     mr->enabled = true;
-    mr->terminates = false;
-    mr->ram = false;
     mr->romd_mode = true;
-    mr->readonly = false;
-    mr->rom_device = false;
     mr->destructor = memory_region_destructor_none;
-    mr->priority = 0;
-    mr->may_overlap = false;
-    mr->alias = NULL;
     QTAILQ_INIT(&mr->subregions);
     memset(&mr->subregions_link, 0, sizeof mr->subregions_link);
     QTAILQ_INIT(&mr->coalesced);
-    mr->name = g_strdup(name);
-    mr->dirty_log_mask = 0;
-    mr->ioeventfd_nb = 0;
-    mr->ioeventfds = NULL;
-    mr->flush_coalesced_mmio = false;
+
+    object_property_add_link(OBJECT(mr), "container", TYPE_MEMORY_REGION,
+                             (Object **)&mr->parent,
+                             object_property_allow_set_link,
+                             OBJ_PROP_LINK_UNREF_ON_RELEASE,
+                             &error_abort);
+    object_property_add(OBJECT(mr), "addr", "uint64",
+                        memory_region_get_addr,
+                        memory_region_set_addr,
+                        NULL, NULL, &error_abort);
+    object_property_add(OBJECT(mr), "priority", "uint32",
+                        memory_region_get_priority,
+                        memory_region_set_priority,
+                        NULL, NULL, &error_abort);
+    object_property_add_bool(OBJECT(mr), "may-overlap",
+                             memory_region_get_may_overlap,
+                             memory_region_set_may_overlap,
+                             &error_abort);
+    object_property_add(OBJECT(mr), "size", "uint64",
+                        memory_region_get_size,
+                        memory_region_set_size,
+                        NULL, NULL, &error_abort);
 }
 
 static uint64_t unassigned_mem_read(void *opaque, hwaddr addr,
                                     unsigned size)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
+    qemu_log_mask(LOG_GUEST_ERROR, "Unassigned mem read " TARGET_FMT_plx "\n",
+                  addr);
 #endif
     if (current_cpu != NULL) {
         cpu_unassigned_access(current_cpu, addr, false, false, 0, size);
@@ -880,7 +1035,8 @@ static void unassigned_mem_write(void *opaque, hwaddr addr,
                                  uint64_t val, unsigned size)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem write " TARGET_FMT_plx " = 0x%"PRIx64"\n", addr, val);
+    qemu_log_mask(LOG_GUEST_ERROR, "Unassigned mem write " TARGET_FMT_plx
+                  " = 0x%"PRIx64"\n", addr, val);
 #endif
     if (current_cpu != NULL) {
         cpu_unassigned_access(current_cpu, addr, true, false, 0, size);
@@ -1082,8 +1238,10 @@ void memory_region_init_reservation(MemoryRegion *mr,
     memory_region_init_io(mr, owner, &unassigned_mem_ops, mr, name, size);
 }
 
-void memory_region_destroy(MemoryRegion *mr)
+static void memory_region_finalize(Object *obj)
 {
+    MemoryRegion *mr = MEMORY_REGION(obj);
+
     assert(QTAILQ_EMPTY(&mr->subregions));
     assert(memory_region_transaction_depth == 0);
     mr->destructor(mr);
@@ -1091,6 +1249,13 @@ void memory_region_destroy(MemoryRegion *mr)
     g_free((char *)mr->name);
     g_free(mr->ioeventfds);
 }
+
+void memory_region_destroy(MemoryRegion *mr)
+{
+    /*FIXME: whatever the opposite of object initialize is, do it here */
+    memory_region_finalize(OBJECT(mr));
+}
+
 
 Object *memory_region_owner(MemoryRegion *mr)
 {
@@ -1410,18 +1575,15 @@ void memory_region_del_eventfd(MemoryRegion *mr,
     memory_region_transaction_commit();
 }
 
-static void memory_region_add_subregion_common(MemoryRegion *mr,
-                                               hwaddr offset,
-                                               MemoryRegion *subregion)
+static void do_memory_region_add_subregion_common(MemoryRegion *subregion)
 {
+    hwaddr offset = subregion->addr;
+    MemoryRegion *mr = subregion->parent;
     MemoryRegion *other;
 
     memory_region_transaction_begin();
 
-    assert(!subregion->parent);
     memory_region_ref(subregion);
-    subregion->parent = mr;
-    subregion->addr = offset;
     QTAILQ_FOREACH(other, &mr->subregions, subregions_link) {
         if (subregion->may_overlap || other->may_overlap) {
             continue;
@@ -1452,9 +1614,19 @@ static void memory_region_add_subregion_common(MemoryRegion *mr,
     QTAILQ_INSERT_TAIL(&mr->subregions, subregion, subregions_link);
 done:
     memory_region_update_pending |= mr->enabled && subregion->enabled;
+    subregion->contained = true;
     memory_region_transaction_commit();
 }
 
+static void memory_region_add_subregion_common(MemoryRegion *mr,
+                                               hwaddr offset,
+                                               MemoryRegion *subregion)
+{
+    assert(!subregion->parent);
+    subregion->parent = mr;
+    subregion->addr = offset;
+    do_memory_region_add_subregion_common(subregion);
+}
 
 void memory_region_add_subregion(MemoryRegion *mr,
                                  hwaddr offset,
@@ -1479,8 +1651,10 @@ void memory_region_del_subregion(MemoryRegion *mr,
                                  MemoryRegion *subregion)
 {
     memory_region_transaction_begin();
-    assert(subregion->parent == mr);
-    subregion->parent = NULL;
+    if (subregion->parent != mr || !subregion->contained) {
+        return;
+    }
+    subregion->contained = false;
     QTAILQ_REMOVE(&mr->subregions, subregion, subregions_link);
     memory_region_unref(subregion);
     memory_region_update_pending |= mr->enabled && subregion->enabled;
@@ -1500,25 +1674,10 @@ void memory_region_set_enabled(MemoryRegion *mr, bool enabled)
 
 void memory_region_set_address(MemoryRegion *mr, hwaddr addr)
 {
-    MemoryRegion *parent = mr->parent;
-    int priority = mr->priority;
-    bool may_overlap = mr->may_overlap;
-
-    if (addr == mr->addr || !parent) {
+    if (addr != mr->addr) {
         mr->addr = addr;
-        return;
+        memory_region_readd_subregion(mr);
     }
-
-    memory_region_transaction_begin();
-    memory_region_ref(mr);
-    memory_region_del_subregion(parent, mr);
-    if (may_overlap) {
-        memory_region_add_subregion_overlap(parent, addr, mr, priority);
-    } else {
-        memory_region_add_subregion(parent, addr, mr);
-    }
-    memory_region_unref(mr);
-    memory_region_transaction_commit();
 }
 
 void memory_region_set_alias_offset(MemoryRegion *mr, hwaddr offset)
@@ -1703,25 +1862,50 @@ void memory_listener_unregister(MemoryListener *listener)
 
 void address_space_init(AddressSpace *as, MemoryRegion *root, const char *name)
 {
+    object_initialize(as, sizeof(*as), TYPE_ADDRESS_SPACE);
+    assert(ADDRESS_SPACE(as));
+
+    /* When Memory Regions are QOMified, this will be a proper link */
+    as->root = root;
+    /* FIXME: Jury still out for whether this should be a seperate prop
+     * or recycle existing qdevish namings
+     */
+    as->name = name ? g_strdup(name) : NULL;
+}
+
+static void address_space_initfn(Object *obj)
+{
+}
+
+static void address_space_realize(DeviceState *dev, Error **errp)
+{
+    AddressSpace *as = ADDRESS_SPACE(dev);
+
     if (QTAILQ_EMPTY(&address_spaces)) {
         memory_init();
     }
 
     memory_region_transaction_begin();
-    as->root = root;
     as->current_map = g_new(FlatView, 1);
     flatview_init(as->current_map);
     as->ioeventfd_nb = 0;
     as->ioeventfds = NULL;
     QTAILQ_INSERT_TAIL(&address_spaces, as, address_spaces_link);
-    as->name = g_strdup(name ? name : "anonymous");
+    as->name = as->name ? as->name : g_strdup("anonymous");
     address_space_init_dispatch(as);
-    memory_region_update_pending |= root->enabled;
+    memory_region_update_pending |= as->root->enabled;
     memory_region_transaction_commit();
 }
 
 void address_space_destroy(AddressSpace *as)
 {
+    object_property_set_bool(OBJECT(as), false, "realized", &error_abort);
+}
+
+static void address_space_unrealize(DeviceState *dev, Error **errp)
+{
+    AddressSpace *as = ADDRESS_SPACE(dev);
+
     /* Flush out anything from MemoryListeners listening in on this */
     memory_region_transaction_begin();
     as->root = NULL;
@@ -1878,3 +2062,35 @@ void mtree_info(fprintf_function mon_printf, void *f)
         g_free(ml);
     }
 }
+
+static const TypeInfo memory_region_info = {
+    .parent             = TYPE_OBJECT,
+    .name               = TYPE_MEMORY_REGION,
+    .instance_size      = sizeof(MemoryRegion),
+    .instance_init      = memory_region_initfn,
+    .instance_finalize  = memory_region_finalize,
+};
+
+static void address_space_class_init(ObjectClass *oc, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(oc);
+
+    dc->realize = address_space_realize;
+    dc->unrealize = address_space_unrealize;
+}
+
+static const TypeInfo address_space_info = {
+    .parent         = TYPE_DEVICE,
+    .name           = TYPE_ADDRESS_SPACE,
+    .instance_size  = sizeof(AddressSpace),
+    .instance_init  = address_space_initfn,
+    .class_init     = address_space_class_init,
+};
+
+static void memory_register_types(void)
+{
+    type_register_static(&memory_region_info);
+    type_register_static(&address_space_info);
+}
+
+type_init(memory_register_types)

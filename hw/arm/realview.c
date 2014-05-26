@@ -348,7 +348,8 @@ static void realview_init(QEMUMachineInitArgs *args,
     realview_binfo.nb_cpus = smp_cpus;
     realview_binfo.board_id = realview_board_id[board_type];
     realview_binfo.loader_start = (board_type == BOARD_PB_A8 ? 0x70000000 : 0);
-    arm_load_kernel(ARM_CPU(first_cpu), &realview_binfo);
+	realview_binfo.primary_cpu = ARM_CPU(first_cpu);
+    arm_load_kernel(&realview_binfo);
 }
 
 static void realview_eb_init(QEMUMachineInitArgs *args)

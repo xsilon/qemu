@@ -11019,7 +11019,7 @@ done_generating:
 #ifdef DEBUG_DISAS
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
         qemu_log("----------------\n");
-        qemu_log("IN: %s\n", lookup_symbol(pc_start));
+        qemu_log("CPU#%d: IN: %s\n", CPU(cpu)->cpu_index, lookup_symbol(pc_start));
         log_target_disas(env, pc_start, dc->pc - pc_start,
                          dc->thumb | (dc->bswap_code << 1));
         qemu_log("\n");
@@ -11072,14 +11072,15 @@ void arm_cpu_dump_state(CPUState *cs, FILE *f, fprintf_function cpu_fprintf,
             cpu_fprintf(f, " ");
     }
     psr = cpsr_read(env);
-    cpu_fprintf(f, "PSR=%08x %c%c%c%c %c %s%d\n",
+    cpu_fprintf(f, "PSR=%08x %c%c%c%c %c %s%d CPU#:%d\n",
                 psr,
                 psr & (1 << 31) ? 'N' : '-',
                 psr & (1 << 30) ? 'Z' : '-',
                 psr & (1 << 29) ? 'C' : '-',
                 psr & (1 << 28) ? 'V' : '-',
                 psr & CPSR_T ? 'T' : 'A',
-                cpu_mode_names[psr & 0xf], (psr & 0x10) ? 32 : 26);
+                cpu_mode_names[psr & 0xf], (psr & 0x10) ? 32 : 26,
+	        cs->cpu_index);
 
     if (flags & CPU_DUMP_FPU) {
         int numvfpregs = 0;

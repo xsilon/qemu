@@ -13,6 +13,9 @@
  */
 
 #include "hw/ssi.h"
+#include "hw/irq.h"
+
+#include "hw/fdt_generic_util.h"
 
 struct SSIBus {
     BusState parent_obj;
@@ -53,6 +56,32 @@ static uint32_t ssi_transfer_raw_default(SSISlave *dev, uint32_t val)
     return 0;
 }
 
+static bool ssi_slave_parse_reg(FDTGenericMMap *obj, uint32_t *cells,
+                                int ncells, Error **errp)
+{
+    SSISlave *s = SSI_SLAVE(obj);
+    SSISlaveClass *ssc = SSI_SLAVE_GET_CLASS(s);
+    Object *o = OBJECT(obj);
+    fprintf(stderr, "SPI device %p\n", obj);
+    DeviceState *parent = DEVICE(o->parent);
+    char bus_name[16];
+
+    if (!parent->realized) {
+        return true;
+    }
+
+    if (ncells && ssc->transfer_raw == ssi_transfer_raw_default &&
+        ssc->cs_polarity != SSI_CS_NONE) {
+        qdev_connect_gpio_out(parent, cells[0],
+                              qdev_get_gpio_in_named(DEVICE(s),
+                                                     SSI_GPIO_CS, 0));
+    }
+
+    snprintf(bus_name, 16, "spi%d", ncells > 1 ? cells[1] : 0);
+    qdev_set_parent_bus(DEVICE(s), qdev_get_child_bus(parent, bus_name));
+    return false;
+}
+
 static int ssi_slave_init(DeviceState *dev)
 {
     SSISlave *s = SSI_SLAVE(dev);
@@ -60,7 +89,7 @@ static int ssi_slave_init(DeviceState *dev)
 
     if (ssc->transfer_raw == ssi_transfer_raw_default &&
             ssc->cs_polarity != SSI_CS_NONE) {
-        qdev_init_gpio_in(dev, ssi_cs_default, 1);
+        qdev_init_gpio_in_named(dev, ssi_cs_default, SSI_GPIO_CS, 1);
     }
 
     return ssc->init(s);
@@ -70,12 +99,14 @@ static void ssi_slave_class_init(ObjectClass *klass, void *data)
 {
     SSISlaveClass *ssc = SSI_SLAVE_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);
+    FDTGenericMMapClass *fmc = FDT_GENERIC_MMAP_CLASS(klass);
 
     dc->init = ssi_slave_init;
     dc->bus_type = TYPE_SSI_BUS;
     if (!ssc->transfer_raw) {
         ssc->transfer_raw = ssi_transfer_raw_default;
     }
+    fmc->parse_reg = ssi_slave_parse_reg;
 }
 
 static const TypeInfo ssi_slave_info = {
@@ -83,6 +114,9 @@ static const TypeInfo ssi_slave_info = {
     .parent = TYPE_DEVICE,
     .class_init = ssi_slave_class_init,
     .class_size = sizeof(SSISlaveClass),
+    .interfaces = (InterfaceInfo []) {
+        { TYPE_FDT_GENERIC_MMAP },
+    },
     .abstract = true,
 };
 
@@ -156,7 +190,7 @@ static int ssi_auto_connect_slave(Object *child, void *opaque)
         return 0;
     }
 
-    cs_line = qdev_get_gpio_in(DEVICE(dev), 0);
+    cs_line = qdev_get_gpio_in_named(DEVICE(dev), SSI_GPIO_CS, 0);
     qdev_set_parent_bus(DEVICE(dev), BUS(arg->bus));
     **arg->cs_linep = cs_line;
     (*arg->cs_linep)++;

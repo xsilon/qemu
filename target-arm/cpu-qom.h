@@ -24,28 +24,10 @@
 
 #define TYPE_ARM_CPU "arm-cpu"
 
-#define ARM_CPU_CLASS(klass) \
-    OBJECT_CLASS_CHECK(ARMCPUClass, (klass), TYPE_ARM_CPU)
 #define ARM_CPU(obj) \
     OBJECT_CHECK(ARMCPU, (obj), TYPE_ARM_CPU)
-#define ARM_CPU_GET_CLASS(obj) \
-    OBJECT_GET_CLASS(ARMCPUClass, (obj), TYPE_ARM_CPU)
-
-/**
- * ARMCPUClass:
- * @parent_realize: The parent class' realize handler.
- * @parent_reset: The parent class' reset handler.
- *
- * An ARM CPU model.
- */
-typedef struct ARMCPUClass {
-    /*< private >*/
-    CPUClass parent_class;
-    /*< public >*/
-
-    DeviceRealize parent_realize;
-    void (*parent_reset)(CPUState *cpu);
-} ARMCPUClass;
+#define ARM_CPU_PARENT_CLASS \
+    object_class_get_parent(object_class_by_name(TYPE_ARM_CPU))
 
 /**
  * ARMCPU:
@@ -162,11 +144,13 @@ typedef struct ARMCPU {
 #define AARCH64_CPU_GET_CLASS(obj) \
     OBJECT_GET_CLASS(AArch64CPUClass, (obj), TYPE_AArch64_CPU)
 
+#if 0
 typedef struct AArch64CPUClass {
     /*< private >*/
     ARMCPUClass parent_class;
     /*< public >*/
 } AArch64CPUClass;
+#endif
 
 static inline ARMCPU *arm_env_get_cpu(CPUARMState *env)
 {

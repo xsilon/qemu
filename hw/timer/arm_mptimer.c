@@ -23,6 +23,8 @@
 #include "qemu/timer.h"
 #include "qom/cpu.h"
 
+#include "hw/fdt_generic_devices.h"
+
 /* This device implements the per-cpu private timer and watchdog block
  * which is used in both the ARM11MPCore and Cortex-A9MP.
  */
@@ -212,6 +214,9 @@ static void arm_mptimer_realize(DeviceState *dev, Error **errp)
     ARMMPTimerState *s = ARM_MPTIMER(dev);
     int i;
 
+    if (!s->num_cpu) {
+        s->num_cpu = fdt_generic_num_cpus;
+    }
     if (s->num_cpu < 1 || s->num_cpu > ARM_MPTIMER_MAX_CPUS) {
         hw_error("%s: num-cpu must be between 1 and %d\n",
                  __func__, ARM_MPTIMER_MAX_CPUS);

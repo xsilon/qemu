@@ -77,6 +77,9 @@ DEF_HELPER_3(set_user_reg, void, env, i32, i32)
 DEF_HELPER_1(vfp_get_fpscr, i32, env)
 DEF_HELPER_2(vfp_set_fpscr, void, env, i32)
 
+DEF_HELPER_1(print_tcg32, void, i32)
+DEF_HELPER_1(print_tcg64, void, i64)
+
 DEF_HELPER_3(vfp_adds, f32, f32, f32, ptr)
 DEF_HELPER_3(vfp_addd, f64, f64, f64, ptr)
 DEF_HELPER_3(vfp_subs, f32, f32, f32, ptr)

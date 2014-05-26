@@ -349,7 +349,8 @@ static void versatile_init(QEMUMachineInitArgs *args, int board_id)
     versatile_binfo.kernel_cmdline = args->kernel_cmdline;
     versatile_binfo.initrd_filename = args->initrd_filename;
     versatile_binfo.board_id = board_id;
-    arm_load_kernel(cpu, &versatile_binfo);
+	versatile_binfo.primary_cpu = cpu;
+    arm_load_kernel(&versatile_binfo);
 }
 
 static void vpb_init(QEMUMachineInitArgs *args)

@@ -71,7 +71,8 @@ static void cubieboard_init(QEMUMachineInitArgs *args)
     cubieboard_binfo.ram_size = args->ram_size;
     cubieboard_binfo.kernel_filename = args->kernel_filename;
     cubieboard_binfo.kernel_cmdline = args->kernel_cmdline;
-    arm_load_kernel(&s->a10->cpu, &cubieboard_binfo);
+	cubieboard_binfo.primary_cpu = &s->a10->cpu;
+    arm_load_kernel(&cubieboard_binfo);
 }
 
 static QEMUMachine cubieboard_machine = {

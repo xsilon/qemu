@@ -939,7 +939,8 @@ static void spitz_common_init(QEMUMachineInitArgs *args,
     spitz_binfo.kernel_cmdline = args->kernel_cmdline;
     spitz_binfo.initrd_filename = args->initrd_filename;
     spitz_binfo.board_id = arm_id;
-    arm_load_kernel(mpu->cpu, &spitz_binfo);
+	spitz_binfo.primary_cpu = mpu->cpu;
+    arm_load_kernel(&spitz_binfo);
     sl_bootparam_write(SL_PXA_PARAM_BASE);
 }
 

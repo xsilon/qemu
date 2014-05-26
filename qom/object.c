@@ -772,6 +772,29 @@ ObjectProperty *object_property_find(Object *obj, const char *name,
     return NULL;
 }
 
+static ObjectProperty *object_property_find_traverse(Object **obj,
+                                                     const char **name,
+                                                     Error **errp)
+{
+    const char *slash = strchr(*name, '/');
+
+    if (slash) {
+        Error *err = NULL;
+        char *child_name = g_strndup(*name, slash - *name);
+        *obj = object_property_get_link(*obj, child_name, &err);
+        g_free(child_name);
+        if (err) {
+            error_propagate(errp, err);
+        } else {
+            *name = slash + 1;
+            return object_property_find_traverse(obj, name, errp);
+        }
+        return NULL;
+    }
+
+    return object_property_find(*obj, *name, errp);
+}
+
 void object_property_del(Object *obj, const char *name, Error **errp)
 {
     ObjectProperty *prop = object_property_find(obj, name, errp);
@@ -793,7 +816,7 @@ void object_property_del(Object *obj, const char *name, Error **errp)
 void object_property_get(Object *obj, Visitor *v, const char *name,
                          Error **errp)
 {
-    ObjectProperty *prop = object_property_find(obj, name, errp);
+    ObjectProperty *prop = object_property_find_traverse(&obj, &name, errp);
     if (prop == NULL) {
         return;
     }
@@ -808,7 +831,7 @@ void object_property_get(Object *obj, Visitor *v, const char *name,
 void object_property_set(Object *obj, Visitor *v, const char *name,
                          Error **errp)
 {
-    ObjectProperty *prop = object_property_find(obj, name, errp);
+    ObjectProperty *prop = object_property_find_traverse(&obj, &name, errp);
     if (prop == NULL) {
         return;
     }

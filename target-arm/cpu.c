@@ -78,10 +78,10 @@ static void cp_reg_reset(gpointer key, gpointer value, gpointer opaque)
 static void arm_cpu_reset(CPUState *s)
 {
     ARMCPU *cpu = ARM_CPU(s);
-    ARMCPUClass *acc = ARM_CPU_GET_CLASS(cpu);
+    CPUClass *cc_parent = CPU_CLASS(ARM_CPU_PARENT_CLASS);
     CPUARMState *env = &cpu->env;
 
-    acc->parent_reset(s);
+    cc_parent->reset(s);
 
     memset(env, 0, offsetof(CPUARMState, features));
     g_hash_table_foreach(cpu->cp_regs, cp_reg_reset, cpu);
@@ -301,7 +301,7 @@ static void arm_cpu_realizefn(DeviceState *dev, Error **errp)
 {
     CPUState *cs = CPU(dev);
     ARMCPU *cpu = ARM_CPU(dev);
-    ARMCPUClass *acc = ARM_CPU_GET_CLASS(dev);
+    DeviceClass *dc_parent = DEVICE_CLASS(ARM_CPU_PARENT_CLASS);
     CPUARMState *env = &cpu->env;
 
     /* Some features automatically imply others: */
@@ -355,7 +355,7 @@ static void arm_cpu_realizefn(DeviceState *dev, Error **errp)
     }
 
     if (cpu->reset_hivecs) {
-            cpu->reset_sctlr |= (1 << 13);
+            cpu->reset_sctlr |= SCTLR_V;
     }
 
     register_cp_regs_for_features(cpu);
@@ -366,7 +366,7 @@ static void arm_cpu_realizefn(DeviceState *dev, Error **errp)
     cpu_reset(cs);
     qemu_init_vcpu(cs);
 
-    acc->parent_realize(dev, errp);
+    dc_parent->realize(dev, errp);
 }
 
 static ObjectClass *arm_cpu_class_by_name(const char *cpu_model)
@@ -1012,20 +1012,23 @@ static const ARMCPUInfo arm_cpus[] = {
 static Property arm_cpu_properties[] = {
     DEFINE_PROP_BOOL("start-powered-off", ARMCPU, start_powered_off, false),
     DEFINE_PROP_UINT32("midr", ARMCPU, midr, 0),
+    DEFINE_PROP_UINT32("ctr", ARMCPU, ctr, 0),
+    DEFINE_PROP_UINT32("clidr", ARMCPU, clidr, 0),
+    DEFINE_PROP_UINT32("id_pfr0", ARMCPU, id_pfr0, 0),
+    DEFINE_PROP_UINT32("id_pfr1", ARMCPU, id_pfr1, 0),
+    DEFINE_PROP_UINT32("ccsidr0", ARMCPU, ccsidr[0], 0),
+    DEFINE_PROP_UINT32("ccsidr1", ARMCPU, ccsidr[1], 0),
     DEFINE_PROP_END_OF_LIST()
 };
 
 static void arm_cpu_class_init(ObjectClass *oc, void *data)
 {
-    ARMCPUClass *acc = ARM_CPU_CLASS(oc);
-    CPUClass *cc = CPU_CLASS(acc);
+    CPUClass *cc = CPU_CLASS(oc);
     DeviceClass *dc = DEVICE_CLASS(oc);
 
-    acc->parent_realize = dc->realize;
     dc->realize = arm_cpu_realizefn;
     dc->props = arm_cpu_properties;
 
-    acc->parent_reset = cc->reset;
     cc->reset = arm_cpu_reset;
 
     cc->class_by_name = arm_cpu_class_by_name;
@@ -1049,13 +1052,11 @@ static void cpu_register(const ARMCPUInfo *info)
 {
     TypeInfo type_info = {
         .parent = TYPE_ARM_CPU,
-        .instance_size = sizeof(ARMCPU),
         .instance_init = info->initfn,
-        .class_size = sizeof(ARMCPUClass),
         .class_init = info->class_init,
     };
 
-    type_info.name = g_strdup_printf("%s-" TYPE_ARM_CPU, info->name);
+    type_info.name = g_strdup_printf("arm.%s", info->name);
     type_register(&type_info);
     g_free((void *)type_info.name);
 }
@@ -1068,7 +1069,6 @@ static const TypeInfo arm_cpu_type_info = {
     .instance_post_init = arm_cpu_post_init,
     .instance_finalize = arm_cpu_finalizefn,
     .abstract = true,
-    .class_size = sizeof(ARMCPUClass),
     .class_init = arm_cpu_class_init,
 };
 

@@ -375,6 +375,7 @@ typedef void (CPUDebugExcpHandler)(CPUArchState *env);
 void cpu_set_debug_excp_handler(CPUDebugExcpHandler *handler);
 
 /* vl.c */
+extern bool tcg_tb_chain;
 extern int singlestep;
 
 /* cpu-exec.c */

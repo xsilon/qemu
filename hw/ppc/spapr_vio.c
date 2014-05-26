@@ -458,6 +458,8 @@ static int spapr_vio_busdev_init(DeviceState *qdev)
         uint32_t liobn = SPAPR_VIO_BASE_LIOBN | dev->reg;
         dev->tcet = spapr_tce_new_table(qdev, liobn, pc->rtce_window_size);
         address_space_init(&dev->as, spapr_tce_get_iommu(dev->tcet), qdev->id);
+        object_property_set_bool(OBJECT(&dev->as), true, "realized",
+                                 &error_abort);
     }
 
     return pc->init(dev);

@@ -1842,13 +1842,14 @@ static void nic_cleanup(NetClientState *nc)
 
 static void pci_nic_uninit(PCIDevice *pci_dev)
 {
+    DeviceState *d = DEVICE(pci_dev);
     EEPRO100State *s = DO_UPCAST(EEPRO100State, dev, pci_dev);
 
     memory_region_destroy(&s->mmio_bar);
     memory_region_destroy(&s->io_bar);
     memory_region_destroy(&s->flash_bar);
-    vmstate_unregister(&pci_dev->qdev, s->vmstate, s);
-    eeprom93xx_free(&pci_dev->qdev, s->eeprom);
+    vmstate_unregister(d, s->vmstate, s);
+    eeprom93xx_free(d, s->eeprom);
     qemu_del_nic(s->nic);
 }
 
@@ -1862,6 +1863,7 @@ static NetClientInfo net_eepro100_info = {
 
 static int e100_nic_init(PCIDevice *pci_dev)
 {
+    DeviceState *d = DEVICE(pci_dev);
     EEPRO100State *s = DO_UPCAST(EEPRO100State, dev, pci_dev);
     E100PCIDeviceInfo *info = eepro100_get_class(s);
 
@@ -1873,7 +1875,7 @@ static int e100_nic_init(PCIDevice *pci_dev)
 
     /* Add 64 * 2 EEPROM. i82557 and i82558 support a 64 word EEPROM,
      * i82559 and later support 64 or 256 word EEPROM. */
-    s->eeprom = eeprom93xx_new(&pci_dev->qdev, EEPROM_SIZE);
+    s->eeprom = eeprom93xx_new(d, EEPROM_SIZE);
 
     /* Handler for memory-mapped I/O */
     memory_region_init_io(&s->mmio_bar, OBJECT(s), &eepro100_ops, s,
@@ -1893,7 +1895,7 @@ static int e100_nic_init(PCIDevice *pci_dev)
     nic_reset(s);
 
     s->nic = qemu_new_nic(&net_eepro100_info, &s->conf,
-                          object_get_typename(OBJECT(pci_dev)), pci_dev->qdev.id, s);
+                          object_get_typename(OBJECT(pci_dev)), d->id, s);
 
     qemu_format_nic_info_str(qemu_get_queue(s->nic), s->conf.macaddr.a);
     TRACE(OTHER, logout("%s\n", qemu_get_queue(s->nic)->info_str));
@@ -1903,9 +1905,9 @@ static int e100_nic_init(PCIDevice *pci_dev)
     s->vmstate = g_malloc(sizeof(vmstate_eepro100));
     memcpy(s->vmstate, &vmstate_eepro100, sizeof(vmstate_eepro100));
     s->vmstate->name = qemu_get_queue(s->nic)->model;
-    vmstate_register(&pci_dev->qdev, -1, s->vmstate, s);
+    vmstate_register(d, -1, s->vmstate, s);
 
-    add_boot_device_path(s->conf.bootindex, &pci_dev->qdev, "/ethernet-phy@0");
+    add_boot_device_path(s->conf.bootindex, d, "/ethernet-phy@0");
 
     return 0;
 }

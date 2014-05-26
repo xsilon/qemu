@@ -252,6 +252,10 @@ static void calxeda_init(QEMUMachineInitArgs *args, enum cxmachines machine)
             exit(1);
         }
         cpu_irq[n] = qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_IRQ);
+		
+		if (n == 0) {
+			highbank_binfo.primary_cpu = cpu;
+		}
     }
 
     sysmem = get_system_memory();
@@ -357,7 +361,7 @@ static void calxeda_init(QEMUMachineInitArgs *args, enum cxmachines machine)
     highbank_binfo.loader_start = 0;
     highbank_binfo.write_secondary_boot = hb_write_secondary;
     highbank_binfo.secondary_cpu_reset_hook = hb_reset_secondary;
-    arm_load_kernel(ARM_CPU(first_cpu), &highbank_binfo);
+    arm_load_kernel(&highbank_binfo);
 }
 
 static void highbank_init(QEMUMachineInitArgs *args)

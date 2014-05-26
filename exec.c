@@ -35,6 +35,7 @@
 #include "qemu/config-file.h"
 #include "qemu/error-report.h"
 #include "exec/memory.h"
+#include "exec/ioport.h"
 #include "sysemu/dma.h"
 #include "exec/address-spaces.h"
 #if defined(CONFIG_USER_ONLY)
@@ -1886,12 +1887,24 @@ static void memory_map_init(void)
     system_memory = g_malloc(sizeof(*system_memory));
 
     memory_region_init(system_memory, NULL, "system", UINT64_MAX);
+    object_property_add_child(qdev_get_machine(), "sysmem",
+                              OBJECT(system_memory), &error_abort);
     address_space_init(&address_space_memory, system_memory, "memory");
+    object_property_add_child(qdev_get_machine(), "sysmem-as",
+                              OBJECT(&address_space_memory), &error_abort);
+    object_property_set_bool(OBJECT(&address_space_memory), true, "realized",
+                             &error_abort);
 
     system_io = g_malloc(sizeof(*system_io));
     memory_region_init_io(system_io, NULL, &unassigned_io_ops, NULL, "io",
                           65536);
+    object_property_add_child(qdev_get_machine(), "sysio",
+                              OBJECT(system_io), &error_abort);
     address_space_init(&address_space_io, system_io, "I/O");
+    object_property_add_child(qdev_get_machine(), "sysio-as",
+                              OBJECT(&address_space_io), &error_abort);
+    object_property_set_bool(OBJECT(&address_space_io), true, "realized",
+                             &error_abort);
 
     memory_listener_register(&core_memory_listener, &address_space_memory);
 }
@@ -2779,3 +2792,28 @@ void qemu_ram_foreach_block(RAMBlockIterFunc func, void *opaque)
     }
 }
 #endif
+
+void cpu_halt_gpio(void *opaque, int irq, int level)
+{
+    CPUState *cpu = CPU(opaque);
+
+    if (level) {
+        cpu_interrupt(cpu, CPU_INTERRUPT_HALT);
+    } else {
+        cpu_reset_interrupt(cpu, CPU_INTERRUPT_HALT);
+        cpu_interrupt(cpu, CPU_INTERRUPT_EXITTB);
+        cpu->halted = 0;
+    }
+}
+
+void cpu_reset_gpio(void *opaque, int irq, int level)
+{
+    CPUState *cpu = CPU(opaque);
+
+    if (level || cpu->reset_pin) {
+        cpu_reset(cpu);
+    }
+    cpu->reset_pin = level;
+    cpu_halt_gpio(opaque, irq, level);
+}
+

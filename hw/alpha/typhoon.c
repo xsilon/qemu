@@ -890,6 +890,8 @@ PCIBus *typhoon_init(ram_addr_t ram_size, ISABus **isa_bus,
     memory_region_init_iommu(&s->pchip.iommu, OBJECT(s), &typhoon_iommu_ops,
                              "iommu-typhoon", UINT64_MAX);
     address_space_init(&s->pchip.iommu_as, &s->pchip.iommu, "pchip0-pci");
+    object_property_set_bool(OBJECT(&s->pchip.iommu_as), true, "realized",
+                             &error_abort);
     pci_setup_iommu(b, typhoon_pci_dma_iommu, s);
 
     /* Pchip0 PCI special/interrupt acknowledge, 0x801.F800.0000, 64MB.  */

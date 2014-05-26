@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "hw/qdev.h"
 #include "qemu-common.h"
 #include "exec/cpu-common.h"
 #ifndef CONFIG_USER_ONLY
@@ -31,9 +32,18 @@
 #include "qemu/queue.h"
 #include "qemu/int128.h"
 #include "qemu/notify.h"
+#include "qom/object.h"
 
 #define MAX_PHYS_ADDR_SPACE_BITS 62
 #define MAX_PHYS_ADDR            (((hwaddr)1 << MAX_PHYS_ADDR_SPACE_BITS) - 1)
+
+#define TYPE_MEMORY_REGION "qemu:memory-region"
+#define MEMORY_REGION(obj) \
+        OBJECT_CHECK(MemoryRegion, (obj), TYPE_MEMORY_REGION)
+
+#define TYPE_ADDRESS_SPACE "qemu:address-space"
+#define ADDRESS_SPACE(obj) \
+        OBJECT_CHECK(AddressSpace, (obj), TYPE_ADDRESS_SPACE)
 
 typedef struct MemoryRegionOps MemoryRegionOps;
 typedef struct MemoryRegionMmio MemoryRegionMmio;
@@ -130,12 +140,14 @@ typedef struct CoalescedMemoryRange CoalescedMemoryRange;
 typedef struct MemoryRegionIoeventfd MemoryRegionIoeventfd;
 
 struct MemoryRegion {
+    Object parent_obj;
     /* All fields are private - violators will be prosecuted */
     const MemoryRegionOps *ops;
     const MemoryRegionIOMMUOps *iommu_ops;
     void *opaque;
     struct Object *owner;
     MemoryRegion *parent;
+    bool contained;
     Int128 size;
     hwaddr addr;
     void (*destructor)(MemoryRegion *mr);
@@ -151,7 +163,7 @@ struct MemoryRegion {
     bool flush_coalesced_mmio;
     MemoryRegion *alias;
     hwaddr alias_offset;
-    int priority;
+    uint32_t priority;
     bool may_overlap;
     QTAILQ_HEAD(subregions, MemoryRegion) subregions;
     QTAILQ_ENTRY(MemoryRegion) subregions_link;
@@ -198,6 +210,7 @@ struct MemoryListener {
  * AddressSpace: describes a mapping of addresses to #MemoryRegion objects
  */
 struct AddressSpace {
+    struct DeviceState parent_obj;
     /* All fields are private. */
     char *name;
     MemoryRegion *root;

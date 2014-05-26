@@ -179,7 +179,8 @@ static void mainstone_common_init(MemoryRegion *address_space_mem,
     mainstone_binfo.kernel_cmdline = args->kernel_cmdline;
     mainstone_binfo.initrd_filename = args->initrd_filename;
     mainstone_binfo.board_id = arm_id;
-    arm_load_kernel(mpu->cpu, &mainstone_binfo);
+    mainstone_binfo.primary_cpu = mpu->cpu;
+    arm_load_kernel(&mainstone_binfo);
 }
 
 static void mainstone_init(QEMUMachineInitArgs *args)

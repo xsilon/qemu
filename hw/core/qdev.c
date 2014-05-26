@@ -237,8 +237,9 @@ void qdev_unplug(DeviceState *dev, Error **errp)
 
 static int qdev_reset_one(DeviceState *dev, void *opaque)
 {
-    device_reset(dev);
-
+    if (!object_dynamic_cast(OBJECT(dev), TYPE_CPU)) {
+        device_reset(dev);
+    }
     return 0;
 }
 
@@ -312,30 +313,154 @@ BusState *qdev_get_parent_bus(DeviceState *dev)
     return dev->parent_bus;
 }
 
+static NamedGPIOList *qdev_get_named_gpio_list(DeviceState *dev,
+                                               const char *name)
+{
+    NamedGPIOList *ngl;
+
+    QLIST_FOREACH(ngl, &dev->gpios, node) {
+        /* NULL is a valid and matchable name, otherwise do a normal
+         * strcmp match.
+         */
+        if ((!ngl->name && !name) ||
+                (name && ngl->name && !strcmp(name, ngl->name))) {
+            return ngl;
+        }
+    }
+
+    ngl = g_malloc0(sizeof(*ngl));
+    ngl->name = g_strdup(name);
+    QLIST_INSERT_HEAD(&dev->gpios, ngl, node);
+    return ngl;
+}
+
+void qdev_init_gpio_in_named(DeviceState *dev, qemu_irq_handler handler,
+                             const char *name, int n)
+{
+    int i;
+    NamedGPIOList *gpio_list = qdev_get_named_gpio_list(dev, name);
+
+    assert(gpio_list->num_out == 0 || !name);
+    gpio_list->in = qemu_extend_irqs(gpio_list->in, gpio_list->num_in, handler,
+                                     dev, n);
+
+    for (i = gpio_list->num_in; i < gpio_list->num_in + n; i++) {
+        char *propname = g_strdup_printf("%s-%d",
+                                         name ? name : "unnamed-gpio-in", i);
+        object_property_add_child(OBJECT(dev), propname,
+                                  OBJECT(gpio_list->in[i]), &error_abort);
+        g_free(propname);
+    }
+
+    gpio_list->num_in += n;
+}
+
 void qdev_init_gpio_in(DeviceState *dev, qemu_irq_handler handler, int n)
 {
-    dev->gpio_in = qemu_extend_irqs(dev->gpio_in, dev->num_gpio_in, handler,
-                                        dev, n);
-    dev->num_gpio_in += n;
+    qdev_init_gpio_in_named(dev, handler, NULL, n);
+}
+
+void qdev_init_gpio_out_named(DeviceState *dev, qemu_irq *pins,
+                              const char *name, int n)
+{
+    int i;
+    NamedGPIOList *gpio_list = qdev_get_named_gpio_list(dev, name);
+
+    assert(gpio_list->num_in == 0 || !name);
+    assert(gpio_list->num_out == 0);
+    gpio_list->num_out = n;
+    gpio_list->out = pins;
+
+    for (i = 0; i < n; ++i) {
+        char *propname = g_strdup_printf("%s-%d",
+                                         name ? name : "unnamed-gpio-out", i);
+        object_property_add_link(OBJECT(dev), propname, TYPE_IRQ,
+                                 (Object **)&pins[i],
+                                 object_property_allow_set_link,
+                                 OBJ_PROP_LINK_UNREF_ON_RELEASE,
+                                 &error_abort);
+        g_free(propname);
+    }
 }
 
 void qdev_init_gpio_out(DeviceState *dev, qemu_irq *pins, int n)
 {
-    assert(dev->num_gpio_out == 0);
-    dev->num_gpio_out = n;
-    dev->gpio_out = pins;
+    qdev_init_gpio_out_named(dev, pins, NULL, n);
+}
+
+qemu_irq qdev_get_gpio_in_named(DeviceState *dev, const char *name, int n)
+{
+    char *propname = g_strdup_printf("%s-%d",
+                                     name ? name : "unnamed-gpio-in", n);
+    return (qemu_irq)object_property_get_link(OBJECT(dev), propname, NULL);
 }
 
 qemu_irq qdev_get_gpio_in(DeviceState *dev, int n)
 {
-    assert(n >= 0 && n < dev->num_gpio_in);
-    return dev->gpio_in[n];
+    return qdev_get_gpio_in_named(dev, NULL, n);
+}
+
+qemu_irq qdev_get_gpio_out_named(DeviceState *dev, const char *name, int n)
+{
+    char *propname = g_strdup_printf("%s-%d",
+                                     name ? name : "unnamed-gpio-out", n);
+    return (qemu_irq)object_property_get_link(OBJECT(dev), propname, NULL);
+}
+
+qemu_irq qdev_get_gpio_out(DeviceState *dev, int n)
+{
+    return qdev_get_gpio_out_named(dev, NULL, n);
+}
+
+void qdev_connect_gpio_out_named(DeviceState *dev, const char *name, int n,
+                                 qemu_irq pin)
+{
+    qemu_irq irq;
+    if (!pin) {
+        return;
+    }
+    char *propname = g_strdup_printf("%s-%d",
+                                     name ? name : "unnamed-gpio-out", n);
+
+    irq = (qemu_irq)object_property_get_link(OBJECT(dev), propname, NULL);
+    irq = irq ? qemu_irq_split(irq, pin) : pin;
+    object_property_set_link(OBJECT(dev), OBJECT(irq), propname, NULL);
+    g_free(propname);
 }
 
 void qdev_connect_gpio_out(DeviceState * dev, int n, qemu_irq pin)
 {
-    assert(n >= 0 && n < dev->num_gpio_out);
-    dev->gpio_out[n] = pin;
+    qdev_connect_gpio_out_named(dev, NULL, n, pin);
+}
+
+void qdev_pass_all_gpios(DeviceState *dev, DeviceState *container)
+{
+    NamedGPIOList *ngl;
+
+    QLIST_FOREACH(ngl, &dev->gpios, node) {
+        int i;
+
+        for (i = 0; i < ngl->num_in; i++) {
+            char *propname = g_strdup_printf("%s-%d",
+                                             ngl->name ? ngl->name
+                                                       : "unnamed-gpio-in",
+                                             i);
+            object_unparent(OBJECT(ngl->in[i]));
+            object_property_add_child(OBJECT(container), propname,
+                                      OBJECT(ngl->in[i]), &error_abort);
+        }
+        for (i = 0; i < ngl->num_out; i++) {
+            char *propname = g_strdup_printf("%s-%d",
+                                             ngl->name ? ngl->name
+                                                       : "unnamed-gpio-out",
+                                             i);
+            object_property_add_link(OBJECT(dev), propname, TYPE_IRQ,
+                                     (Object **)&ngl->out[i],
+                                     object_property_allow_set_link,
+                                     OBJ_PROP_LINK_UNREF_ON_RELEASE,
+                                     &error_abort);
+        }
+    }
 }
 
 BusState *qdev_get_child_bus(DeviceState *dev, const char *name)
@@ -833,17 +958,21 @@ static void device_initfn(Object *obj)
                              device_get_hotpluggable, NULL, NULL);
 
     class = object_get_class(OBJECT(dev));
-    do {
+    for (;;) {
         for (prop = DEVICE_CLASS(class)->props; prop && prop->name; prop++) {
             qdev_property_add_legacy(dev, prop, &error_abort);
             qdev_property_add_static(dev, prop, &error_abort);
         }
+        if (class == object_class_by_name(TYPE_DEVICE)) {
+            break;
+        }
         class = object_class_get_parent(class);
-    } while (class != object_class_by_name(TYPE_DEVICE));
+    }
 
     object_property_add_link(OBJECT(dev), "parent_bus", TYPE_BUS,
                              (Object **)&dev->parent_bus, NULL, 0,
                              &error_abort);
+    QLIST_INIT(&dev->gpios);
 }
 
 static void device_post_init(Object *obj)
@@ -854,9 +983,18 @@ static void device_post_init(Object *obj)
 /* Unlink device from bus and free the structure.  */
 static void device_finalize(Object *obj)
 {
+    NamedGPIOList *ngl, *next;
+
     DeviceState *dev = DEVICE(obj);
     if (dev->opts) {
         qemu_opts_del(dev->opts);
+    }
+
+    QLIST_FOREACH_SAFE(ngl, &dev->gpios, node, next) {
+        QLIST_REMOVE(ngl, node);
+        qemu_free_irqs(ngl->in);
+        g_free(ngl->name);
+        g_free(ngl);
     }
 }
 
@@ -906,6 +1044,11 @@ static void device_unparent(Object *obj)
     }
 }
 
+static Property device_props[] = {
+    DEFINE_PROP_STRING("device-id", DeviceState, id),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
 static void device_class_init(ObjectClass *class, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(class);
@@ -913,6 +1056,7 @@ static void device_class_init(ObjectClass *class, void *data)
     class->unparent = device_unparent;
     dc->realize = device_realize;
     dc->unrealize = device_unrealize;
+    dc->props = device_props;
 
     /* by default all devices were considered as hotpluggable,
      * so with intent to check it in generic qdev_unplug() /
@@ -929,6 +1073,24 @@ void device_reset(DeviceState *dev)
 
     if (klass->reset) {
         klass->reset(dev);
+    }
+}
+
+void device_halt(DeviceState *dev)
+{
+    DeviceClass *klass = DEVICE_GET_CLASS(dev);
+
+    if (klass->halt) {
+        klass->halt(dev);
+    }
+}
+
+void device_unhalt(DeviceState *dev)
+{
+    DeviceClass *klass = DEVICE_GET_CLASS(dev);
+
+    if (klass->halt) {
+        klass->unhalt(dev);
     }
 }
 

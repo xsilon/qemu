@@ -55,7 +55,8 @@ static void collie_init(QEMUMachineInitArgs *args)
     collie_binfo.kernel_cmdline = kernel_cmdline;
     collie_binfo.initrd_filename = initrd_filename;
     collie_binfo.board_id = 0x208;
-    arm_load_kernel(s->cpu, &collie_binfo);
+	collie_binfo.primary_cpu = s->cpu;
+    arm_load_kernel(&collie_binfo);
 }
 
 static QEMUMachine collie_machine = {

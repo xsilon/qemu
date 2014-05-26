@@ -22,6 +22,8 @@
 #include "gic_internal.h"
 #include "qom/cpu.h"
 
+#include "hw/fdt_generic_util.h"
+
 //#define DEBUG_GIC
 
 #ifdef DEBUG_GIC
@@ -786,6 +788,7 @@ void gic_init_irqs_and_distributor(GICState *s, int num_irq)
     for (i = 0; i < NUM_CPU(s); i++) {
         sysbus_init_irq(sbd, &s->parent_irq[i]);
     }
+    qdev_init_gpio_out_named(DEVICE(s), s->parent_irq, "Outputs", NUM_CPU(s));
     memory_region_init_io(&s->iomem, OBJECT(s), &gic_dist_ops, s,
                           "gic_dist", 0x1000);
 }
@@ -830,13 +833,46 @@ static void arm_gic_realize(DeviceState *dev, Error **errp)
     }
 }
 
+static void arm_gic_fdt_auto_parent(FDTGenericIntc *obj, Error **errp)
+{
+    GICState *s = ARM_GIC(obj);
+    CPUState *cs;
+    int i = 0;
+
+    for (cs = first_cpu; cs; cs = CPU_NEXT(cs)) {
+        if (i >= s->num_cpu) {
+            break;
+        }
+        qdev_connect_gpio_out_named(DEVICE(obj), "Outputs", i,
+                                    qdev_get_gpio_in(DEVICE(cs), 0));
+        i++;
+    }
+
+    /* FIXME: Add some error checking */
+}
+
+static const FDTGenericGPIOSet arm_gic_client_gpios [] = {
+    {
+        .names = &fdt_generic_gpio_name_set_interrupts,
+        .gpios = (FDTGenericGPIOConnection []) {
+            { .name = "Outputs",        .range = 4 },
+            { },
+        },
+    },
+    { },
+};
+
 static void arm_gic_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     ARMGICClass *agc = ARM_GIC_CLASS(klass);
+    FDTGenericIntcClass *fgic = FDT_GENERIC_INTC_CLASS(klass);
+    FDTGenericGPIOClass *fggc = FDT_GENERIC_GPIO_CLASS(klass);
 
     agc->parent_realize = dc->realize;
     dc->realize = arm_gic_realize;
+    fgic->auto_parent = arm_gic_fdt_auto_parent;
+    fggc->client_gpios = arm_gic_client_gpios;
 }
 
 static const TypeInfo arm_gic_info = {

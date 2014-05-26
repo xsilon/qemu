@@ -260,6 +260,8 @@ static void raven_pcihost_initfn(Object *obj)
     memory_region_init(&s->pci_memory, obj, "pci-memory",
                        0x3f000000 + 0xc0000000ULL);
     address_space_init(&s->pci_io_as, &s->pci_io, "raven-io");
+    object_property_set_bool(OBJECT(&s->pci_io_as), true, "realized",
+                             &error_abort);
 
     /* CPU address space */
     memory_region_add_subregion(address_space_mem, 0x80000000, &s->pci_io);
@@ -279,6 +281,7 @@ static void raven_pcihost_initfn(Object *obj)
     memory_region_add_subregion(&s->bm, 0         , &s->bm_pci_memory_alias);
     memory_region_add_subregion(&s->bm, 0x80000000, &s->bm_ram_alias);
     address_space_init(&s->bm_as, &s->bm, "raven-bm");
+    object_property_set_bool(OBJECT(&s->mb_as), true, "realized", &error_abort);
     pci_setup_iommu(&s->pci_bus, raven_pcihost_set_iommu, s);
 
     h->bus = &s->pci_bus;

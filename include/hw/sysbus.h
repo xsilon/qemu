@@ -5,10 +5,9 @@
 
 #include "hw/qdev.h"
 #include "exec/memory.h"
+#include "exec/ioport.h"
 
-#define QDEV_MAX_MMIO 32
 #define QDEV_MAX_PIO 32
-#define QDEV_MAX_IRQ 512
 
 #define TYPE_SYSTEM_BUS "System"
 #define SYSTEM_BUS(obj) OBJECT_CHECK(IDEBus, (obj), TYPE_IDE_BUS)
@@ -33,6 +32,9 @@ typedef struct SysBusDevice SysBusDevice;
  * SysBusDeviceClass is not overriding #DeviceClass.realize, so derived
  * classes overriding it are not required to invoke its implementation.
  */
+
+#define SYSBUS_DEVICE_GPIO_IRQ "sysbus-irq"
+
 typedef struct SysBusDeviceClass {
     /*< private >*/
     DeviceClass parent_class;
@@ -47,13 +49,7 @@ struct SysBusDevice {
     /*< public >*/
 
     int num_irq;
-    qemu_irq irqs[QDEV_MAX_IRQ];
-    qemu_irq *irqp[QDEV_MAX_IRQ];
     int num_mmio;
-    struct {
-        hwaddr addr;
-        MemoryRegion *memory;
-    } mmio[QDEV_MAX_MMIO];
     int num_pio;
     pio_addr_t pio[QDEV_MAX_PIO];
 };

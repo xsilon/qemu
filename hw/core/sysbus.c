@@ -41,38 +41,25 @@ static const TypeInfo system_bus_info = {
 
 void sysbus_connect_irq(SysBusDevice *dev, int n, qemu_irq irq)
 {
-    assert(n >= 0 && n < dev->num_irq);
-    dev->irqs[n] = NULL;
-    if (dev->irqp[n]) {
-        *dev->irqp[n] = irq;
-    }
+    char *irq_name = g_strdup_printf(SYSBUS_DEVICE_GPIO_IRQ "-%d", n);
+    qdev_connect_gpio_out_named(DEVICE(dev), irq_name, 0, irq);
+    g_free(irq_name);
 }
 
 static void sysbus_mmio_map_common(SysBusDevice *dev, int n, hwaddr addr,
                                    bool may_overlap, int priority)
 {
+    MemoryRegion *mr;
     assert(n >= 0 && n < dev->num_mmio);
 
-    if (dev->mmio[n].addr == addr) {
-        /* ??? region already mapped here.  */
-        return;
-    }
-    if (dev->mmio[n].addr != (hwaddr)-1) {
-        /* Unregister previous mapping.  */
-        memory_region_del_subregion(get_system_memory(), dev->mmio[n].memory);
-    }
-    dev->mmio[n].addr = addr;
-    if (may_overlap) {
-        memory_region_add_subregion_overlap(get_system_memory(),
-                                            addr,
-                                            dev->mmio[n].memory,
-                                            priority);
-    }
-    else {
-        memory_region_add_subregion(get_system_memory(),
-                                    addr,
-                                    dev->mmio[n].memory);
-    }
+    mr = sysbus_mmio_get_region(dev, n);
+
+    object_property_set_link(OBJECT(mr), OBJECT(get_system_memory()),
+                             "container", &error_abort);
+    object_property_set_bool(OBJECT(mr), may_overlap, "may-overlap",
+                             &error_abort);
+    object_property_set_int(OBJECT(mr), priority, "priority", &error_abort);
+    object_property_set_int(OBJECT(mr), addr, "addr", &error_abort);
 }
 
 void sysbus_mmio_map(SysBusDevice *dev, int n, hwaddr addr)
@@ -89,37 +76,36 @@ void sysbus_mmio_map_overlap(SysBusDevice *dev, int n, hwaddr addr,
 /* Request an IRQ source.  The actual IRQ object may be populated later.  */
 void sysbus_init_irq(SysBusDevice *dev, qemu_irq *p)
 {
-    int n;
-
-    assert(dev->num_irq < QDEV_MAX_IRQ);
-    n = dev->num_irq++;
-    dev->irqp[n] = p;
+    char *irq_name = g_strdup_printf(SYSBUS_DEVICE_GPIO_IRQ "-%d",
+                                     dev->num_irq++);
+    qdev_init_gpio_out_named(DEVICE(dev), p, irq_name, 1);
+    g_free(irq_name);
 }
 
 /* Pass IRQs from a target device.  */
 void sysbus_pass_irq(SysBusDevice *dev, SysBusDevice *target)
 {
-    int i;
-    assert(dev->num_irq == 0);
-    dev->num_irq = target->num_irq;
-    for (i = 0; i < dev->num_irq; i++) {
-        dev->irqp[i] = target->irqp[i];
-    }
+    qdev_pass_all_gpios(DEVICE(target), DEVICE(dev));
 }
 
 void sysbus_init_mmio(SysBusDevice *dev, MemoryRegion *memory)
 {
-    int n;
+    char *propname = g_strdup_printf("sysbus-mr-%d", dev->num_mmio++);
 
-    assert(dev->num_mmio < QDEV_MAX_MMIO);
-    n = dev->num_mmio++;
-    dev->mmio[n].addr = -1;
-    dev->mmio[n].memory = memory;
+    object_property_add_child(OBJECT(dev), propname, OBJECT(memory),
+                              &error_abort);
+    g_free(propname);
 }
 
 MemoryRegion *sysbus_mmio_get_region(SysBusDevice *dev, int n)
 {
-    return dev->mmio[n].memory;
+    MemoryRegion *ret;
+    char *propname = g_strdup_printf("sysbus-mr-%d", n);
+
+    ret = MEMORY_REGION(object_property_get_link(OBJECT(dev), propname,
+                        &error_abort));
+    g_free(propname);
+    return ret;
 }
 
 void sysbus_init_ioports(SysBusDevice *dev, pio_addr_t ioport, pio_addr_t size)
@@ -210,11 +196,12 @@ static void sysbus_dev_print(Monitor *mon, DeviceState *dev, int indent)
     hwaddr size;
     int i;
 
-    monitor_printf(mon, "%*sirq %d\n", indent, "", s->num_irq);
     for (i = 0; i < s->num_mmio; i++) {
-        size = memory_region_size(s->mmio[i].memory);
+        MemoryRegion *mr = sysbus_mmio_get_region(s, i);
+        hwaddr addr = object_property_get_int(OBJECT(mr), "addr", &error_abort);
+        size = memory_region_size(mr);
         monitor_printf(mon, "%*smmio " TARGET_FMT_plx "/" TARGET_FMT_plx "\n",
-                       indent, "", s->mmio[i].addr, size);
+                       indent, "", addr, size);
     }
 }
 
@@ -227,8 +214,10 @@ static char *sysbus_get_fw_dev_path(DeviceState *dev)
     off = snprintf(path, sizeof(path), "%s", qdev_fw_name(dev));
 
     if (s->num_mmio) {
-        snprintf(path + off, sizeof(path) - off, "@"TARGET_FMT_plx,
-                 s->mmio[0].addr);
+        hwaddr addr;
+        addr = object_property_get_int(OBJECT(sysbus_mmio_get_region(s, 0)),
+                                       "addr", &error_abort);
+        snprintf(path + off, sizeof(path) - off, "@"TARGET_FMT_plx, addr);
     } else if (s->num_pio) {
         snprintf(path + off, sizeof(path) - off, "@i%04x", s->pio[0]);
     }
@@ -257,13 +246,6 @@ static void sysbus_device_class_init(ObjectClass *klass, void *data)
     DeviceClass *k = DEVICE_CLASS(klass);
     k->init = sysbus_device_init;
     k->bus_type = TYPE_SYSTEM_BUS;
-    /*
-     * device_add plugs devices into suitable bus.  For "real" buses,
-     * that actually connects the device.  For sysbus, the connections
-     * need to be made separately, and device_add can't do that.  The
-     * device would be left unconnected, and could not possibly work.
-     */
-    k->cannot_instantiate_with_device_add_yet = true;
 }
 
 static const TypeInfo sysbus_device_type_info = {

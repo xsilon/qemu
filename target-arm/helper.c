@@ -2478,6 +2478,11 @@ void register_cp_regs_for_features(ARMCPU *cpu)
         define_one_arm_cp_reg(cpu, &auxcr);
     }
 
+    /* FIXME: Delete */
+    if (!cpu->reset_cbar) {
+        cpu->reset_cbar = 0xf8f00000;
+    }
+
     if (arm_feature(env, ARM_FEATURE_CBAR)) {
         if (arm_feature(env, ARM_FEATURE_AARCH64)) {
             /* 32 bit view is [31:18] 0...0 [43:32]. */

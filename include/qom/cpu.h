@@ -282,6 +282,8 @@ struct CPUState {
        (absolute value) offset as small as possible.  This reduces code
        size, especially for hosts without large memory offsets.  */
     volatile sig_atomic_t tcg_exit_req;
+
+    bool reset_pin; /* state of reset pin */
 };
 
 QTAILQ_HEAD(CPUTailQ, CPUState);
@@ -643,5 +645,8 @@ extern const struct VMStateDescription vmstate_cpu_common;
     .flags = VMS_STRUCT,                                                    \
     .offset = 0,                                                            \
 }
+
+void cpu_halt_gpio(void *opaque, int irq, int level);
+void cpu_reset_gpio(void *opaque, int irq, int level);
 
 #endif

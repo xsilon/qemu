@@ -454,8 +454,10 @@ static void vexpress_modify_dtb(const struct arm_boot_info *info, void *fdt)
     uint32_t acells, scells, intc;
     const VEDBoardInfo *daughterboard = (const VEDBoardInfo *)info;
 
-    acells = qemu_fdt_getprop_cell(fdt, "/", "#address-cells");
-    scells = qemu_fdt_getprop_cell(fdt, "/", "#size-cells");
+    acells = qemu_fdt_getprop_cell(fdt, "/", "#address-cells", 0);
+    scells = qemu_fdt_getprop_cell(fdt, "/", "#size-cells", 0);
+    acells = 0;
+    scells = 0;
     intc = find_int_controller(fdt);
     if (!intc) {
         /* Not fatal, we just won't provide virtio. This will
@@ -650,7 +652,8 @@ static void vexpress_common_init(VEDBoardInfo *daughterboard,
     daughterboard->bootinfo.smp_bootreg_addr = map[VE_SYSREGS] + 0x30;
     daughterboard->bootinfo.gic_cpu_if_addr = daughterboard->gic_cpu_if_addr;
     daughterboard->bootinfo.modify_dtb = vexpress_modify_dtb;
-    arm_load_kernel(ARM_CPU(first_cpu), &daughterboard->bootinfo);
+    daughterboard->bootinfo.primary_cpu = ARM_CPU(first_cpu);
+    arm_load_kernel(&daughterboard->bootinfo);
 }
 
 static void vexpress_a9_init(QEMUMachineInitArgs *args)

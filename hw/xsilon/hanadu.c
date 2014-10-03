@@ -6,101 +6,31 @@
  */
 #include "hw/sysbus.h"
 #include "qemu/log.h"
-
-#define TYPE_HANADU_TRX "xlnx,transceiver-1.00.a"
-#define TYPE_HANADU_AFE "xlnx,afe-controller-2.00.a"
-#define TYPE_HANADU_PUP "xlnx,powerup-controller-1.00.a"
-#define TYPE_HANADU_MAC "xlnx,traffic-monitor-1.00.a"
-#define TYPE_HANADU_TXB "xlnx,tx-buffer-3.00.a"
-#define TYPE_HANADU_RXB "xlnx,rx-buffer-3.00.a"
-#define TYPE_HANADU_HWV "xlnx,hardware-version-control-2.00.a"
-
-#define HANADU_TRX_DEV(obj) \
-     OBJECT_CHECK(struct han_trx_dev, (obj), TYPE_HANADU_TRX)
-#define HANADU_AFE_DEV(obj) \
-     OBJECT_CHECK(struct han_afe_dev, (obj), TYPE_HANADU_AFE)
-#define HANADU_PUP_DEV(obj) \
-     OBJECT_CHECK(struct han_pup_dev, (obj), TYPE_HANADU_PUP)
-#define HANADU_MAC_DEV(obj) \
-     OBJECT_CHECK(struct han_mac_dev, (obj), TYPE_HANADU_MAC)
-#define HANADU_TXB_DEV(obj) \
-     OBJECT_CHECK(struct han_txb_dev, (obj), TYPE_HANADU_TXB)
-#define HANADU_RXB_DEV(obj) \
-     OBJECT_CHECK(struct han_rxb_dev, (obj), TYPE_HANADU_RXB)
-#define HANADU_HWV_DEV(obj) \
-     OBJECT_CHECK(struct han_hwv_dev, (obj), TYPE_HANADU_HWV)
+#include "hanadu.h"
 
 
-struct han_trx_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-    qemu_irq irq;
 
-    uint32_t c_rxmem;
-    uint32_t c_txmem;
-};
-
-struct han_afe_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-};
-
-struct han_pup_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-};
-
-struct han_mac_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-};
-
-struct han_txb_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-};
-
-struct han_rxb_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-};
-
-struct han_hwv_dev {
-    SysBusDevice busdev;
-    MemoryRegion iomem;
-};
 
 /* __________________________________________________________ Hanadu Transceiver
  */
 
-static Property han_trx_properties[] = {
-    DEFINE_PROP_UINT32("rxmem", struct han_trx_dev, c_rxmem, 0x10000),
-    DEFINE_PROP_UINT32("txmem", struct han_trx_dev, c_txmem, 0x10000),
+static Property han_trxm_properties[] = {
+    DEFINE_PROP_UINT32("rxmem", struct han_trxm_dev, c_rxmem, 0x10000),
+    DEFINE_PROP_UINT32("txmem", struct han_trxm_dev, c_txmem, 0x10000),
 //    DEFINE_NIC_PROPERTIES(XilinxAXIEnet, conf),
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static uint64_t
-han_trx_mem_region_read(void *opaque, hwaddr addr, unsigned size)
-{
-    return 0;
-}
-
-static void
-han_trx_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
-{
-}
-
-static const MemoryRegionOps han_trx_mem_region_ops = {
-    .read = han_trx_mem_region_read,
-    .write = han_trx_mem_region_write,
+static const MemoryRegionOps han_trxm_mem_region_ops = {
+    .read = han_trxm_mem_region_read,
+    .write = han_trxm_mem_region_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
 
-static void han_trx_realize(DeviceState *dev, Error **errp)
+static void han_trxm_realize(DeviceState *dev, Error **errp)
 {
-//    struct han_trx_dev *s = HANADU_TRX_DEV(dev);
+//    struct han_trxm_dev *s = HANADU_TRXM_DEV(dev);
 //    Error *local_err = NULL;
 
     return;
@@ -111,46 +41,35 @@ static void han_trx_realize(DeviceState *dev, Error **errp)
 //    }
 }
 
-static void han_trx_reset(DeviceState *dev)
+static void han_trxm_reset(DeviceState *dev)
 {
-//    struct han_trx_dev *s = HANADU_TRX_DEV(dev);
+//    struct han_trxm_dev *s = HANADU_TRXM_DEV(dev);
 }
 
 
-static void han_trx_class_init(ObjectClass *klass, void *data)
+static void han_trxm_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->realize = han_trx_realize;
-    dc->props = han_trx_properties;
-    dc->reset = han_trx_reset;
+    dc->realize = han_trxm_realize;
+    dc->props = han_trxm_properties;
+    dc->reset = han_trxm_reset;
 }
 
-static void han_trx_instance_init(Object *obj)
+static void han_trxm_instance_init(Object *obj)
 {
-    struct han_trx_dev *s = HANADU_TRX_DEV(obj);
+    struct han_trxm_dev *s = HANADU_TRXM_DEV(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
-    memory_region_init_io(&s->iomem, OBJECT(s), &han_trx_mem_region_ops, s,
-                          "hantrx", 0x10000);
+    memory_region_init_io(&s->iomem, OBJECT(s), &han_trxm_mem_region_ops, s,
+                          "hantrxm", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
 /* __________________________________________________________________ Hanadu AFE
  */
-
-static uint64_t
-han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
-{
-    return 0;
-}
-
-static void
-han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
-{
-}
 
 static const MemoryRegionOps han_afe_mem_region_ops = {
     .read = han_afe_mem_region_read,
@@ -196,29 +115,18 @@ static void han_afe_instance_init(Object *obj)
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
-/* __________________________________________________________________ Hanadu PUP
+/* __________________________________________________________________ Hanadu PWR
  */
 
-static uint64_t
-han_pup_mem_region_read(void *opaque, hwaddr addr, unsigned size)
-{
-    return 0;
-}
-
-static void
-han_pup_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
-{
-}
-
-static const MemoryRegionOps han_pup_mem_region_ops = {
-    .read = han_pup_mem_region_read,
-    .write = han_pup_mem_region_write,
+static const MemoryRegionOps han_pwr_mem_region_ops = {
+    .read = han_pwr_mem_region_read,
+    .write = han_pwr_mem_region_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
-static void han_pup_realize(DeviceState *dev, Error **errp)
+static void han_pwr_realize(DeviceState *dev, Error **errp)
 {
-//    struct han_pup_dev *s = HANADU_PUP_DEV(dev);
+//    struct han_pwr_dev *s = HANADU_PWR_DEV(dev);
 //    Error *local_err = NULL;
 
     return;
@@ -229,44 +137,33 @@ static void han_pup_realize(DeviceState *dev, Error **errp)
 //    }
 }
 
-static void han_pup_reset(DeviceState *dev)
+static void han_pwr_reset(DeviceState *dev)
 {
-//    struct han_pup_dev *s = HANADU_PUP_DEV(dev);
+//    struct han_pwr_dev *s = HANADU_PWR_DEV(dev);
 }
 
 
-static void han_pup_class_init(ObjectClass *klass, void *data)
+static void han_pwr_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->realize = han_pup_realize;
+    dc->realize = han_pwr_realize;
     dc->props = NULL;
-    dc->reset = han_pup_reset;
+    dc->reset = han_pwr_reset;
 }
 
-static void han_pup_instance_init(Object *obj)
+static void han_pwr_instance_init(Object *obj)
 {
-    struct han_pup_dev *s = HANADU_PUP_DEV(obj);
+    struct han_pwr_dev *s = HANADU_PWR_DEV(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    memory_region_init_io(&s->iomem, OBJECT(s), &han_pup_mem_region_ops, s,
-                          "hanpup", 0x10000);
+    memory_region_init_io(&s->iomem, OBJECT(s), &han_pwr_mem_region_ops, s,
+                          "hanpwr", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
 }
 
 /* __________________________________________________________________ Hanadu MAC
  */
-
-static uint64_t
-han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
-{
-    return 0;
-}
-
-static void
-han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
-{
-}
 
 static const MemoryRegionOps han_mac_mem_region_ops = {
     .read = han_mac_mem_region_read,
@@ -431,8 +328,9 @@ static void han_rxb_instance_init(Object *obj)
 /* __________________________________________________________________ Hanadu HWV
  */
 
-static uint64_t
-han_hwv_mem_region_read(void *opaque, hwaddr addr, unsigned size)
+/* Override the auto generated functions */
+uint64_t
+han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     addr >>= 2;
 
@@ -440,7 +338,7 @@ han_hwv_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     case 0:
     case 1:
     case 2:
-       return 9999;
+        return 9999;
     case 3:
         return 1;
     }
@@ -448,19 +346,19 @@ han_hwv_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     return 0;
 }
 
-static void
-han_hwv_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
+void
+han_hwvers_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     /* This is a read only register block */
 }
 
-static const MemoryRegionOps han_hwv_mem_region_ops = {
-    .read = han_hwv_mem_region_read,
-    .write = han_hwv_mem_region_write,
+static const MemoryRegionOps han_hwvers_mem_region_ops = {
+    .read = han_hwvers_mem_region_read,
+    .write = han_hwvers_mem_region_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
-static void han_hwv_realize(DeviceState *dev, Error **errp)
+static void han_hwvers_realize(DeviceState *dev, Error **errp)
 {
 //    struct han_hwv_dev *s = HANADU_HWV_DEV(dev);
 //    Error *local_err = NULL;
@@ -473,27 +371,27 @@ static void han_hwv_realize(DeviceState *dev, Error **errp)
 //    }
 }
 
-static void han_hwv_reset(DeviceState *dev)
+static void han_hwvers_reset(DeviceState *dev)
 {
 //    struct han_hwv_dev *s = HANADU_HWV_DEV(dev);
 }
 
 
-static void han_hwv_class_init(ObjectClass *klass, void *data)
+static void han_hwvers_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    dc->realize = han_hwv_realize;
+    dc->realize = han_hwvers_realize;
     dc->props = NULL;
-    dc->reset = han_hwv_reset;
+    dc->reset = han_hwvers_reset;
 }
 
-static void han_hwv_instance_init(Object *obj)
+static void han_hwvers_instance_init(Object *obj)
 {
-    struct han_hwv_dev *s = HANADU_HWV_DEV(obj);
+    struct han_hwvers_dev *s = HANADU_HWVERS_DEV(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    memory_region_init_io(&s->iomem, OBJECT(s), &han_hwv_mem_region_ops, s,
+    memory_region_init_io(&s->iomem, OBJECT(s), &han_hwvers_mem_region_ops, s,
                           "hanhwv", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
 }
@@ -501,12 +399,12 @@ static void han_hwv_instance_init(Object *obj)
 /* _________________________________________________________ Hanadu Registration
  */
 
-static const TypeInfo han_trx_info = {
-    .name  = TYPE_HANADU_TRX,
+static const TypeInfo han_trxm_info = {
+    .name  = TYPE_HANADU_TRXM,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size  = sizeof(struct han_trx_dev),
-    .class_init = han_trx_class_init,
-    .instance_init = han_trx_instance_init,
+    .instance_size  = sizeof(struct han_trxm_dev),
+    .class_init = han_trxm_class_init,
+    .instance_init = han_trxm_instance_init,
 };
 
 static const TypeInfo han_afe_info = {
@@ -517,12 +415,12 @@ static const TypeInfo han_afe_info = {
     .instance_init = han_afe_instance_init,
 };
 
-static const TypeInfo han_pup_info = {
-    .name  = TYPE_HANADU_PUP,
+static const TypeInfo han_pwr_info = {
+    .name  = TYPE_HANADU_PWR,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size  = sizeof(struct han_pup_dev),
-    .class_init = han_pup_class_init,
-    .instance_init = han_pup_instance_init,
+    .instance_size  = sizeof(struct han_pwr_dev),
+    .class_init = han_pwr_class_init,
+    .instance_init = han_pwr_instance_init,
 };
 
 static const TypeInfo han_mac_info = {
@@ -550,18 +448,18 @@ static const TypeInfo han_rxb_info = {
 };
 
 static const TypeInfo han_hwv_info = {
-    .name  = TYPE_HANADU_HWV,
+    .name  = TYPE_HANADU_HWVERS,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size  = sizeof(struct han_hwv_dev),
-    .class_init = han_hwv_class_init,
-    .instance_init = han_hwv_instance_init,
+    .instance_size  = sizeof(struct han_hwvers_dev),
+    .class_init = han_hwvers_class_init,
+    .instance_init = han_hwvers_instance_init,
 };
 
 static void han_register_types(void)
 {
-    type_register_static(&han_trx_info);
+    type_register_static(&han_trxm_info);
     type_register_static(&han_afe_info);
-    type_register_static(&han_pup_info);
+    type_register_static(&han_pwr_info);
     type_register_static(&han_mac_info);
     type_register_static(&han_txb_info);
     type_register_static(&han_rxb_info);

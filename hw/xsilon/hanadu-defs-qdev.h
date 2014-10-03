@@ -132,7 +132,7 @@ struct han_regmap_mac
  */
 struct han_regmap_pwr
 {
-    /* 0  */ uint32_t pup_kick_off_sw_ad9865_reset;
+    /* 0  */ uint32_t dummy0;
     /* 1  */ uint32_t pup_kick_off_sw_ad9865_spi_write;
     /* 2  */ uint32_t pup_kick_off_sw_ad9865_spi_read;
     /* 3  */ uint32_t pup_tx_rx_select;

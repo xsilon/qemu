@@ -30,9 +30,12 @@
 #define HANADU_HWVERS_DEV(obj) \
      OBJECT_CHECK(struct han_hwvers_dev, (obj), TYPE_HANADU_HWVERS)
 
+typedef int (*mem_region_write_fnp)(void *opaque, hwaddr addr, uint64_t value, unsigned size);
+
 struct han_trxm_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
+    mem_region_write_fnp mem_region_write;
     qemu_irq irq;
 
     struct han_regmap_trxm regs;
@@ -44,6 +47,7 @@ struct han_trxm_dev {
 struct han_afe_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
+    mem_region_write_fnp mem_region_write;
 
     struct han_regmap_afe regs;
 };
@@ -51,6 +55,7 @@ struct han_afe_dev {
 struct han_pwr_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
+    mem_region_write_fnp mem_region_write;
 
     struct han_regmap_pwr regs;
 };
@@ -58,6 +63,7 @@ struct han_pwr_dev {
 struct han_mac_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
+    mem_region_write_fnp mem_region_write;
 
     struct han_regmap_mac regs;
 };
@@ -75,6 +81,7 @@ struct han_rxb_dev {
 struct han_hwvers_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
+    mem_region_write_fnp mem_region_write;
 
     struct han_regmap_hwvers regs;
 };

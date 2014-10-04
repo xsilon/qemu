@@ -18,30 +18,40 @@
 /* __________________________________________________ Register Access Prototypes
  */
 
+void
+han_trxm_reg_reset(void *opaque) __attribute__((weak));
 uint64_t
 han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
 void
 han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
 
 
+void
+han_mac_reg_reset(void *opaque) __attribute__((weak));
 uint64_t
 han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
 void
 han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
 
 
+void
+han_pwr_reg_reset(void *opaque) __attribute__((weak));
 uint64_t
 han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
 void
 han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
 
 
+void
+han_afe_reg_reset(void *opaque) __attribute__((weak));
 uint64_t
 han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
 void
 han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
 
 
+void
+han_hwvers_reg_reset(void *opaque) __attribute__((weak));
 uint64_t
 han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
 void
@@ -83,7 +93,7 @@ struct han_regmap_trxm
     /* 24 */ uint32_t trx_rx_buf3_rc_psdulen;
     /* 25 */ uint32_t trx_rx_buf3_xtra;
     /* 26 */ uint32_t trx_rx_rx_buf3_crc;
-    /* 27 */ uint32_t dummy27;
+    /* 27 */ uint32_t trx_xcorr_thresh;
     /* 28 */ uint32_t trx_rx_fifo_levels;
     /* 29 */ uint32_t trx_hard_reset;
     /* 30 */ uint32_t trx_pga_gain_cca_flags;
@@ -344,6 +354,8 @@ struct han_regmap_hwvers
 #define RX_PSDU_LENGTH_SHIFT                                        (16)
 #define RX_REP_CODE_MASK                                            (0x000000FF)
 #define RX_REP_CODE_SHIFT                                           (0)
+#define XCORR_THRESH_MASK                                           (0x0000FFFF)
+#define XCORR_THRESH_SHIFT                                          (0)
 #define PROC_FIFO_WR_LEVEL_MASK                                     (0x0000F000)
 #define PROC_FIFO_WR_LEVEL_SHIFT                                    (12)
 #define PROC_FIFO_RD_LEVEL_MASK                                     (0x00000F00)
@@ -475,6 +487,7 @@ struct han_regmap_hwvers
 #define RX_RC_PSDU_BANK3                                           (24)
 #define RX_HDR_XTRA_BANK3                                          (25)
 #define RX_CRCS_BANK3                                              (26)
+#define RX_XCORR_THRESH                                            (27)
 #define RX_FIFO_LEVELS                                             (28)
 #define TRX_HARD_RESET                                             (29)
 #define RX_PGA_CCA_FLAGS                                           (30)

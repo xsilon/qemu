@@ -16,6 +16,21 @@
 /* ___________________ Transceiver
  */
 
+void
+han_trxm_reg_reset(void *opaque)
+{
+    struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
+
+    memset(&s->regs, 0, sizeof(s->regs));
+    s->regs.trx_tx_ctrl = 0x04000000;
+    s->regs.trx_rx_control = 0x30fdf400;
+    s->regs.trx_rx_hdr_rep_rate = 0x00000096;
+    s->regs.trx_rx_thresholds = 0x008080ce;
+    s->regs.trx_xcorr_thresh = 0x0000008c;
+    s->regs.trx_rx_fifo_levels = 0x00003300;
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = 0x93400080;
+}
+
 uint64_t
 han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -24,6 +39,7 @@ han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
+    assert(size == 4);
     return regs[addr];
 }
 
@@ -36,6 +52,14 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 /* ___________________ Medium Access Controller
  */
 
+void
+han_mac_reg_reset(void *opaque)
+{
+    struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
+
+    memset(&s->regs, 0, sizeof(s->regs));
+}
+
 uint64_t
 han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -44,6 +68,7 @@ han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
+    assert(size == 4);
     return regs[addr];
 }
 
@@ -56,6 +81,14 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 /* ___________________ Power Up Controller
  */
 
+void
+han_pwr_reg_reset(void *opaque)
+{
+    struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
+
+    memset(&s->regs, 0, sizeof(s->regs));
+}
+
 uint64_t
 han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -64,6 +97,7 @@ han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
+    assert(size == 4);
     return regs[addr];
 }
 
@@ -75,7 +109,15 @@ han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
 /* ___________________ AFE Controller
  */
- 
+
+void
+han_afe_reg_reset(void *opaque)
+{
+    struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
+
+    memset(&s->regs, 0, sizeof(s->regs));
+}
+
 uint64_t
 han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -84,6 +126,7 @@ han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
+    assert(size == 4);
     return regs[addr];
 }
 
@@ -96,6 +139,14 @@ han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 /* ___________________ Hardware Version Control
  */
 
+void
+han_hwvers_reg_reset(void *opaque)
+{
+    struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);
+
+    memset(&s->regs, 0, sizeof(s->regs));
+}
+
 uint64_t
 han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
@@ -104,6 +155,7 @@ han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
+    assert(size == 4);
     return regs[addr];
 }
 

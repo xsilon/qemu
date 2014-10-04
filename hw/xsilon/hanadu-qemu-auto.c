@@ -39,13 +39,24 @@ han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
-    assert(size == 4);
+    assert(size <= 4);
     return regs[addr];
 }
 
 void
 han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+    struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
+    uint32_t * regs = (uint32_t *)&s->regs;
+
+    if (s->mem_region_write)
+        if (s->mem_region_write(opaque, addr, value, size))
+            return;
+
+    addr >>= 2;
+    assert(addr < 32);
+    assert(size <= 4);
+    regs[addr] = value;
 }
 
 
@@ -68,13 +79,24 @@ han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
-    assert(size == 4);
+    assert(size <= 4);
     return regs[addr];
 }
 
 void
 han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+    struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
+    uint32_t * regs = (uint32_t *)&s->regs;
+
+    if (s->mem_region_write)
+        if (s->mem_region_write(opaque, addr, value, size))
+            return;
+
+    addr >>= 2;
+    assert(addr < 32);
+    assert(size <= 4);
+    regs[addr] = value;
 }
 
 
@@ -97,13 +119,24 @@ han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
-    assert(size == 4);
+    assert(size <= 4);
     return regs[addr];
 }
 
 void
 han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+    struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
+    uint32_t * regs = (uint32_t *)&s->regs;
+
+    if (s->mem_region_write)
+        if (s->mem_region_write(opaque, addr, value, size))
+            return;
+
+    addr >>= 2;
+    assert(addr < 32);
+    assert(size <= 4);
+    regs[addr] = value;
 }
 
 
@@ -126,13 +159,24 @@ han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
-    assert(size == 4);
+    assert(size <= 4);
     return regs[addr];
 }
 
 void
 han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+    struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
+    uint32_t * regs = (uint32_t *)&s->regs;
+
+    if (s->mem_region_write)
+        if (s->mem_region_write(opaque, addr, value, size))
+            return;
+
+    addr >>= 2;
+    assert(addr < 32);
+    assert(size <= 4);
+    regs[addr] = value;
 }
 
 
@@ -155,12 +199,23 @@ han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 
     addr >>= 2;
     assert(addr < 32);
-    assert(size == 4);
+    assert(size <= 4);
     return regs[addr];
 }
 
 void
 han_hwvers_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+    struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);
+    uint32_t * regs = (uint32_t *)&s->regs;
+
+    if (s->mem_region_write)
+        if (s->mem_region_write(opaque, addr, value, size))
+            return;
+
+    addr >>= 2;
+    assert(addr < 32);
+    assert(size <= 4);
+    regs[addr] = value;
 }
 

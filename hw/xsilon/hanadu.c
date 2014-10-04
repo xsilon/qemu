@@ -7,9 +7,23 @@
 #include "hw/sysbus.h"
 #include "qemu/log.h"
 #include "hanadu.h"
+#include "xsilon.h"
 
 
+static uint8_t dip_board = 0x00;
+static uint8_t dip_afe = 0x00;
 
+void
+hanadu_set_default_dip_board(uint8_t dip)
+{
+	dip_board = dip;
+}
+
+void
+hanadu_set_default_dip_afe(uint8_t dip)
+{
+	dip_afe = dip;
+}
 
 /* __________________________________________________________ Hanadu Transceiver
  */
@@ -66,6 +80,7 @@ static void han_trxm_instance_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &han_trxm_mem_region_ops, s,
                           "hantrxm", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+    s->mem_region_write = NULL;
 }
 
 /* __________________________________________________________________ Hanadu AFE
@@ -113,6 +128,7 @@ static void han_afe_instance_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &han_afe_mem_region_ops, s,
                           "hanafe", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+    s->mem_region_write = NULL;
 }
 
 /* __________________________________________________________________ Hanadu PWR
@@ -160,6 +176,7 @@ static void han_pwr_instance_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &han_pwr_mem_region_ops, s,
                           "hanpwr", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+    s->mem_region_write = NULL;
 }
 
 /* __________________________________________________________________ Hanadu MAC
@@ -207,6 +224,7 @@ static void han_mac_instance_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &han_mac_mem_region_ops, s,
                           "hanmac", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+    s->mem_region_write = NULL;
 }
 
 /* __________________________________________________________________ Hanadu TXB
@@ -394,6 +412,7 @@ static void han_hwvers_instance_init(Object *obj)
     memory_region_init_io(&s->iomem, OBJECT(s), &han_hwvers_mem_region_ops, s,
                           "hanhwv", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+    s->mem_region_write = NULL;
 }
 
 /* _________________________________________________________ Hanadu Registration

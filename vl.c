@@ -117,6 +117,7 @@ int main(int argc, char **argv)
 #include "ui/qemu-spice.h"
 #include "qapi/string-input-visitor.h"
 #include "qom/object_interfaces.h"
+#include "hw/xsilon/xsilon.h"
 
 #define DEFAULT_RAM_SIZE 128
 
@@ -543,6 +544,23 @@ static QemuOptsList qemu_mem_opts = {
     },
 };
 
+static QemuOptsList qemu_xsilon_opts = {
+    .name = "xsilon",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_xsilon_opts.head),
+    .desc = {
+        {
+            .name = "dipboard",
+            .type = QEMU_OPT_STRING,
+            .help = "Set Board DIP Switch (e.g. 0xa5)",
+        },{
+            .name = "dipafe",
+            .type = QEMU_OPT_STRING,
+            .help = "Set Board AFE Switch (e.g. 0xa5)",
+        },
+        { /* end of list */ }
+    },
+};
+
 /**
  * Get machine options
  *
@@ -852,6 +870,38 @@ static void configure_rtc(QemuOpts *opts)
         }
     }
 }
+
+/* Xsilon */
+static void configure_xsilon(QemuOpts *opts)
+{
+    const char *value;
+
+    value = qemu_opt_get(opts, "dipboard");
+    if (value) {
+        char * end;
+        unsigned long int dip;
+        dip = strtoul(value, &end, 0);
+        if(value == end) {
+            fprintf(stderr, "Invalid DIP board\n");
+            exit(1);
+        } else {
+            hanadu_set_default_dip_board((uint8_t)dip);
+        }
+    }
+    value = qemu_opt_get(opts, "dipafe");
+    if (value) {
+        char * end;
+        unsigned long int dip;
+        dip = strtoul(value, &end, 0);
+        if(value == end) {
+            fprintf(stderr, "Invalid DIP afe\n");
+            exit(1);
+        } else {
+            hanadu_set_default_dip_afe((uint8_t)dip);
+        }
+    }
+}
+
 
 /***********************************************************/
 /* Bluetooth support */
@@ -3054,6 +3104,7 @@ int main(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_realtime_opts);
     qemu_add_opts(&qemu_msg_opts);
     qemu_add_opts(&qemu_name_opts);
+    qemu_add_opts(&qemu_xsilon_opts);
 
     runstate_init();
 
@@ -3993,6 +4044,13 @@ int main(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 configure_msg(opts);
+                break;
+            case QEMU_OPTION_xsilon:
+                opts = qemu_opts_parse(qemu_find_opts("xsilon"), optarg, 0);
+                if (!opts) {
+                    exit(1);
+                }
+                configure_xsilon(opts);
                 break;
             default:
                 os_parse_cmd_args(popt->index, optarg);

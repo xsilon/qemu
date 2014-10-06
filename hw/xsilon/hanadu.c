@@ -155,7 +155,10 @@ static void han_pwr_realize(DeviceState *dev, Error **errp)
 
 static void han_pwr_reset(DeviceState *dev)
 {
-//    struct han_pwr_dev *s = HANADU_PWR_DEV(dev);
+    struct han_pwr_dev *s = HANADU_PWR_DEV(dev);
+
+    s->regs.pup_dips1 = dip_board;
+    s->regs.pup_dips2 = dip_afe;
 }
 
 

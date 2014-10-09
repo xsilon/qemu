@@ -3164,6 +3164,23 @@ STEXI
 prepend a timestamp to each log message.(default:on)
 ETEXI
 
+DEFHEADING(Xsilon options:)
+STEXI
+@table @option
+ETEXI
+
+DEF("xsilon", HAS_ARG, QEMU_OPTION_xsilon,
+    "-xsilon [dipboard=val][,dipafe=val]\n"
+    "                Set the board and AFE DIP switches\n"
+    "                (default: 0 for both)\n",
+    QEMU_ARCH_ALL)
+
+STEXI
+@end table
+ETEXI
+DEFHEADING()
+
+
 HXCOMM This is the last statement. Insert new options before this line!
 STEXI
 @end table

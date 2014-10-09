@@ -1,1 +1,2 @@
-common-obj-$(CONFIG_XSILON_HANADU) += hanadu.o hanadu-qemu-auto.o
+common-obj-$(CONFIG_XSILON_HANADU) += hanadu.o 
+common-obj-$(CONFIG_XSILON_HANADU) += hanadu-qemu-auto.o

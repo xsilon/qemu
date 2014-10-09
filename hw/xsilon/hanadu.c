@@ -9,24 +9,102 @@
 #include "hanadu.h"
 #include "xsilon.h"
 
+#include <assert.h>
 
-static uint8_t dip_board = 0x00;
-static uint8_t dip_afe = 0x00;
+enum han_state {
+	HAN_STATE_IDLE = 0,
+	HAN_STATE_RX,
+	HAN_STATE_TX_CSMA,
+	HAN_STATE_TX_BACKOFF,
+	HAN_STATE_TX,
+};
+
+struct txbuf {
+	uint8_t data[128];
+};
+static struct hanadu {
+	uint8_t dip_board;
+	uint8_t dip_afe;
+
+	enum han_state state;
+
+	struct han_rx {
+		bool enabled;
+		uint8_t buf0[128];
+		uint8_t buf1[128];
+		uint8_t buf2[128];
+		uint8_t buf3[128];
+	} rx;
+	struct han_tx {
+		bool enabled;
+		uint8_t bufsel;
+		struct txbuf buf0;
+		struct txbuf buf1;
+	} tx;
+} han;
+
 
 void
 hanadu_set_default_dip_board(uint8_t dip)
 {
-	dip_board = dip;
+	han.dip_board = dip;
 }
 
 void
 hanadu_set_default_dip_afe(uint8_t dip)
 {
-	dip_afe = dip;
+	han.dip_afe = dip;
 }
+
 
 /* __________________________________________________________ Hanadu Transceiver
  */
+
+static void
+han_trxm_txm_enable_changed(uint32_t value, void *hw_block)
+{
+	if(value) {
+		assert(han.tx.enabled == false);
+		han.tx.enabled = true;
+	} else {
+		assert(han.tx.enabled == true);
+		han.tx.enabled = false;
+	}
+}
+
+static void
+han_trxm_rxm_enable_changed(uint32_t value, void *hw_block)
+{
+	if(value) {
+		assert(han.rx.enabled == false);
+		han.rx.enabled = true;
+	} else {
+		assert(han.rx.enabled == true);
+		han.rx.enabled = false;
+	}
+}
+
+static void
+han_trxm_txm_mem_bank_select_changed(uint32_t value, void *hw_block)
+{
+	han.tx.bufsel = value;
+}
+
+
+static void
+han_trxm_txm_start_changed(uint32_t value, void *hw_block)
+{
+	if(value) {
+		/* Start transmission */
+		if(han.tx.bufsel == 0) {
+
+		} else {
+
+		}
+	} else {
+		/* Tx finished, just do a sanity check */
+	}
+}
 
 static Property han_trxm_properties[] = {
     DEFINE_PROP_UINT32("rxmem", struct han_trxm_dev, c_rxmem, 0x10000),
@@ -81,6 +159,12 @@ static void han_trxm_instance_init(Object *obj)
                           "hantrxm", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
     s->mem_region_write = NULL;
+
+    /* Override Register/Bitfield changed functions */
+    s->regs.txm_enable_changed = han_trxm_txm_enable_changed;
+    s->regs.rxm_enable_changed = han_trxm_rxm_enable_changed;
+    s->regs.txm_start_changed = han_trxm_txm_start_changed;
+    s->regs.txm_mem_bank_select_changed = han_trxm_txm_mem_bank_select_changed;
 }
 
 /* __________________________________________________________________ Hanadu AFE
@@ -157,8 +241,8 @@ static void han_pwr_reset(DeviceState *dev)
 {
     struct han_pwr_dev *s = HANADU_PWR_DEV(dev);
 
-    s->regs.pup_dips1 = dip_board;
-    s->regs.pup_dips2 = dip_afe;
+    s->regs.pup_dips1 = han.dip_board;
+    s->regs.pup_dips2 = han.dip_afe;
 }
 
 
@@ -242,6 +326,20 @@ han_txb_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 static void
 han_txb_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+	uint8_t * buf;
+
+	assert(size == 1);
+	if(addr < 0x1000) {
+		addr >>= 2;
+		buf = han.tx.buf0.data + addr;
+	} else {
+		addr -= 0x1000;
+		addr >>= 2;
+		buf = han.tx.buf1.data + addr;
+	}
+	assert(addr <= 128);
+
+	*buf = (uint8_t)value;
 }
 
 static const MemoryRegionOps han_txb_mem_region_ops = {

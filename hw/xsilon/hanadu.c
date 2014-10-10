@@ -7,6 +7,7 @@
 #include "hw/sysbus.h"
 #include "qemu/log.h"
 #include "hanadu.h"
+#include "hanadu-inl.h"
 #include "xsilon.h"
 
 #include <assert.h>
@@ -56,6 +57,20 @@ hanadu_set_default_dip_afe(uint8_t dip)
 	han.dip_afe = dip;
 }
 
+static void
+hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * data, uint16_t len)
+{
+
+	/* If buffer successfully sent then generate interrupt */
+	qemu_set_irq(s->tx_irq, 1);
+	qemu_set_irq(s->tx_irq, 0);
+	qemu_set_irq(s->rx_irq, 1);
+	qemu_set_irq(s->rx_irq, 0);
+	qemu_set_irq(s->rx_fail_irq, 1);
+	qemu_set_irq(s->rx_fail_irq, 0);
+
+	s->regs.trx_tx_ctrl &= ~TX_START_MASK;
+}
 
 /* __________________________________________________________ Hanadu Transceiver
  */
@@ -94,13 +109,21 @@ han_trxm_txm_mem_bank_select_changed(uint32_t value, void *hw_block)
 static void
 han_trxm_txm_start_changed(uint32_t value, void *hw_block)
 {
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+	uint16_t psdu_len;
+	uint8_t * buf;
+
 	if(value) {
 		/* Start transmission */
 		if(han.tx.bufsel == 0) {
-
+			psdu_len = han_trxm_txm_psdu_len0_get(hw_block);
+			buf = han.tx.buf0.data;
 		} else {
-
+			psdu_len = han_trxm_txm_psdu_len1_get(hw_block);
+			buf = han.tx.buf1.data;
 		}
+		/* Send buffer to powerline network simulator */
+		hanadu_tx_buffer_to_netsim(s, buf, psdu_len);
 	} else {
 		/* Tx finished, just do a sanity check */
 	}
@@ -153,11 +176,14 @@ static void han_trxm_instance_init(Object *obj)
     struct han_trxm_dev *s = HANADU_TRXM_DEV(obj);
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-    sysbus_init_irq(sbd, &s->irq);
-
     memory_region_init_io(&s->iomem, OBJECT(s), &han_trxm_mem_region_ops, s,
                           "hantrxm", 0x10000);
     sysbus_init_mmio(sbd, &s->iomem);
+
+    sysbus_init_irq(sbd, &s->rx_irq);
+    sysbus_init_irq(sbd, &s->rx_fail_irq);
+    sysbus_init_irq(sbd, &s->tx_irq);
+
     s->mem_region_write = NULL;
 
     /* Override Register/Bitfield changed functions */
@@ -320,7 +346,20 @@ static void han_mac_instance_init(Object *obj)
 static uint64_t
 han_txb_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
-    return 0;
+	uint8_t * buf;
+
+	assert(size == 1);
+	if(addr < 0x1000) {
+		addr >>= 2;
+		buf = han.tx.buf0.data + addr;
+	} else {
+		addr -= 0x1000;
+		addr >>= 2;
+		buf = han.tx.buf1.data + addr;
+	}
+	assert(addr <= 128);
+
+	return (uint64_t)*buf;
 }
 
 static void

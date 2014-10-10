@@ -175,6 +175,21 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
                 s->regs.rxm_clear_membank_oflow_changed(((uint32_t)value & CLEAR_MEMBANK_OFLOW_MASK) >> CLEAR_MEMBANK_OFLOW_SHIFT, s);
             }
         }
+        if ((value & CLEAR_MEM_FULL_FLAG_BANK3_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK3_MASK)) {
+            if (s->regs.rxm_clear_membank_full3_changed) {
+                s->regs.rxm_clear_membank_full3_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK3_MASK) >> CLEAR_MEM_FULL_FLAG_BANK3_SHIFT, s);
+            }
+        }
+        if ((value & CLEAR_MEM_FULL_FLAG_BANK2_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK2_MASK)) {
+            if (s->regs.rxm_clear_membank_full2_changed) {
+                s->regs.rxm_clear_membank_full2_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK2_MASK) >> CLEAR_MEM_FULL_FLAG_BANK2_SHIFT, s);
+            }
+        }
+        if ((value & CLEAR_MEM_FULL_FLAG_BANK1_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK1_MASK)) {
+            if (s->regs.rxm_clear_membank_full1_changed) {
+                s->regs.rxm_clear_membank_full1_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK1_MASK) >> CLEAR_MEM_FULL_FLAG_BANK1_SHIFT, s);
+            }
+        }
         if ((value & CLEAR_MEM_FULL_FLAG_BANK0_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK0_MASK)) {
             if (s->regs.rxm_clear_membank_full0_changed) {
                 s->regs.rxm_clear_membank_full0_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK0_MASK) >> CLEAR_MEM_FULL_FLAG_BANK0_SHIFT, s);

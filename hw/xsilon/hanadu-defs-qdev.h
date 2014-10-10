@@ -160,6 +160,9 @@ struct han_regmap_trxm
     field_changed_fn rxm_manual_membank_sel_changed;
     field_changed_fn rxm_payload_fail_crc_intr_en_changed;
     field_changed_fn rxm_clear_membank_oflow_changed;
+    field_changed_fn rxm_clear_membank_full3_changed;
+    field_changed_fn rxm_clear_membank_full2_changed;
+    field_changed_fn rxm_clear_membank_full1_changed;
     field_changed_fn rxm_clear_membank_full0_changed;
     field_changed_fn rxm_enable_changed;
     field_changed_fn hdr_reprate_changed;
@@ -532,6 +535,12 @@ struct han_regmap_hwvers
 #define PAYLOAD_CRCFAIL_INTR_SHIFT                                  (6)
 #define CLEAR_MEMBANK_OFLOW_MASK                                    (0x00000020)
 #define CLEAR_MEMBANK_OFLOW_SHIFT                                   (5)
+#define CLEAR_MEM_FULL_FLAG_BANK3_MASK                              (0x00000010)
+#define CLEAR_MEM_FULL_FLAG_BANK3_SHIFT                             (4)
+#define CLEAR_MEM_FULL_FLAG_BANK2_MASK                              (0x00000008)
+#define CLEAR_MEM_FULL_FLAG_BANK2_SHIFT                             (3)
+#define CLEAR_MEM_FULL_FLAG_BANK1_MASK                              (0x00000004)
+#define CLEAR_MEM_FULL_FLAG_BANK1_SHIFT                             (2)
 #define CLEAR_MEM_FULL_FLAG_BANK0_MASK                              (0x00000002)
 #define CLEAR_MEM_FULL_FLAG_BANK0_SHIFT                             (1)
 #define RXM_ENABLE_MASK                                             (0x00000001)
@@ -795,7 +804,6 @@ struct han_regmap_hwvers
 #define HWVERS_MINOR                                               (1)
 #define HWVERS_REVISION                                            (2)
 #define HWVERS_PROC_INTERFACE                                      (3)
-
 
 
 #endif

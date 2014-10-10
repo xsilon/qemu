@@ -36,7 +36,9 @@ struct han_trxm_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
     mem_region_write_fnp mem_region_write;
-    qemu_irq irq;
+    qemu_irq rx_irq;
+    qemu_irq rx_fail_irq;
+    qemu_irq tx_irq;
 
     struct han_regmap_trxm regs;
 

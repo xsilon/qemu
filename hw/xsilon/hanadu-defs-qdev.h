@@ -69,6 +69,7 @@ typedef void (* field_changed_fn)(uint32_t value, void *hw_block);
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
+typedef int (* reg_read_fn)(uint32_t *value);
 
 struct han_regmap_trxm
 {
@@ -142,39 +143,78 @@ struct han_regmap_trxm
     } reg_changed;
 
     /* Reg field changed callback, implement if required */
-    field_changed_fn use_tx_ram_changed;
-    field_changed_fn txm_mem_bank_select_changed;
-    field_changed_fn txm_start_changed;
-    field_changed_fn txm_enable_changed;
-    field_changed_fn txm_pga_gain0_changed;
-    field_changed_fn txm_psdu_len0_changed;
-    field_changed_fn txm_rep_code0_changed;
-    field_changed_fn txm_hdr_extra0_changed;
-    field_changed_fn txm_pga_gain1_changed;
-    field_changed_fn txm_psdu_len1_changed;
-    field_changed_fn txm_rep_code1_changed;
-    field_changed_fn txm_hdr_extra1_changed;
-    field_changed_fn rxm_acg_max_db_changed;
-    field_changed_fn rxm_acg_lower_thresh_changed;
-    field_changed_fn rxm_acg_set_point_changed;
-    field_changed_fn rxm_manual_membank_sel_changed;
-    field_changed_fn rxm_payload_fail_crc_intr_en_changed;
-    field_changed_fn rxm_clear_membank_oflow_changed;
-    field_changed_fn rxm_clear_membank_full3_changed;
-    field_changed_fn rxm_clear_membank_full2_changed;
-    field_changed_fn rxm_clear_membank_full1_changed;
-    field_changed_fn rxm_clear_membank_full0_changed;
-    field_changed_fn rxm_enable_changed;
-    field_changed_fn hdr_reprate_changed;
-    field_changed_fn ed_threshold_changed;
-    field_changed_fn cca_auto_threshold_changed;
-    field_changed_fn hp_auto_threshold_changed;
+    struct field_trxm_changed_fns {
+        field_changed_fn use_tx_ram_changed;
+        field_changed_fn txm_mem_bank_select_changed;
+        field_changed_fn txm_start_changed;
+        field_changed_fn txm_enable_changed;
+        field_changed_fn txm_pga_gain0_changed;
+        field_changed_fn txm_psdu_len0_changed;
+        field_changed_fn txm_rep_code0_changed;
+        field_changed_fn txm_hdr_extra0_changed;
+        field_changed_fn txm_pga_gain1_changed;
+        field_changed_fn txm_psdu_len1_changed;
+        field_changed_fn txm_rep_code1_changed;
+        field_changed_fn txm_hdr_extra1_changed;
+        field_changed_fn rxm_acg_max_db_changed;
+        field_changed_fn rxm_acg_lower_thresh_changed;
+        field_changed_fn rxm_acg_set_point_changed;
+        field_changed_fn rxm_manual_membank_sel_changed;
+        field_changed_fn rxm_payload_fail_crc_intr_en_changed;
+        field_changed_fn rxm_clear_membank_oflow_changed;
+        field_changed_fn rxm_clear_membank_full3_changed;
+        field_changed_fn rxm_clear_membank_full2_changed;
+        field_changed_fn rxm_clear_membank_full1_changed;
+        field_changed_fn rxm_clear_membank_full0_changed;
+        field_changed_fn rxm_enable_changed;
+        field_changed_fn hdr_reprate_changed;
+        field_changed_fn ed_threshold_changed;
+        field_changed_fn cca_auto_threshold_changed;
+        field_changed_fn hp_auto_threshold_changed;
+    } field_changed;
+
+    /* Reg Read callback, implement if required */
+    struct reg_trxm_read_fns {
+        /* 0  */ reg_read_fn trx_tx_ctrl_read_cb;
+        /* 1  */ reg_read_fn trx_tx_hwbuf0_rc_psdulen_read_cb;
+        /* 2  */ reg_read_fn trx_tx_hwbuf0_xtra_read_cb;
+        /* 3  */ reg_read_fn trx_tx_hwbuf1_rc_psdulen_read_cb;
+        /* 4  */ reg_read_fn trx_tx_hwbuf1_xtra_read_cb;
+        /* 5  */ reg_read_fn trx_rx_control_read_cb;
+        /* 6  */ reg_read_fn trx_rx_not_used1_read_cb;
+        /* 7  */ reg_read_fn trx_rx_hdr_rep_rate_read_cb;
+        /* 8  */ reg_read_fn trx_rx_thresholds_read_cb;
+        /* 9  */ reg_read_fn trx_rx_resets_read_cb;
+        /* 10 */ reg_read_fn trx_rx_next_membank_to_read_read_cb;
+        /* 11 */ reg_read_fn trx_rx_hdr_crc_pass_count_read_cb;
+        /* 12 */ reg_read_fn trx_rx_hdr_crc_fail_count_read_cb;
+        /* 13 */ reg_read_fn trx_rx_pay_crc_pass_count_read_cb;
+        /* 14 */ reg_read_fn trx_rx_pay_crc_fail_count_read_cb;
+        /* 15 */ reg_read_fn trx_rx_buf0_rc_psdulen_read_cb;
+        /* 16 */ reg_read_fn trx_rx_buf0_xtra_read_cb;
+        /* 17 */ reg_read_fn trx_rx_rx_buf0_crc_read_cb;
+        /* 18 */ reg_read_fn trx_rx_buf1_rc_psdulen_read_cb;
+        /* 19 */ reg_read_fn trx_rx_buf1_xtra_read_cb;
+        /* 20 */ reg_read_fn trx_rx_rx_buf1_crc_read_cb;
+        /* 21 */ reg_read_fn trx_rx_buf2_rc_psdulen_read_cb;
+        /* 22 */ reg_read_fn trx_rx_buf2_xtra_read_cb;
+        /* 23 */ reg_read_fn trx_rx_rx_buf2_crc_read_cb;
+        /* 24 */ reg_read_fn trx_rx_buf3_rc_psdulen_read_cb;
+        /* 25 */ reg_read_fn trx_rx_buf3_xtra_read_cb;
+        /* 26 */ reg_read_fn trx_rx_rx_buf3_crc_read_cb;
+        /* 27 */ reg_read_fn trx_xcorr_thresh_read_cb;
+        /* 28 */ reg_read_fn trx_rx_fifo_levels_read_cb;
+        /* 29 */ reg_read_fn trx_hard_reset_read_cb;
+        /* 30 */ reg_read_fn trx_pga_gain_cca_flags_read_cb;
+        /* 31 */ reg_read_fn trx_membank_fifo_flags_rssi_tx_power_read_cb;
+    } reg_read;
 };
 
 /* ___________________ Medium Access Controller
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
+typedef int (* reg_read_fn)(uint32_t *value);
 
 struct han_regmap_mac
 {
@@ -248,20 +288,59 @@ struct han_regmap_mac
     } reg_changed;
 
     /* Reg field changed callback, implement if required */
-    field_changed_fn mac_timeout_strategy_changed;
-    field_changed_fn mac_max_csma_backoffs_changed;
-    field_changed_fn mac_min_be_changed;
-    field_changed_fn mac_max_be_changed;
-    field_changed_fn mac_csma_ign_rx_busy_changed;
-    field_changed_fn mac_ack_en_changed;
-    field_changed_fn lower_mac_reset_changed;
-    field_changed_fn lower_mac_bypass_changed;
+    struct field_mac_changed_fns {
+        field_changed_fn mac_timeout_strategy_changed;
+        field_changed_fn mac_max_csma_backoffs_changed;
+        field_changed_fn mac_min_be_changed;
+        field_changed_fn mac_max_be_changed;
+        field_changed_fn mac_csma_ign_rx_busy_changed;
+        field_changed_fn mac_ack_en_changed;
+        field_changed_fn lower_mac_reset_changed;
+        field_changed_fn lower_mac_bypass_changed;
+    } field_changed;
+
+    /* Reg Read callback, implement if required */
+    struct reg_mac_read_fns {
+        /* 0  */ reg_read_fn mac_traf_mon_ctrl_read_cb;
+        /* 1  */ reg_read_fn mac_traf_mon_clear_read_cb;
+        /* 2  */ reg_read_fn dummy2_cb;
+        /* 3  */ reg_read_fn dummy3_cb;
+        /* 4  */ reg_read_fn dummy4_cb;
+        /* 5  */ reg_read_fn dummy5_cb;
+        /* 6  */ reg_read_fn dummy6_cb;
+        /* 7  */ reg_read_fn dummy7_cb;
+        /* 8  */ reg_read_fn dummy8_cb;
+        /* 9  */ reg_read_fn dummy9_cb;
+        /* 10 */ reg_read_fn mac_traf_mon_psdu_avg_read_cb;
+        /* 11 */ reg_read_fn mac_traf_mon_repcode_avg_read_cb;
+        /* 12 */ reg_read_fn mac_traf_mon_hdr_crc_pass_read_cb;
+        /* 13 */ reg_read_fn mac_traf_mon_hdr_crc_fail_read_cb;
+        /* 14 */ reg_read_fn mac_traf_mon_payload_crc_fail_read_cb;
+        /* 15 */ reg_read_fn mac_traf_mon_cca_read_cb;
+        /* 16 */ reg_read_fn mac_traf_mon_pkt_time_read_cb;
+        /* 17 */ reg_read_fn mac_traf_mon_hp_read_cb;
+        /* 18 */ reg_read_fn mac_filter_ea_lower_read_cb;
+        /* 19 */ reg_read_fn mac_filter_ea_upper_read_cb;
+        /* 20 */ reg_read_fn mac_filter_sa_read_cb;
+        /* 21 */ reg_read_fn mac_filter_pan_id_read_cb;
+        /* 22 */ reg_read_fn mac_filter_ctrl_read_cb;
+        /* 23 */ reg_read_fn mac_lower_ctrl_read_cb;
+        /* 24 */ reg_read_fn mac_lower_status_read_cb;
+        /* 25 */ reg_read_fn dummy25_cb;
+        /* 26 */ reg_read_fn dummy26_cb;
+        /* 27 */ reg_read_fn dummy27_cb;
+        /* 28 */ reg_read_fn dummy28_cb;
+        /* 29 */ reg_read_fn dummy29_cb;
+        /* 30 */ reg_read_fn dummy30_cb;
+        /* 31 */ reg_read_fn dummy31_cb;
+    } reg_read;
 };
 
 /* ___________________ Power Up Controller
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
+typedef int (* reg_read_fn)(uint32_t *value);
 
 struct han_regmap_pwr
 {
@@ -335,12 +414,51 @@ struct han_regmap_pwr
     } reg_changed;
 
     /* Reg field changed callback, implement if required */
+    struct field_pwr_changed_fns {
+    } field_changed;
+
+    /* Reg Read callback, implement if required */
+    struct reg_pwr_read_fns {
+        /* 0  */ reg_read_fn dummy0_cb;
+        /* 1  */ reg_read_fn pup_kick_off_sw_ad9865_spi_write_read_cb;
+        /* 2  */ reg_read_fn pup_kick_off_sw_ad9865_spi_read_read_cb;
+        /* 3  */ reg_read_fn pup_tx_rx_select_read_cb;
+        /* 4  */ reg_read_fn pup_pga_mux_select_read_cb;
+        /* 5  */ reg_read_fn pup_tx_tongen_mux_select_read_cb;
+        /* 6  */ reg_read_fn pup_afe_reset_read_cb;
+        /* 7  */ reg_read_fn pup_dcm_reset_read_cb;
+        /* 8  */ reg_read_fn dummy8_cb;
+        /* 9  */ reg_read_fn dummy9_cb;
+        /* 10 */ reg_read_fn dummy10_cb;
+        /* 11 */ reg_read_fn dummy11_cb;
+        /* 12 */ reg_read_fn dummy12_cb;
+        /* 13 */ reg_read_fn dummy13_cb;
+        /* 14 */ reg_read_fn pup_leds_read_cb;
+        /* 15 */ reg_read_fn dummy15_cb;
+        /* 16 */ reg_read_fn dummy16_cb;
+        /* 17 */ reg_read_fn dummy17_cb;
+        /* 18 */ reg_read_fn pup_dips1_read_cb;
+        /* 19 */ reg_read_fn pup_dips2_read_cb;
+        /* 20 */ reg_read_fn dummy20_cb;
+        /* 21 */ reg_read_fn dummy21_cb;
+        /* 22 */ reg_read_fn dummy22_cb;
+        /* 23 */ reg_read_fn dummy23_cb;
+        /* 24 */ reg_read_fn dummy24_cb;
+        /* 25 */ reg_read_fn dummy25_cb;
+        /* 26 */ reg_read_fn dummy26_cb;
+        /* 27 */ reg_read_fn dummy27_cb;
+        /* 28 */ reg_read_fn dummy28_cb;
+        /* 29 */ reg_read_fn dummy29_cb;
+        /* 30 */ reg_read_fn dummy30_cb;
+        /* 31 */ reg_read_fn dummy31_cb;
+    } reg_read;
 };
 
 /* ___________________ AFE Controller
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
+typedef int (* reg_read_fn)(uint32_t *value);
 
 struct han_regmap_afe
 {
@@ -414,12 +532,51 @@ struct han_regmap_afe
     } reg_changed;
 
     /* Reg field changed callback, implement if required */
+    struct field_afe_changed_fns {
+    } field_changed;
+
+    /* Reg Read callback, implement if required */
+    struct reg_afe_read_fns {
+        /* 0  */ reg_read_fn afe_agc_fixed_gain_read_cb;
+        /* 1  */ reg_read_fn afe_status_read_cb;
+        /* 2  */ reg_read_fn afe_ad9865_write_reg_0_3_read_cb;
+        /* 3  */ reg_read_fn afe_ad9865_write_reg_4_7_read_cb;
+        /* 4  */ reg_read_fn afe_ad9865_write_reg_8_11_read_cb;
+        /* 5  */ reg_read_fn afe_ad9865_write_reg_12_15_read_cb;
+        /* 6  */ reg_read_fn afe_ad9865_write_reg_16_19_read_cb;
+        /* 7  */ reg_read_fn afe_ad9865_read_reg_0_3_read_cb;
+        /* 8  */ reg_read_fn afe_ad9865_read_reg_4_7_read_cb;
+        /* 9  */ reg_read_fn afe_ad9865_read_reg_8_11_read_cb;
+        /* 10 */ reg_read_fn afe_ad9865_read_reg_12_15_read_cb;
+        /* 11 */ reg_read_fn afe_ad9865_read_reg_16_19_read_cb;
+        /* 12 */ reg_read_fn dummy12_cb;
+        /* 13 */ reg_read_fn dummy13_cb;
+        /* 14 */ reg_read_fn dummy14_cb;
+        /* 15 */ reg_read_fn dummy15_cb;
+        /* 16 */ reg_read_fn dummy16_cb;
+        /* 17 */ reg_read_fn dummy17_cb;
+        /* 18 */ reg_read_fn dummy18_cb;
+        /* 19 */ reg_read_fn dummy19_cb;
+        /* 20 */ reg_read_fn dummy20_cb;
+        /* 21 */ reg_read_fn dummy21_cb;
+        /* 22 */ reg_read_fn dummy22_cb;
+        /* 23 */ reg_read_fn dummy23_cb;
+        /* 24 */ reg_read_fn dummy24_cb;
+        /* 25 */ reg_read_fn dummy25_cb;
+        /* 26 */ reg_read_fn dummy26_cb;
+        /* 27 */ reg_read_fn dummy27_cb;
+        /* 28 */ reg_read_fn dummy28_cb;
+        /* 29 */ reg_read_fn dummy29_cb;
+        /* 30 */ reg_read_fn dummy30_cb;
+        /* 31 */ reg_read_fn dummy31_cb;
+    } reg_read;
 };
 
 /* ___________________ Hardware Version Control
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
+typedef int (* reg_read_fn)(uint32_t *value);
 
 struct han_regmap_hwvers
 {
@@ -493,6 +650,44 @@ struct han_regmap_hwvers
     } reg_changed;
 
     /* Reg field changed callback, implement if required */
+    struct field_hwvers_changed_fns {
+    } field_changed;
+
+    /* Reg Read callback, implement if required */
+    struct reg_hwvers_read_fns {
+        /* 0  */ reg_read_fn major_ver_read_cb;
+        /* 1  */ reg_read_fn minor_ver_read_cb;
+        /* 2  */ reg_read_fn provisional_ver_read_cb;
+        /* 3  */ reg_read_fn proc_interface_ver_read_cb;
+        /* 4  */ reg_read_fn dummy4_cb;
+        /* 5  */ reg_read_fn dummy5_cb;
+        /* 6  */ reg_read_fn dummy6_cb;
+        /* 7  */ reg_read_fn dummy7_cb;
+        /* 8  */ reg_read_fn dummy8_cb;
+        /* 9  */ reg_read_fn dummy9_cb;
+        /* 10 */ reg_read_fn dummy10_cb;
+        /* 11 */ reg_read_fn dummy11_cb;
+        /* 12 */ reg_read_fn dummy12_cb;
+        /* 13 */ reg_read_fn dummy13_cb;
+        /* 14 */ reg_read_fn dummy14_cb;
+        /* 15 */ reg_read_fn dummy15_cb;
+        /* 16 */ reg_read_fn dummy16_cb;
+        /* 17 */ reg_read_fn dummy17_cb;
+        /* 18 */ reg_read_fn dummy18_cb;
+        /* 19 */ reg_read_fn dummy19_cb;
+        /* 20 */ reg_read_fn dummy20_cb;
+        /* 21 */ reg_read_fn dummy21_cb;
+        /* 22 */ reg_read_fn dummy22_cb;
+        /* 23 */ reg_read_fn dummy23_cb;
+        /* 24 */ reg_read_fn dummy24_cb;
+        /* 25 */ reg_read_fn dummy25_cb;
+        /* 26 */ reg_read_fn dummy26_cb;
+        /* 27 */ reg_read_fn dummy27_cb;
+        /* 28 */ reg_read_fn dummy28_cb;
+        /* 29 */ reg_read_fn dummy29_cb;
+        /* 30 */ reg_read_fn dummy30_cb;
+        /* 31 */ reg_read_fn dummy31_cb;
+    } reg_read;
 };
 
 

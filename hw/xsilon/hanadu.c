@@ -23,6 +23,10 @@ enum han_state {
 struct txbuf {
 	uint8_t data[128];
 };
+struct rxbuf {
+	uint8_t data[128];
+};
+
 static struct hanadu {
 	uint8_t dip_board;
 	uint8_t dip_afe;
@@ -31,16 +35,12 @@ static struct hanadu {
 
 	struct han_rx {
 		bool enabled;
-		uint8_t buf0[128];
-		uint8_t buf1[128];
-		uint8_t buf2[128];
-		uint8_t buf3[128];
+		struct rxbuf buf[4];
 	} rx;
 	struct han_tx {
 		bool enabled;
 		uint8_t bufsel;
-		struct txbuf buf0;
-		struct txbuf buf1;
+		struct txbuf buf[2];
 	} tx;
 } han;
 
@@ -58,18 +58,24 @@ hanadu_set_default_dip_afe(uint8_t dip)
 }
 
 static void
-hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * data, uint16_t len)
+hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * data, uint16_t len, uint8_t repcode)
 {
 
 	/* If buffer successfully sent then generate interrupt */
 	qemu_set_irq(s->tx_irq, 1);
-	qemu_set_irq(s->tx_irq, 0);
-	qemu_set_irq(s->rx_irq, 1);
-	qemu_set_irq(s->rx_irq, 0);
-	qemu_set_irq(s->rx_fail_irq, 1);
-	qemu_set_irq(s->rx_fail_irq, 0);
+	s->tx_irq_state = 1;
 
-	s->regs.trx_tx_ctrl &= ~TX_START_MASK;
+	/* loop it back to receiver buffer 0 */
+#if 1
+	memcpy(han.rx.buf[0].data, data, len);
+
+	/* Need write accessor functions until then just write to regs */
+	han_trxm_rxm_psdulen0_set(s, len);
+	han_trxm_rxm_repcode0_set(s, repcode);
+	han_trxm_rxm_memory_bank_next_to_process_set(s, 0);
+
+
+#endif
 }
 
 /* __________________________________________________________ Hanadu Transceiver
@@ -105,25 +111,46 @@ han_trxm_txm_mem_bank_select_changed(uint32_t value, void *hw_block)
 	han.tx.bufsel = value;
 }
 
+static int
+_han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size, uint64_t *value)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
+
+	if(s->tx_irq_state) {
+		qemu_set_irq(s->tx_irq, 0);
+		s->tx_irq_state = 0;
+		qemu_set_irq(s->rx_irq, 1);
+		s->rx_irq_state = 1;
+	} else if(s->rx_irq_state) {
+		qemu_set_irq(s->rx_irq, 0);
+		s->rx_irq_state = 0;
+	}
+	return 0;
+}
+
+
 
 static void
 han_trxm_txm_start_changed(uint32_t value, void *hw_block)
 {
 	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
 	uint16_t psdu_len;
+	uint8_t rep_code;
 	uint8_t * buf;
 
 	if(value) {
 		/* Start transmission */
 		if(han.tx.bufsel == 0) {
 			psdu_len = han_trxm_txm_psdu_len0_get(hw_block);
-			buf = han.tx.buf0.data;
+			rep_code = han_trxm_txm_rep_code0_get(hw_block);
+			buf = han.tx.buf[0].data;
 		} else {
 			psdu_len = han_trxm_txm_psdu_len1_get(hw_block);
-			buf = han.tx.buf1.data;
+			rep_code = han_trxm_txm_rep_code1_get(hw_block);
+			buf = han.tx.buf[1].data;
 		}
 		/* Send buffer to powerline network simulator */
-		hanadu_tx_buffer_to_netsim(s, buf, psdu_len);
+		hanadu_tx_buffer_to_netsim(s, buf, psdu_len, rep_code);
 	} else {
 		/* Tx finished, just do a sanity check */
 	}
@@ -187,10 +214,11 @@ static void han_trxm_instance_init(Object *obj)
     s->mem_region_write = NULL;
 
     /* Override Register/Bitfield changed functions */
-    s->regs.txm_enable_changed = han_trxm_txm_enable_changed;
-    s->regs.rxm_enable_changed = han_trxm_rxm_enable_changed;
-    s->regs.txm_start_changed = han_trxm_txm_start_changed;
-    s->regs.txm_mem_bank_select_changed = han_trxm_txm_mem_bank_select_changed;
+    s->mem_region_read = _han_trxm_mem_region_read;
+    s->regs.field_changed.txm_enable_changed = han_trxm_txm_enable_changed;
+    s->regs.field_changed.rxm_enable_changed = han_trxm_rxm_enable_changed;
+    s->regs.field_changed.txm_start_changed = han_trxm_txm_start_changed;
+    s->regs.field_changed.txm_mem_bank_select_changed = han_trxm_txm_mem_bank_select_changed;
 }
 
 /* __________________________________________________________________ Hanadu AFE
@@ -351,11 +379,11 @@ han_txb_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 	assert(size == 1);
 	if(addr < 0x1000) {
 		addr >>= 2;
-		buf = han.tx.buf0.data + addr;
+		buf = han.tx.buf[0].data + addr;
 	} else {
 		addr -= 0x1000;
 		addr >>= 2;
-		buf = han.tx.buf1.data + addr;
+		buf = han.tx.buf[1].data + addr;
 	}
 	assert(addr <= 128);
 
@@ -370,11 +398,11 @@ han_txb_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 	assert(size == 1);
 	if(addr < 0x1000) {
 		addr >>= 2;
-		buf = han.tx.buf0.data + addr;
+		buf = han.tx.buf[0].data + addr;
 	} else {
 		addr -= 0x1000;
 		addr >>= 2;
-		buf = han.tx.buf1.data + addr;
+		buf = han.tx.buf[1].data + addr;
 	}
 	assert(addr <= 128);
 

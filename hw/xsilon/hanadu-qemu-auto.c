@@ -36,10 +36,21 @@ han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
     uint32_t * regs = (uint32_t *)&s->regs;
+    uint64_t retvalue = 0;
+    reg_read_fn * reg_read_fnp = (reg_read_fn *)&s->regs.reg_read;
 
     addr >>= 2;
     assert(addr < 32);
     assert(size <= 4);
+
+    if (reg_read_fnp[addr])
+        if (reg_read_fnp[addr]((uint32_t *)&retvalue))
+            return retvalue;
+
+    if (s->mem_region_read)
+        if (s->mem_region_read(opaque, addr, size, &retvalue))
+            return retvalue;
+
     return regs[addr];
 }
 
@@ -66,23 +77,23 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
     
     case TX_CONTROL:
         if ((value & USER_TX_RAM_MASK) != (s->regs.trx_tx_ctrl & USER_TX_RAM_MASK)) {
-            if (s->regs.use_tx_ram_changed) {
-                s->regs.use_tx_ram_changed(((uint32_t)value & USER_TX_RAM_MASK) >> USER_TX_RAM_SHIFT, s);
+            if (s->regs.field_changed.use_tx_ram_changed) {
+                s->regs.field_changed.use_tx_ram_changed(((uint32_t)value & USER_TX_RAM_MASK) >> USER_TX_RAM_SHIFT, s);
             }
         }
         if ((value & TX_MEMBANK_SEL_MASK) != (s->regs.trx_tx_ctrl & TX_MEMBANK_SEL_MASK)) {
-            if (s->regs.txm_mem_bank_select_changed) {
-                s->regs.txm_mem_bank_select_changed(((uint32_t)value & TX_MEMBANK_SEL_MASK) >> TX_MEMBANK_SEL_SHIFT, s);
+            if (s->regs.field_changed.txm_mem_bank_select_changed) {
+                s->regs.field_changed.txm_mem_bank_select_changed(((uint32_t)value & TX_MEMBANK_SEL_MASK) >> TX_MEMBANK_SEL_SHIFT, s);
             }
         }
         if ((value & TX_START_MASK) != (s->regs.trx_tx_ctrl & TX_START_MASK)) {
-            if (s->regs.txm_start_changed) {
-                s->regs.txm_start_changed(((uint32_t)value & TX_START_MASK) >> TX_START_SHIFT, s);
+            if (s->regs.field_changed.txm_start_changed) {
+                s->regs.field_changed.txm_start_changed(((uint32_t)value & TX_START_MASK) >> TX_START_SHIFT, s);
             }
         }
         if ((value & TX_ENABLE_MASK) != (s->regs.trx_tx_ctrl & TX_ENABLE_MASK)) {
-            if (s->regs.txm_enable_changed) {
-                s->regs.txm_enable_changed(((uint32_t)value & TX_ENABLE_MASK) >> TX_ENABLE_SHIFT, s);
+            if (s->regs.field_changed.txm_enable_changed) {
+                s->regs.field_changed.txm_enable_changed(((uint32_t)value & TX_ENABLE_MASK) >> TX_ENABLE_SHIFT, s);
             }
         }
 
@@ -90,18 +101,18 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case TX_PARAMS_BANK0:
         if ((value & TX_PGA_GAIN_MASK) != (s->regs.trx_tx_hwbuf0_rc_psdulen & TX_PGA_GAIN_MASK)) {
-            if (s->regs.txm_pga_gain0_changed) {
-                s->regs.txm_pga_gain0_changed(((uint32_t)value & TX_PGA_GAIN_MASK) >> TX_PGA_GAIN_SHIFT, s);
+            if (s->regs.field_changed.txm_pga_gain0_changed) {
+                s->regs.field_changed.txm_pga_gain0_changed(((uint32_t)value & TX_PGA_GAIN_MASK) >> TX_PGA_GAIN_SHIFT, s);
             }
         }
         if ((value & TX_PSDU_LENGTH_MASK) != (s->regs.trx_tx_hwbuf0_rc_psdulen & TX_PSDU_LENGTH_MASK)) {
-            if (s->regs.txm_psdu_len0_changed) {
-                s->regs.txm_psdu_len0_changed(((uint32_t)value & TX_PSDU_LENGTH_MASK) >> TX_PSDU_LENGTH_SHIFT, s);
+            if (s->regs.field_changed.txm_psdu_len0_changed) {
+                s->regs.field_changed.txm_psdu_len0_changed(((uint32_t)value & TX_PSDU_LENGTH_MASK) >> TX_PSDU_LENGTH_SHIFT, s);
             }
         }
         if ((value & TX_REP_CODE_MASK) != (s->regs.trx_tx_hwbuf0_rc_psdulen & TX_REP_CODE_MASK)) {
-            if (s->regs.txm_rep_code0_changed) {
-                s->regs.txm_rep_code0_changed(((uint32_t)value & TX_REP_CODE_MASK) >> TX_REP_CODE_SHIFT, s);
+            if (s->regs.field_changed.txm_rep_code0_changed) {
+                s->regs.field_changed.txm_rep_code0_changed(((uint32_t)value & TX_REP_CODE_MASK) >> TX_REP_CODE_SHIFT, s);
             }
         }
 
@@ -109,8 +120,8 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case TX_EXTRA_HDR_BANK0:
         if ((value & TX_HDR_XTRA_MASK) != (s->regs.trx_tx_hwbuf0_xtra & TX_HDR_XTRA_MASK)) {
-            if (s->regs.txm_hdr_extra0_changed) {
-                s->regs.txm_hdr_extra0_changed(((uint32_t)value & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT, s);
+            if (s->regs.field_changed.txm_hdr_extra0_changed) {
+                s->regs.field_changed.txm_hdr_extra0_changed(((uint32_t)value & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT, s);
             }
         }
 
@@ -118,18 +129,18 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case TX_PARAMS_BANK1:
         if ((value & TX_PGA_GAIN_MASK) != (s->regs.trx_tx_hwbuf1_rc_psdulen & TX_PGA_GAIN_MASK)) {
-            if (s->regs.txm_pga_gain1_changed) {
-                s->regs.txm_pga_gain1_changed(((uint32_t)value & TX_PGA_GAIN_MASK) >> TX_PGA_GAIN_SHIFT, s);
+            if (s->regs.field_changed.txm_pga_gain1_changed) {
+                s->regs.field_changed.txm_pga_gain1_changed(((uint32_t)value & TX_PGA_GAIN_MASK) >> TX_PGA_GAIN_SHIFT, s);
             }
         }
         if ((value & TX_PSDU_LENGTH_MASK) != (s->regs.trx_tx_hwbuf1_rc_psdulen & TX_PSDU_LENGTH_MASK)) {
-            if (s->regs.txm_psdu_len1_changed) {
-                s->regs.txm_psdu_len1_changed(((uint32_t)value & TX_PSDU_LENGTH_MASK) >> TX_PSDU_LENGTH_SHIFT, s);
+            if (s->regs.field_changed.txm_psdu_len1_changed) {
+                s->regs.field_changed.txm_psdu_len1_changed(((uint32_t)value & TX_PSDU_LENGTH_MASK) >> TX_PSDU_LENGTH_SHIFT, s);
             }
         }
         if ((value & TX_REP_CODE_MASK) != (s->regs.trx_tx_hwbuf1_rc_psdulen & TX_REP_CODE_MASK)) {
-            if (s->regs.txm_rep_code1_changed) {
-                s->regs.txm_rep_code1_changed(((uint32_t)value & TX_REP_CODE_MASK) >> TX_REP_CODE_SHIFT, s);
+            if (s->regs.field_changed.txm_rep_code1_changed) {
+                s->regs.field_changed.txm_rep_code1_changed(((uint32_t)value & TX_REP_CODE_MASK) >> TX_REP_CODE_SHIFT, s);
             }
         }
 
@@ -137,8 +148,8 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case TX_EXTRA_HDR_BANK1:
         if ((value & TX_HDR_XTRA_MASK) != (s->regs.trx_tx_hwbuf1_xtra & TX_HDR_XTRA_MASK)) {
-            if (s->regs.txm_hdr_extra1_changed) {
-                s->regs.txm_hdr_extra1_changed(((uint32_t)value & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT, s);
+            if (s->regs.field_changed.txm_hdr_extra1_changed) {
+                s->regs.field_changed.txm_hdr_extra1_changed(((uint32_t)value & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT, s);
             }
         }
 
@@ -146,58 +157,58 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case RX_CONTROL:
         if ((value & AGC_MAXDB_MASK) != (s->regs.trx_rx_control & AGC_MAXDB_MASK)) {
-            if (s->regs.rxm_acg_max_db_changed) {
-                s->regs.rxm_acg_max_db_changed(((uint32_t)value & AGC_MAXDB_MASK) >> AGC_MAXDB_SHIFT, s);
+            if (s->regs.field_changed.rxm_acg_max_db_changed) {
+                s->regs.field_changed.rxm_acg_max_db_changed(((uint32_t)value & AGC_MAXDB_MASK) >> AGC_MAXDB_SHIFT, s);
             }
         }
         if ((value & AGC_LOWERTHRESH_MASK) != (s->regs.trx_rx_control & AGC_LOWERTHRESH_MASK)) {
-            if (s->regs.rxm_acg_lower_thresh_changed) {
-                s->regs.rxm_acg_lower_thresh_changed(((uint32_t)value & AGC_LOWERTHRESH_MASK) >> AGC_LOWERTHRESH_SHIFT, s);
+            if (s->regs.field_changed.rxm_acg_lower_thresh_changed) {
+                s->regs.field_changed.rxm_acg_lower_thresh_changed(((uint32_t)value & AGC_LOWERTHRESH_MASK) >> AGC_LOWERTHRESH_SHIFT, s);
             }
         }
         if ((value & AGC_SETPOINT_MASK) != (s->regs.trx_rx_control & AGC_SETPOINT_MASK)) {
-            if (s->regs.rxm_acg_set_point_changed) {
-                s->regs.rxm_acg_set_point_changed(((uint32_t)value & AGC_SETPOINT_MASK) >> AGC_SETPOINT_SHIFT, s);
+            if (s->regs.field_changed.rxm_acg_set_point_changed) {
+                s->regs.field_changed.rxm_acg_set_point_changed(((uint32_t)value & AGC_SETPOINT_MASK) >> AGC_SETPOINT_SHIFT, s);
             }
         }
         if ((value & AGC_MANUAL_MEMSEL_MASK) != (s->regs.trx_rx_control & AGC_MANUAL_MEMSEL_MASK)) {
-            if (s->regs.rxm_manual_membank_sel_changed) {
-                s->regs.rxm_manual_membank_sel_changed(((uint32_t)value & AGC_MANUAL_MEMSEL_MASK) >> AGC_MANUAL_MEMSEL_SHIFT, s);
+            if (s->regs.field_changed.rxm_manual_membank_sel_changed) {
+                s->regs.field_changed.rxm_manual_membank_sel_changed(((uint32_t)value & AGC_MANUAL_MEMSEL_MASK) >> AGC_MANUAL_MEMSEL_SHIFT, s);
             }
         }
         if ((value & PAYLOAD_CRCFAIL_INTR_MASK) != (s->regs.trx_rx_control & PAYLOAD_CRCFAIL_INTR_MASK)) {
-            if (s->regs.rxm_payload_fail_crc_intr_en_changed) {
-                s->regs.rxm_payload_fail_crc_intr_en_changed(((uint32_t)value & PAYLOAD_CRCFAIL_INTR_MASK) >> PAYLOAD_CRCFAIL_INTR_SHIFT, s);
+            if (s->regs.field_changed.rxm_payload_fail_crc_intr_en_changed) {
+                s->regs.field_changed.rxm_payload_fail_crc_intr_en_changed(((uint32_t)value & PAYLOAD_CRCFAIL_INTR_MASK) >> PAYLOAD_CRCFAIL_INTR_SHIFT, s);
             }
         }
         if ((value & CLEAR_MEMBANK_OFLOW_MASK) != (s->regs.trx_rx_control & CLEAR_MEMBANK_OFLOW_MASK)) {
-            if (s->regs.rxm_clear_membank_oflow_changed) {
-                s->regs.rxm_clear_membank_oflow_changed(((uint32_t)value & CLEAR_MEMBANK_OFLOW_MASK) >> CLEAR_MEMBANK_OFLOW_SHIFT, s);
+            if (s->regs.field_changed.rxm_clear_membank_oflow_changed) {
+                s->regs.field_changed.rxm_clear_membank_oflow_changed(((uint32_t)value & CLEAR_MEMBANK_OFLOW_MASK) >> CLEAR_MEMBANK_OFLOW_SHIFT, s);
             }
         }
         if ((value & CLEAR_MEM_FULL_FLAG_BANK3_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK3_MASK)) {
-            if (s->regs.rxm_clear_membank_full3_changed) {
-                s->regs.rxm_clear_membank_full3_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK3_MASK) >> CLEAR_MEM_FULL_FLAG_BANK3_SHIFT, s);
+            if (s->regs.field_changed.rxm_clear_membank_full3_changed) {
+                s->regs.field_changed.rxm_clear_membank_full3_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK3_MASK) >> CLEAR_MEM_FULL_FLAG_BANK3_SHIFT, s);
             }
         }
         if ((value & CLEAR_MEM_FULL_FLAG_BANK2_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK2_MASK)) {
-            if (s->regs.rxm_clear_membank_full2_changed) {
-                s->regs.rxm_clear_membank_full2_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK2_MASK) >> CLEAR_MEM_FULL_FLAG_BANK2_SHIFT, s);
+            if (s->regs.field_changed.rxm_clear_membank_full2_changed) {
+                s->regs.field_changed.rxm_clear_membank_full2_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK2_MASK) >> CLEAR_MEM_FULL_FLAG_BANK2_SHIFT, s);
             }
         }
         if ((value & CLEAR_MEM_FULL_FLAG_BANK1_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK1_MASK)) {
-            if (s->regs.rxm_clear_membank_full1_changed) {
-                s->regs.rxm_clear_membank_full1_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK1_MASK) >> CLEAR_MEM_FULL_FLAG_BANK1_SHIFT, s);
+            if (s->regs.field_changed.rxm_clear_membank_full1_changed) {
+                s->regs.field_changed.rxm_clear_membank_full1_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK1_MASK) >> CLEAR_MEM_FULL_FLAG_BANK1_SHIFT, s);
             }
         }
         if ((value & CLEAR_MEM_FULL_FLAG_BANK0_MASK) != (s->regs.trx_rx_control & CLEAR_MEM_FULL_FLAG_BANK0_MASK)) {
-            if (s->regs.rxm_clear_membank_full0_changed) {
-                s->regs.rxm_clear_membank_full0_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK0_MASK) >> CLEAR_MEM_FULL_FLAG_BANK0_SHIFT, s);
+            if (s->regs.field_changed.rxm_clear_membank_full0_changed) {
+                s->regs.field_changed.rxm_clear_membank_full0_changed(((uint32_t)value & CLEAR_MEM_FULL_FLAG_BANK0_MASK) >> CLEAR_MEM_FULL_FLAG_BANK0_SHIFT, s);
             }
         }
         if ((value & RXM_ENABLE_MASK) != (s->regs.trx_rx_control & RXM_ENABLE_MASK)) {
-            if (s->regs.rxm_enable_changed) {
-                s->regs.rxm_enable_changed(((uint32_t)value & RXM_ENABLE_MASK) >> RXM_ENABLE_SHIFT, s);
+            if (s->regs.field_changed.rxm_enable_changed) {
+                s->regs.field_changed.rxm_enable_changed(((uint32_t)value & RXM_ENABLE_MASK) >> RXM_ENABLE_SHIFT, s);
             }
         }
 
@@ -205,8 +216,8 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case RX_HDR_REP_RATE:
         if ((value & HDR_REPRATE_MASK) != (s->regs.trx_rx_hdr_rep_rate & HDR_REPRATE_MASK)) {
-            if (s->regs.hdr_reprate_changed) {
-                s->regs.hdr_reprate_changed(((uint32_t)value & HDR_REPRATE_MASK) >> HDR_REPRATE_SHIFT, s);
+            if (s->regs.field_changed.hdr_reprate_changed) {
+                s->regs.field_changed.hdr_reprate_changed(((uint32_t)value & HDR_REPRATE_MASK) >> HDR_REPRATE_SHIFT, s);
             }
         }
 
@@ -214,18 +225,18 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 
     case RX_THRESHOLDS:
         if ((value & ED_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & ED_THRESHOLD_MASK)) {
-            if (s->regs.ed_threshold_changed) {
-                s->regs.ed_threshold_changed(((uint32_t)value & ED_THRESHOLD_MASK) >> ED_THRESHOLD_SHIFT, s);
+            if (s->regs.field_changed.ed_threshold_changed) {
+                s->regs.field_changed.ed_threshold_changed(((uint32_t)value & ED_THRESHOLD_MASK) >> ED_THRESHOLD_SHIFT, s);
             }
         }
         if ((value & CCA_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & CCA_THRESHOLD_MASK)) {
-            if (s->regs.cca_auto_threshold_changed) {
-                s->regs.cca_auto_threshold_changed(((uint32_t)value & CCA_THRESHOLD_MASK) >> CCA_THRESHOLD_SHIFT, s);
+            if (s->regs.field_changed.cca_auto_threshold_changed) {
+                s->regs.field_changed.cca_auto_threshold_changed(((uint32_t)value & CCA_THRESHOLD_MASK) >> CCA_THRESHOLD_SHIFT, s);
             }
         }
         if ((value & HP_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & HP_THRESHOLD_MASK)) {
-            if (s->regs.hp_auto_threshold_changed) {
-                s->regs.hp_auto_threshold_changed(((uint32_t)value & HP_THRESHOLD_MASK) >> HP_THRESHOLD_SHIFT, s);
+            if (s->regs.field_changed.hp_auto_threshold_changed) {
+                s->regs.field_changed.hp_auto_threshold_changed(((uint32_t)value & HP_THRESHOLD_MASK) >> HP_THRESHOLD_SHIFT, s);
             }
         }
 
@@ -255,10 +266,21 @@ han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
     uint32_t * regs = (uint32_t *)&s->regs;
+    uint64_t retvalue = 0;
+    reg_read_fn * reg_read_fnp = (reg_read_fn *)&s->regs.reg_read;
 
     addr >>= 2;
     assert(addr < 32);
     assert(size <= 4);
+
+    if (reg_read_fnp[addr])
+        if (reg_read_fnp[addr]((uint32_t *)&retvalue))
+            return retvalue;
+
+    if (s->mem_region_read)
+        if (s->mem_region_read(opaque, addr, size, &retvalue))
+            return retvalue;
+
     return regs[addr];
 }
 
@@ -285,43 +307,43 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
     
     case MAC_LOWER_CTRL:
         if ((value & MAC_TIMEOUT_STRATEGY_MASK) != (s->regs.mac_lower_ctrl & MAC_TIMEOUT_STRATEGY_MASK)) {
-            if (s->regs.mac_timeout_strategy_changed) {
-                s->regs.mac_timeout_strategy_changed(((uint32_t)value & MAC_TIMEOUT_STRATEGY_MASK) >> MAC_TIMEOUT_STRATEGY_SHIFT, s);
+            if (s->regs.field_changed.mac_timeout_strategy_changed) {
+                s->regs.field_changed.mac_timeout_strategy_changed(((uint32_t)value & MAC_TIMEOUT_STRATEGY_MASK) >> MAC_TIMEOUT_STRATEGY_SHIFT, s);
             }
         }
         if ((value & MAC_MAX_CSMA_BACKOFFS_MASK) != (s->regs.mac_lower_ctrl & MAC_MAX_CSMA_BACKOFFS_MASK)) {
-            if (s->regs.mac_max_csma_backoffs_changed) {
-                s->regs.mac_max_csma_backoffs_changed(((uint32_t)value & MAC_MAX_CSMA_BACKOFFS_MASK) >> MAC_MAX_CSMA_BACKOFFS_SHIFT, s);
+            if (s->regs.field_changed.mac_max_csma_backoffs_changed) {
+                s->regs.field_changed.mac_max_csma_backoffs_changed(((uint32_t)value & MAC_MAX_CSMA_BACKOFFS_MASK) >> MAC_MAX_CSMA_BACKOFFS_SHIFT, s);
             }
         }
         if ((value & MAC_MIN_BE_MASK) != (s->regs.mac_lower_ctrl & MAC_MIN_BE_MASK)) {
-            if (s->regs.mac_min_be_changed) {
-                s->regs.mac_min_be_changed(((uint32_t)value & MAC_MIN_BE_MASK) >> MAC_MIN_BE_SHIFT, s);
+            if (s->regs.field_changed.mac_min_be_changed) {
+                s->regs.field_changed.mac_min_be_changed(((uint32_t)value & MAC_MIN_BE_MASK) >> MAC_MIN_BE_SHIFT, s);
             }
         }
         if ((value & MAC_MAX_BE_MASK) != (s->regs.mac_lower_ctrl & MAC_MAX_BE_MASK)) {
-            if (s->regs.mac_max_be_changed) {
-                s->regs.mac_max_be_changed(((uint32_t)value & MAC_MAX_BE_MASK) >> MAC_MAX_BE_SHIFT, s);
+            if (s->regs.field_changed.mac_max_be_changed) {
+                s->regs.field_changed.mac_max_be_changed(((uint32_t)value & MAC_MAX_BE_MASK) >> MAC_MAX_BE_SHIFT, s);
             }
         }
         if ((value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) != (s->regs.mac_lower_ctrl & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK)) {
-            if (s->regs.mac_csma_ign_rx_busy_changed) {
-                s->regs.mac_csma_ign_rx_busy_changed(((uint32_t)value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) >> MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT, s);
+            if (s->regs.field_changed.mac_csma_ign_rx_busy_changed) {
+                s->regs.field_changed.mac_csma_ign_rx_busy_changed(((uint32_t)value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) >> MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT, s);
             }
         }
         if ((value & MAC_ACK_EN_MASK) != (s->regs.mac_lower_ctrl & MAC_ACK_EN_MASK)) {
-            if (s->regs.mac_ack_en_changed) {
-                s->regs.mac_ack_en_changed(((uint32_t)value & MAC_ACK_EN_MASK) >> MAC_ACK_EN_SHIFT, s);
+            if (s->regs.field_changed.mac_ack_en_changed) {
+                s->regs.field_changed.mac_ack_en_changed(((uint32_t)value & MAC_ACK_EN_MASK) >> MAC_ACK_EN_SHIFT, s);
             }
         }
         if ((value & LOWER_MAC_RESET_MASK) != (s->regs.mac_lower_ctrl & LOWER_MAC_RESET_MASK)) {
-            if (s->regs.lower_mac_reset_changed) {
-                s->regs.lower_mac_reset_changed(((uint32_t)value & LOWER_MAC_RESET_MASK) >> LOWER_MAC_RESET_SHIFT, s);
+            if (s->regs.field_changed.lower_mac_reset_changed) {
+                s->regs.field_changed.lower_mac_reset_changed(((uint32_t)value & LOWER_MAC_RESET_MASK) >> LOWER_MAC_RESET_SHIFT, s);
             }
         }
         if ((value & MAC_BYPASS_MASK) != (s->regs.mac_lower_ctrl & MAC_BYPASS_MASK)) {
-            if (s->regs.lower_mac_bypass_changed) {
-                s->regs.lower_mac_bypass_changed(((uint32_t)value & MAC_BYPASS_MASK) >> MAC_BYPASS_SHIFT, s);
+            if (s->regs.field_changed.lower_mac_bypass_changed) {
+                s->regs.field_changed.lower_mac_bypass_changed(((uint32_t)value & MAC_BYPASS_MASK) >> MAC_BYPASS_SHIFT, s);
             }
         }
 
@@ -350,10 +372,21 @@ han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
     uint32_t * regs = (uint32_t *)&s->regs;
+    uint64_t retvalue = 0;
+    reg_read_fn * reg_read_fnp = (reg_read_fn *)&s->regs.reg_read;
 
     addr >>= 2;
     assert(addr < 32);
     assert(size <= 4);
+
+    if (reg_read_fnp[addr])
+        if (reg_read_fnp[addr]((uint32_t *)&retvalue))
+            return retvalue;
+
+    if (s->mem_region_read)
+        if (s->mem_region_read(opaque, addr, size, &retvalue))
+            return retvalue;
+
     return regs[addr];
 }
 
@@ -406,10 +439,21 @@ han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
     uint32_t * regs = (uint32_t *)&s->regs;
+    uint64_t retvalue = 0;
+    reg_read_fn * reg_read_fnp = (reg_read_fn *)&s->regs.reg_read;
 
     addr >>= 2;
     assert(addr < 32);
     assert(size <= 4);
+
+    if (reg_read_fnp[addr])
+        if (reg_read_fnp[addr]((uint32_t *)&retvalue))
+            return retvalue;
+
+    if (s->mem_region_read)
+        if (s->mem_region_read(opaque, addr, size, &retvalue))
+            return retvalue;
+
     return regs[addr];
 }
 
@@ -456,10 +500,21 @@ han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);
     uint32_t * regs = (uint32_t *)&s->regs;
+    uint64_t retvalue = 0;
+    reg_read_fn * reg_read_fnp = (reg_read_fn *)&s->regs.reg_read;
 
     addr >>= 2;
     assert(addr < 32);
     assert(size <= 4);
+
+    if (reg_read_fnp[addr])
+        if (reg_read_fnp[addr]((uint32_t *)&retvalue))
+            return retvalue;
+
+    if (s->mem_region_read)
+        if (s->mem_region_read(opaque, addr, size, &retvalue))
+            return retvalue;
+
     return regs[addr];
 }
 

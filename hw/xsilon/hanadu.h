@@ -31,14 +31,18 @@
      OBJECT_CHECK(struct han_hwvers_dev, (obj), TYPE_HANADU_HWVERS)
 
 typedef int (*mem_region_write_fnp)(void *opaque, hwaddr addr, uint64_t value, unsigned size);
+typedef int (*mem_region_read_fnp)(void *opaque, hwaddr addr, unsigned size, uint64_t *value);
 
 struct han_trxm_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
     mem_region_write_fnp mem_region_write;
+    mem_region_read_fnp mem_region_read;
     qemu_irq rx_irq;
     qemu_irq rx_fail_irq;
     qemu_irq tx_irq;
+    bool rx_irq_state;
+    bool tx_irq_state;
 
     struct han_regmap_trxm regs;
 
@@ -50,6 +54,7 @@ struct han_afe_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
     mem_region_write_fnp mem_region_write;
+    mem_region_read_fnp mem_region_read;
 
     struct han_regmap_afe regs;
 };
@@ -58,6 +63,7 @@ struct han_pwr_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
     mem_region_write_fnp mem_region_write;
+    mem_region_read_fnp mem_region_read;
 
     struct han_regmap_pwr regs;
 };
@@ -66,6 +72,7 @@ struct han_mac_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
     mem_region_write_fnp mem_region_write;
+    mem_region_read_fnp mem_region_read;
 
     struct han_regmap_mac regs;
 };
@@ -84,6 +91,7 @@ struct han_hwvers_dev {
     SysBusDevice busdev;
     MemoryRegion iomem;
     mem_region_write_fnp mem_region_write;
+    mem_region_read_fnp mem_region_read;
 
     struct han_regmap_hwvers regs;
 };

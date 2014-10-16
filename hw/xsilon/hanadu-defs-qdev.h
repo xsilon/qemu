@@ -69,7 +69,7 @@ typedef void (* field_changed_fn)(uint32_t value, void *hw_block);
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
-typedef int (* reg_read_fn)(uint32_t *value);
+typedef int (* reg_read_fn)(uint32_t *value, void *hw_block);
 
 struct han_regmap_trxm
 {
@@ -83,7 +83,7 @@ struct han_regmap_trxm
     /* 7  */ uint32_t trx_rx_hdr_rep_rate;
     /* 8  */ uint32_t trx_rx_thresholds;
     /* 9  */ uint32_t trx_rx_resets;
-    /* 10 */ uint32_t trx_rx_next_membank_to_read;
+    /* 10 */ uint32_t trx_rx_next_membank_to_proc;
     /* 11 */ uint32_t trx_rx_hdr_crc_pass_count;
     /* 12 */ uint32_t trx_rx_hdr_crc_fail_count;
     /* 13 */ uint32_t trx_rx_pay_crc_pass_count;
@@ -118,7 +118,7 @@ struct han_regmap_trxm
         /* 7  */ reg_changed_fn trx_rx_hdr_rep_rate_changed_cb;
         /* 8  */ reg_changed_fn trx_rx_thresholds_changed_cb;
         /* 9  */ reg_changed_fn trx_rx_resets_changed_cb;
-        /* 10 */ reg_changed_fn trx_rx_next_membank_to_read_changed_cb;
+        /* 10 */ reg_changed_fn trx_rx_next_membank_to_proc_changed_cb;
         /* 11 */ reg_changed_fn trx_rx_hdr_crc_pass_count_changed_cb;
         /* 12 */ reg_changed_fn trx_rx_hdr_crc_fail_count_changed_cb;
         /* 13 */ reg_changed_fn trx_rx_pay_crc_pass_count_changed_cb;
@@ -144,33 +144,33 @@ struct han_regmap_trxm
 
     /* Reg field changed callback, implement if required */
     struct field_trxm_changed_fns {
-        field_changed_fn use_tx_ram_changed;
-        field_changed_fn txm_mem_bank_select_changed;
-        field_changed_fn txm_start_changed;
-        field_changed_fn txm_enable_changed;
-        field_changed_fn txm_pga_gain0_changed;
-        field_changed_fn txm_psdu_len0_changed;
-        field_changed_fn txm_rep_code0_changed;
-        field_changed_fn txm_hdr_extra0_changed;
-        field_changed_fn txm_pga_gain1_changed;
-        field_changed_fn txm_psdu_len1_changed;
-        field_changed_fn txm_rep_code1_changed;
-        field_changed_fn txm_hdr_extra1_changed;
-        field_changed_fn rxm_acg_max_db_changed;
-        field_changed_fn rxm_acg_lower_thresh_changed;
-        field_changed_fn rxm_acg_set_point_changed;
-        field_changed_fn rxm_manual_membank_sel_changed;
-        field_changed_fn rxm_payload_fail_crc_intr_en_changed;
-        field_changed_fn rxm_clear_membank_oflow_changed;
-        field_changed_fn rxm_clear_membank_full3_changed;
-        field_changed_fn rxm_clear_membank_full2_changed;
-        field_changed_fn rxm_clear_membank_full1_changed;
-        field_changed_fn rxm_clear_membank_full0_changed;
-        field_changed_fn rxm_enable_changed;
-        field_changed_fn hdr_reprate_changed;
-        field_changed_fn ed_threshold_changed;
-        field_changed_fn cca_auto_threshold_changed;
-        field_changed_fn hp_auto_threshold_changed;
+        field_changed_fn tx_use_ram_changed;
+        field_changed_fn tx_mem_bank_select_changed;
+        field_changed_fn tx_start_changed;
+        field_changed_fn tx_enable_changed;
+        field_changed_fn tx_pga_gain0_changed;
+        field_changed_fn tx_psdu_len0_changed;
+        field_changed_fn tx_rep_code0_changed;
+        field_changed_fn tx_hdr_extra0_changed;
+        field_changed_fn tx_pga_gain1_changed;
+        field_changed_fn tx_psdu_len1_changed;
+        field_changed_fn tx_rep_code1_changed;
+        field_changed_fn tx_hdr_extra1_changed;
+        field_changed_fn rx_acg_max_db_changed;
+        field_changed_fn rx_acg_lower_thresh_changed;
+        field_changed_fn rx_acg_set_point_changed;
+        field_changed_fn rx_manual_membank_sel_changed;
+        field_changed_fn rx_payload_fail_crc_intr_en_changed;
+        field_changed_fn rx_clear_membank_oflow_changed;
+        field_changed_fn rx_clear_membank_full3_changed;
+        field_changed_fn rx_clear_membank_full2_changed;
+        field_changed_fn rx_clear_membank_full1_changed;
+        field_changed_fn rx_clear_membank_full0_changed;
+        field_changed_fn rx_enable_changed;
+        field_changed_fn rx_hdr_reprate_changed;
+        field_changed_fn rx_ed_threshold_changed;
+        field_changed_fn rx_cca_auto_threshold_changed;
+        field_changed_fn rx_hp_auto_threshold_changed;
     } field_changed;
 
     /* Reg Read callback, implement if required */
@@ -185,7 +185,7 @@ struct han_regmap_trxm
         /* 7  */ reg_read_fn trx_rx_hdr_rep_rate_read_cb;
         /* 8  */ reg_read_fn trx_rx_thresholds_read_cb;
         /* 9  */ reg_read_fn trx_rx_resets_read_cb;
-        /* 10 */ reg_read_fn trx_rx_next_membank_to_read_read_cb;
+        /* 10 */ reg_read_fn trx_rx_next_membank_to_proc_read_cb;
         /* 11 */ reg_read_fn trx_rx_hdr_crc_pass_count_read_cb;
         /* 12 */ reg_read_fn trx_rx_hdr_crc_fail_count_read_cb;
         /* 13 */ reg_read_fn trx_rx_pay_crc_pass_count_read_cb;
@@ -214,7 +214,7 @@ struct han_regmap_trxm
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
-typedef int (* reg_read_fn)(uint32_t *value);
+typedef int (* reg_read_fn)(uint32_t *value, void *hw_block);
 
 struct han_regmap_mac
 {
@@ -340,7 +340,7 @@ struct han_regmap_mac
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
-typedef int (* reg_read_fn)(uint32_t *value);
+typedef int (* reg_read_fn)(uint32_t *value, void *hw_block);
 
 struct han_regmap_pwr
 {
@@ -458,7 +458,7 @@ struct han_regmap_pwr
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
-typedef int (* reg_read_fn)(uint32_t *value);
+typedef int (* reg_read_fn)(uint32_t *value, void *hw_block);
 
 struct han_regmap_afe
 {
@@ -576,7 +576,7 @@ struct han_regmap_afe
  */
 
 typedef int (* reg_changed_fn)(uint32_t value);
-typedef int (* reg_read_fn)(uint32_t *value);
+typedef int (* reg_read_fn)(uint32_t *value, void *hw_block);
 
 struct han_regmap_hwvers
 {

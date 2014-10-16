@@ -20,200 +20,308 @@
  */
 
 static inline bool 
-han_trxm_txm_lower_mac_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_lower_mac_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_txm_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_use_tx_ram_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_use_ram_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_txm_mem_bank_select_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_mem_bank_select_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_txm_start_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_start_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_txm_enable_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_enable_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_txm_pga_gain0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_pga_gain0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
-han_trxm_txm_psdu_len0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_psdu_len0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_txm_rep_code0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_rep_code0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
-han_trxm_txm_hdr_extra0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_hdr_extra0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_txm_pga_gain1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_pga_gain1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
-han_trxm_txm_psdu_len1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_psdu_len1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_txm_rep_code1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_rep_code1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
-han_trxm_txm_hdr_extra1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_hdr_extra1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_rxm_acg_max_db_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_acg_max_db_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_rxm_acg_lower_thresh_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_acg_lower_thresh_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_rxm_acg_set_point_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_acg_set_point_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_manual_membank_sel_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_manual_membank_sel_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_payload_fail_crc_intr_en_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_payload_fail_crc_intr_en_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_clear_membank_oflow_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_clear_membank_oflow_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_clear_membank_full3_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full3_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_clear_membank_full2_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full2_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_clear_membank_full1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_clear_membank_full0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_trxm_rxm_enable_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_enable_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_hdr_reprate_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_hdr_reprate_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_ed_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_ed_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_cca_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_cca_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_hp_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_hp_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_rxm_memory_bank_next_to_process_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_mem_bank_next_to_process_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
-han_trxm_rxm_psdulen0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_psdulen0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_trxm_rxm_repcode0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_repcode0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_trxm_rx_psdulen1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_repcode1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_trxm_rx_psdulen2_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_repcode2_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_trxm_rx_psdulen3_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_repcode3_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_proc_fifo_wr_level_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_proc_fifo_rd_level_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_nextbuf_fifo_wr_level_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_nextbuf_fifo_rd_level_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline int8_t
+han_trxm_rx_rssi_latched_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_fifo_empty_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_fifo_full_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_overflow_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_full3_flag_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_full2_flag_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_full1_flag_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_rx_mem_bank_full0_flag_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 
 /* ________________________ set accessor functions
  */
 
 static inline void 
-han_trxm_txm_lower_mac_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_tx_lower_mac_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_txm_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_tx_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_use_tx_ram_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_tx_use_ram_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_mem_bank_select_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_tx_mem_bank_select_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_txm_start_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_tx_start_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_txm_enable_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_tx_enable_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_pga_gain0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_tx_pga_gain0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_psdu_len0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+han_trxm_tx_psdu_len0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_rep_code0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_tx_rep_code0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_hdr_extra0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+han_trxm_tx_hdr_extra0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_pga_gain1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_tx_pga_gain1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_psdu_len1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+han_trxm_tx_psdu_len1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_rep_code1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_tx_rep_code1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_txm_hdr_extra1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+han_trxm_tx_hdr_extra1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rxm_acg_max_db_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_acg_max_db_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rxm_acg_lower_thresh_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_acg_lower_thresh_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rxm_acg_set_point_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_acg_set_point_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_manual_membank_sel_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_manual_membank_sel_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_payload_fail_crc_intr_en_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_payload_fail_crc_intr_en_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_clear_membank_oflow_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_clear_membank_oflow_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_clear_membank_full3_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full3_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_clear_membank_full2_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full2_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_clear_membank_full1_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full1_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_clear_membank_full0_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_clear_membank_full0_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_trxm_rxm_enable_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_rx_enable_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
-han_trxm_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_rx_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_ed_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_ed_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_rx_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rxm_memory_bank_next_to_process_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_rx_mem_bank_next_to_process_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rxm_psdulen0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+han_trxm_rx_psdulen0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rxm_repcode0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+han_trxm_rx_repcode0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_psdulen1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_repcode1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_psdulen2_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_repcode2_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_psdulen3_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_repcode3_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_proc_fifo_wr_level_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_proc_fifo_rd_level_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_nextbuf_fifo_wr_level_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_nextbuf_fifo_rd_level_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_rssi_latched_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_fifo_empty_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_fifo_full_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_overflow_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_full3_flag_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_full2_flag_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_full1_flag_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_rx_mem_bank_full0_flag_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 
 /* ________________________ get accessor functions
@@ -299,25 +407,25 @@ han_mac_lower_mac_bypass_set(struct han_mac_dev *s, bool value) __attribute__((a
  */
 
 static inline bool 
-han_trxm_txm_lower_mac_busy_get(struct han_trxm_dev *s)
+han_trxm_tx_lower_mac_busy_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_tx_ctrl & (1 << MAC_LOWER_BUSY_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_txm_busy_get(struct han_trxm_dev *s)
+han_trxm_tx_busy_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_tx_ctrl & (1 << TX_BUSY_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_use_tx_ram_get(struct han_trxm_dev *s)
+han_trxm_tx_use_ram_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_tx_ctrl & (1 << USER_TX_RAM_SHIFT)) ? true : false;
 }
 
 static inline uint8_t
-han_trxm_txm_mem_bank_select_get(struct han_trxm_dev *s)
+han_trxm_tx_mem_bank_select_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -326,19 +434,19 @@ han_trxm_txm_mem_bank_select_get(struct han_trxm_dev *s)
 }
 
 static inline bool 
-han_trxm_txm_start_get(struct han_trxm_dev *s)
+han_trxm_tx_start_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_tx_ctrl & (1 << TX_START_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_txm_enable_get(struct han_trxm_dev *s)
+han_trxm_tx_enable_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_tx_ctrl & (1 << TX_ENABLE_SHIFT)) ? true : false;
 }
 
 static inline uint8_t
-han_trxm_txm_pga_gain0_get(struct han_trxm_dev *s)
+han_trxm_tx_pga_gain0_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -347,7 +455,7 @@ han_trxm_txm_pga_gain0_get(struct han_trxm_dev *s)
 }
 
 static inline uint16_t
-han_trxm_txm_psdu_len0_get(struct han_trxm_dev *s)
+han_trxm_tx_psdu_len0_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
@@ -356,7 +464,7 @@ han_trxm_txm_psdu_len0_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
-han_trxm_txm_rep_code0_get(struct han_trxm_dev *s)
+han_trxm_tx_rep_code0_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -365,7 +473,7 @@ han_trxm_txm_rep_code0_get(struct han_trxm_dev *s)
 }
 
 static inline uint16_t
-han_trxm_txm_hdr_extra0_get(struct han_trxm_dev *s)
+han_trxm_tx_hdr_extra0_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
@@ -374,7 +482,7 @@ han_trxm_txm_hdr_extra0_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
-han_trxm_txm_pga_gain1_get(struct han_trxm_dev *s)
+han_trxm_tx_pga_gain1_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -383,7 +491,7 @@ han_trxm_txm_pga_gain1_get(struct han_trxm_dev *s)
 }
 
 static inline uint16_t
-han_trxm_txm_psdu_len1_get(struct han_trxm_dev *s)
+han_trxm_tx_psdu_len1_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
@@ -392,7 +500,7 @@ han_trxm_txm_psdu_len1_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
-han_trxm_txm_rep_code1_get(struct han_trxm_dev *s)
+han_trxm_tx_rep_code1_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -401,7 +509,7 @@ han_trxm_txm_rep_code1_get(struct han_trxm_dev *s)
 }
 
 static inline uint16_t
-han_trxm_txm_hdr_extra1_get(struct han_trxm_dev *s)
+han_trxm_tx_hdr_extra1_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
@@ -410,7 +518,7 @@ han_trxm_txm_hdr_extra1_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_rxm_acg_max_db_get(struct han_trxm_dev *s)
+han_trxm_rx_acg_max_db_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
@@ -419,7 +527,7 @@ han_trxm_rxm_acg_max_db_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_rxm_acg_lower_thresh_get(struct han_trxm_dev *s)
+han_trxm_rx_acg_lower_thresh_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
@@ -428,7 +536,7 @@ han_trxm_rxm_acg_lower_thresh_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_rxm_acg_set_point_get(struct han_trxm_dev *s)
+han_trxm_rx_acg_set_point_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
@@ -437,55 +545,55 @@ han_trxm_rxm_acg_set_point_get(struct han_trxm_dev *s)
 }
 
 static inline bool 
-han_trxm_rxm_manual_membank_sel_get(struct han_trxm_dev *s)
+han_trxm_rx_manual_membank_sel_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << AGC_MANUAL_MEMSEL_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_payload_fail_crc_intr_en_get(struct han_trxm_dev *s)
+han_trxm_rx_payload_fail_crc_intr_en_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << PAYLOAD_CRCFAIL_INTR_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_clear_membank_oflow_get(struct han_trxm_dev *s)
+han_trxm_rx_clear_membank_oflow_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << CLEAR_MEMBANK_OFLOW_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_clear_membank_full3_get(struct han_trxm_dev *s)
+han_trxm_rx_clear_membank_full3_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << CLEAR_MEM_FULL_FLAG_BANK3_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_clear_membank_full2_get(struct han_trxm_dev *s)
+han_trxm_rx_clear_membank_full2_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << CLEAR_MEM_FULL_FLAG_BANK2_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_clear_membank_full1_get(struct han_trxm_dev *s)
+han_trxm_rx_clear_membank_full1_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << CLEAR_MEM_FULL_FLAG_BANK1_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_clear_membank_full0_get(struct han_trxm_dev *s)
+han_trxm_rx_clear_membank_full0_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << CLEAR_MEM_FULL_FLAG_BANK0_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_trxm_rxm_enable_get(struct han_trxm_dev *s)
+han_trxm_rx_enable_get(struct han_trxm_dev *s)
 {
     return (s->regs.trx_rx_control & (1 << RXM_ENABLE_SHIFT)) ? true : false;
 }
 
 static inline uint8_t
-han_trxm_hdr_reprate_get(struct han_trxm_dev *s)
+han_trxm_rx_hdr_reprate_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -494,7 +602,7 @@ han_trxm_hdr_reprate_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_ed_threshold_get(struct han_trxm_dev *s)
+han_trxm_rx_ed_threshold_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
@@ -503,7 +611,7 @@ han_trxm_ed_threshold_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
-han_trxm_cca_auto_threshold_get(struct han_trxm_dev *s)
+han_trxm_rx_cca_auto_threshold_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -512,7 +620,7 @@ han_trxm_cca_auto_threshold_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_hp_auto_threshold_get(struct han_trxm_dev *s)
+han_trxm_rx_hp_auto_threshold_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
@@ -521,16 +629,16 @@ han_trxm_hp_auto_threshold_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
-han_trxm_rxm_memory_bank_next_to_process_get(struct han_trxm_dev *s)
+han_trxm_rx_mem_bank_next_to_process_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
-    value = (uint8_t)s->regs.trx_rx_next_membank_to_read;
+    value = (uint8_t)s->regs.trx_rx_next_membank_to_proc;
     return value;
 }
 
 static inline uint16_t
-han_trxm_rxm_psdulen0_get(struct han_trxm_dev *s)
+han_trxm_rx_psdulen0_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
@@ -539,7 +647,7 @@ han_trxm_rxm_psdulen0_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
-han_trxm_rxm_repcode0_get(struct han_trxm_dev *s)
+han_trxm_rx_repcode0_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
@@ -547,12 +655,153 @@ han_trxm_rxm_repcode0_get(struct han_trxm_dev *s)
     return value;
 }
 
+static inline uint16_t
+han_trxm_rx_psdulen1_get(struct han_trxm_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)((s->regs.trx_rx_buf1_rc_psdulen & RX_PSDU_LENGTH_MASK) >> RX_PSDU_LENGTH_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_repcode1_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf1_rc_psdulen & RX_REP_CODE_MASK) >> RX_REP_CODE_SHIFT);
+    return value;
+}
+
+static inline uint16_t
+han_trxm_rx_psdulen2_get(struct han_trxm_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)((s->regs.trx_rx_buf2_rc_psdulen & RX_PSDU_LENGTH_MASK) >> RX_PSDU_LENGTH_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_repcode2_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf2_rc_psdulen & RX_REP_CODE_MASK) >> RX_REP_CODE_SHIFT);
+    return value;
+}
+
+static inline uint16_t
+han_trxm_rx_psdulen3_get(struct han_trxm_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)((s->regs.trx_rx_buf3_rc_psdulen & RX_PSDU_LENGTH_MASK) >> RX_PSDU_LENGTH_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_repcode3_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf3_rc_psdulen & RX_REP_CODE_MASK) >> RX_REP_CODE_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_proc_fifo_wr_level_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_fifo_levels & PROC_FIFO_WR_LEVEL_MASK) >> PROC_FIFO_WR_LEVEL_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_proc_fifo_rd_level_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_fifo_levels & PROC_FIFO_RD_LEVEL_MASK) >> PROC_FIFO_RD_LEVEL_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_nextbuf_fifo_wr_level_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_fifo_levels & NEXTBUF_FIFO_WR_LEVEL_MASK) >> NEXTBUF_FIFO_WR_LEVEL_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_nextbuf_fifo_rd_level_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_fifo_levels & NEXTBUF_FIFO_RD_LEVEL_MASK) >> NEXTBUF_FIFO_RD_LEVEL_SHIFT);
+    return value;
+}
+
+static inline int8_t
+han_trxm_rx_rssi_latched_get(struct han_trxm_dev *s)
+{
+    int8_t value;
+
+    value = (int8_t)((s->regs.trx_pga_gain_cca_flags & RX_RSSI_LATCHED_MASK) >> RX_RSSI_LATCHED_SHIFT);
+    return value;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_fifo_empty_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << RX_FIFO_EMPTY_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_fifo_full_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << RX_FIFO_FULL_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_overflow_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << RX_MEMBANK_OFLOW_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_full3_flag_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << MEMBANK3_FULL_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_full2_flag_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << MEMBANK2_FULL_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_full1_flag_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << MEMBANK1_FULL_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_rx_mem_bank_full0_flag_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_membank_fifo_flags_rssi_tx_power & (1 << MEMBANK0_FULL_SHIFT)) ? true : false;
+}
+
 /* ________________________ set accessor functions
  */
 
 
 static inline void
-han_trxm_txm_lower_mac_busy_set(struct han_trxm_dev *s, bool value)
+han_trxm_tx_lower_mac_busy_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
     reg_val &= ~MAC_LOWER_BUSY_MASK;
@@ -563,7 +812,7 @@ han_trxm_txm_lower_mac_busy_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_txm_busy_set(struct han_trxm_dev *s, bool value)
+han_trxm_tx_busy_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
     reg_val &= ~TX_BUSY_MASK;
@@ -574,7 +823,7 @@ han_trxm_txm_busy_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_use_tx_ram_set(struct han_trxm_dev *s, bool value)
+han_trxm_tx_use_ram_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
     reg_val &= ~USER_TX_RAM_MASK;
@@ -584,7 +833,7 @@ han_trxm_use_tx_ram_set(struct han_trxm_dev *s, bool value)
 }
 
 static inline void
-han_trxm_txm_mem_bank_select_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_tx_mem_bank_select_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
     reg_val &= ~TX_MEMBANK_SEL_MASK;
@@ -594,7 +843,7 @@ han_trxm_txm_mem_bank_select_set(struct han_trxm_dev *s, uint8_t value)
 
 
 static inline void
-han_trxm_txm_start_set(struct han_trxm_dev *s, bool value)
+han_trxm_tx_start_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
     reg_val &= ~TX_START_MASK;
@@ -605,7 +854,7 @@ han_trxm_txm_start_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_txm_enable_set(struct han_trxm_dev *s, bool value)
+han_trxm_tx_enable_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
     reg_val &= ~TX_ENABLE_MASK;
@@ -615,7 +864,7 @@ han_trxm_txm_enable_set(struct han_trxm_dev *s, bool value)
 }
 
 static inline void
-han_trxm_txm_pga_gain0_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_tx_pga_gain0_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_hwbuf0_rc_psdulen;
     reg_val &= ~TX_PGA_GAIN_MASK;
@@ -624,7 +873,7 @@ han_trxm_txm_pga_gain0_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_txm_psdu_len0_set(struct han_trxm_dev *s, uint16_t value)
+han_trxm_tx_psdu_len0_set(struct han_trxm_dev *s, uint16_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_hwbuf0_rc_psdulen;
     reg_val &= ~TX_PSDU_LENGTH_MASK;
@@ -633,7 +882,7 @@ han_trxm_txm_psdu_len0_set(struct han_trxm_dev *s, uint16_t value)
 }
 
 static inline void
-han_trxm_txm_rep_code0_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_tx_rep_code0_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_hwbuf0_rc_psdulen;
     reg_val &= ~TX_REP_CODE_MASK;
@@ -642,13 +891,13 @@ han_trxm_txm_rep_code0_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_txm_hdr_extra0_set(struct han_trxm_dev *s, uint16_t value)
+han_trxm_tx_hdr_extra0_set(struct han_trxm_dev *s, uint16_t value)
 {
     s->regs.trx_tx_hwbuf0_xtra = value;
 }
 
 static inline void
-han_trxm_txm_pga_gain1_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_tx_pga_gain1_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_hwbuf1_rc_psdulen;
     reg_val &= ~TX_PGA_GAIN_MASK;
@@ -657,7 +906,7 @@ han_trxm_txm_pga_gain1_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_txm_psdu_len1_set(struct han_trxm_dev *s, uint16_t value)
+han_trxm_tx_psdu_len1_set(struct han_trxm_dev *s, uint16_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_hwbuf1_rc_psdulen;
     reg_val &= ~TX_PSDU_LENGTH_MASK;
@@ -666,7 +915,7 @@ han_trxm_txm_psdu_len1_set(struct han_trxm_dev *s, uint16_t value)
 }
 
 static inline void
-han_trxm_txm_rep_code1_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_tx_rep_code1_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_tx_hwbuf1_rc_psdulen;
     reg_val &= ~TX_REP_CODE_MASK;
@@ -675,13 +924,13 @@ han_trxm_txm_rep_code1_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_txm_hdr_extra1_set(struct han_trxm_dev *s, uint16_t value)
+han_trxm_tx_hdr_extra1_set(struct han_trxm_dev *s, uint16_t value)
 {
     s->regs.trx_tx_hwbuf1_xtra = value;
 }
 
 static inline void
-han_trxm_rxm_acg_max_db_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_acg_max_db_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~AGC_MAXDB_MASK;
@@ -690,7 +939,7 @@ han_trxm_rxm_acg_max_db_set(struct han_trxm_dev *s, int8_t value)
 }
 
 static inline void
-han_trxm_rxm_acg_lower_thresh_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_acg_lower_thresh_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~AGC_LOWERTHRESH_MASK;
@@ -699,7 +948,7 @@ han_trxm_rxm_acg_lower_thresh_set(struct han_trxm_dev *s, int8_t value)
 }
 
 static inline void
-han_trxm_rxm_acg_set_point_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_acg_set_point_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~AGC_SETPOINT_MASK;
@@ -709,7 +958,7 @@ han_trxm_rxm_acg_set_point_set(struct han_trxm_dev *s, int8_t value)
 
 
 static inline void
-han_trxm_rxm_manual_membank_sel_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_manual_membank_sel_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~AGC_MANUAL_MEMSEL_MASK;
@@ -720,7 +969,7 @@ han_trxm_rxm_manual_membank_sel_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_payload_fail_crc_intr_en_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_payload_fail_crc_intr_en_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~PAYLOAD_CRCFAIL_INTR_MASK;
@@ -731,7 +980,7 @@ han_trxm_rxm_payload_fail_crc_intr_en_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_clear_membank_oflow_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_clear_membank_oflow_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~CLEAR_MEMBANK_OFLOW_MASK;
@@ -742,7 +991,7 @@ han_trxm_rxm_clear_membank_oflow_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_clear_membank_full3_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_clear_membank_full3_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~CLEAR_MEM_FULL_FLAG_BANK3_MASK;
@@ -753,7 +1002,7 @@ han_trxm_rxm_clear_membank_full3_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_clear_membank_full2_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_clear_membank_full2_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~CLEAR_MEM_FULL_FLAG_BANK2_MASK;
@@ -764,7 +1013,7 @@ han_trxm_rxm_clear_membank_full2_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_clear_membank_full1_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_clear_membank_full1_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~CLEAR_MEM_FULL_FLAG_BANK1_MASK;
@@ -775,7 +1024,7 @@ han_trxm_rxm_clear_membank_full1_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_clear_membank_full0_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_clear_membank_full0_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~CLEAR_MEM_FULL_FLAG_BANK0_MASK;
@@ -786,7 +1035,7 @@ han_trxm_rxm_clear_membank_full0_set(struct han_trxm_dev *s, bool value)
 
 
 static inline void
-han_trxm_rxm_enable_set(struct han_trxm_dev *s, bool value)
+han_trxm_rx_enable_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_rx_control;
     reg_val &= ~RXM_ENABLE_MASK;
@@ -796,13 +1045,13 @@ han_trxm_rxm_enable_set(struct han_trxm_dev *s, bool value)
 }
 
 static inline void
-han_trxm_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_rx_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value)
 {
     s->regs.trx_rx_hdr_rep_rate = value;
 }
 
 static inline void
-han_trxm_ed_threshold_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_ed_threshold_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_thresholds;
     reg_val &= ~ED_THRESHOLD_MASK;
@@ -811,7 +1060,7 @@ han_trxm_ed_threshold_set(struct han_trxm_dev *s, int8_t value)
 }
 
 static inline void
-han_trxm_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_rx_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_thresholds;
     reg_val &= ~CCA_THRESHOLD_MASK;
@@ -820,7 +1069,7 @@ han_trxm_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_thresholds;
     reg_val &= ~HP_THRESHOLD_MASK;
@@ -829,13 +1078,13 @@ han_trxm_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value)
 }
 
 static inline void
-han_trxm_rxm_memory_bank_next_to_process_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_rx_mem_bank_next_to_process_set(struct han_trxm_dev *s, uint8_t value)
 {
-    s->regs.trx_rx_next_membank_to_read = value;
+    s->regs.trx_rx_next_membank_to_proc = value;
 }
 
 static inline void
-han_trxm_rxm_psdulen0_set(struct han_trxm_dev *s, uint16_t value)
+han_trxm_rx_psdulen0_set(struct han_trxm_dev *s, uint16_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_buf0_rc_psdulen;
     reg_val &= ~RX_PSDU_LENGTH_MASK;
@@ -844,12 +1093,188 @@ han_trxm_rxm_psdulen0_set(struct han_trxm_dev *s, uint16_t value)
 }
 
 static inline void
-han_trxm_rxm_repcode0_set(struct han_trxm_dev *s, uint8_t value)
+han_trxm_rx_repcode0_set(struct han_trxm_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_buf0_rc_psdulen;
     reg_val &= ~RX_REP_CODE_MASK;
     reg_val |= ((value << RX_REP_CODE_SHIFT) & RX_REP_CODE_MASK);
     s->regs.trx_rx_buf0_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_psdulen1_set(struct han_trxm_dev *s, uint16_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf1_rc_psdulen;
+    reg_val &= ~RX_PSDU_LENGTH_MASK;
+    reg_val |= ((value << RX_PSDU_LENGTH_SHIFT) & RX_PSDU_LENGTH_MASK);
+    s->regs.trx_rx_buf1_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_repcode1_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf1_rc_psdulen;
+    reg_val &= ~RX_REP_CODE_MASK;
+    reg_val |= ((value << RX_REP_CODE_SHIFT) & RX_REP_CODE_MASK);
+    s->regs.trx_rx_buf1_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_psdulen2_set(struct han_trxm_dev *s, uint16_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf2_rc_psdulen;
+    reg_val &= ~RX_PSDU_LENGTH_MASK;
+    reg_val |= ((value << RX_PSDU_LENGTH_SHIFT) & RX_PSDU_LENGTH_MASK);
+    s->regs.trx_rx_buf2_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_repcode2_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf2_rc_psdulen;
+    reg_val &= ~RX_REP_CODE_MASK;
+    reg_val |= ((value << RX_REP_CODE_SHIFT) & RX_REP_CODE_MASK);
+    s->regs.trx_rx_buf2_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_psdulen3_set(struct han_trxm_dev *s, uint16_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf3_rc_psdulen;
+    reg_val &= ~RX_PSDU_LENGTH_MASK;
+    reg_val |= ((value << RX_PSDU_LENGTH_SHIFT) & RX_PSDU_LENGTH_MASK);
+    s->regs.trx_rx_buf3_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_repcode3_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf3_rc_psdulen;
+    reg_val &= ~RX_REP_CODE_MASK;
+    reg_val |= ((value << RX_REP_CODE_SHIFT) & RX_REP_CODE_MASK);
+    s->regs.trx_rx_buf3_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_proc_fifo_wr_level_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_fifo_levels;
+    reg_val &= ~PROC_FIFO_WR_LEVEL_MASK;
+    reg_val |= ((value << PROC_FIFO_WR_LEVEL_SHIFT) & PROC_FIFO_WR_LEVEL_MASK);
+    s->regs.trx_rx_fifo_levels = reg_val;
+}
+
+static inline void
+han_trxm_rx_proc_fifo_rd_level_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_fifo_levels;
+    reg_val &= ~PROC_FIFO_RD_LEVEL_MASK;
+    reg_val |= ((value << PROC_FIFO_RD_LEVEL_SHIFT) & PROC_FIFO_RD_LEVEL_MASK);
+    s->regs.trx_rx_fifo_levels = reg_val;
+}
+
+static inline void
+han_trxm_rx_nextbuf_fifo_wr_level_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_fifo_levels;
+    reg_val &= ~NEXTBUF_FIFO_WR_LEVEL_MASK;
+    reg_val |= ((value << NEXTBUF_FIFO_WR_LEVEL_SHIFT) & NEXTBUF_FIFO_WR_LEVEL_MASK);
+    s->regs.trx_rx_fifo_levels = reg_val;
+}
+
+static inline void
+han_trxm_rx_nextbuf_fifo_rd_level_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_fifo_levels;
+    reg_val &= ~NEXTBUF_FIFO_RD_LEVEL_MASK;
+    reg_val |= ((value << NEXTBUF_FIFO_RD_LEVEL_SHIFT) & NEXTBUF_FIFO_RD_LEVEL_MASK);
+    s->regs.trx_rx_fifo_levels = reg_val;
+}
+
+static inline void
+han_trxm_rx_rssi_latched_set(struct han_trxm_dev *s, int8_t value)
+{
+    uint32_t reg_val = s->regs.trx_pga_gain_cca_flags;
+    reg_val &= ~RX_RSSI_LATCHED_MASK;
+    reg_val |= ((value << RX_RSSI_LATCHED_SHIFT) & RX_RSSI_LATCHED_MASK);
+    s->regs.trx_pga_gain_cca_flags = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_fifo_empty_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~RX_FIFO_EMPTY_MASK;
+    if(value)
+	    reg_val |= ((1 << RX_FIFO_EMPTY_SHIFT) & RX_FIFO_EMPTY_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_fifo_full_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~RX_FIFO_FULL_MASK;
+    if(value)
+	    reg_val |= ((1 << RX_FIFO_FULL_SHIFT) & RX_FIFO_FULL_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_overflow_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~RX_MEMBANK_OFLOW_MASK;
+    if(value)
+	    reg_val |= ((1 << RX_MEMBANK_OFLOW_SHIFT) & RX_MEMBANK_OFLOW_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_full3_flag_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~MEMBANK3_FULL_MASK;
+    if(value)
+	    reg_val |= ((1 << MEMBANK3_FULL_SHIFT) & MEMBANK3_FULL_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_full2_flag_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~MEMBANK2_FULL_MASK;
+    if(value)
+	    reg_val |= ((1 << MEMBANK2_FULL_SHIFT) & MEMBANK2_FULL_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_full1_flag_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~MEMBANK1_FULL_MASK;
+    if(value)
+	    reg_val |= ((1 << MEMBANK1_FULL_SHIFT) & MEMBANK1_FULL_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
+}
+
+
+static inline void
+han_trxm_rx_mem_bank_full0_flag_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_membank_fifo_flags_rssi_tx_power;
+    reg_val &= ~MEMBANK0_FULL_MASK;
+    if(value)
+	    reg_val |= ((1 << MEMBANK0_FULL_SHIFT) & MEMBANK0_FULL_MASK);
+    s->regs.trx_membank_fifo_flags_rssi_tx_power = reg_val;
 }
 
 /* ________________________ get accessor functions

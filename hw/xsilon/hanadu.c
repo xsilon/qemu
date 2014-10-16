@@ -6,6 +6,7 @@
  */
 #include "hw/sysbus.h"
 #include "qemu/log.h"
+#include "qemu/fifo.h"
 #include "hanadu.h"
 #include "hanadu-inl.h"
 #include "xsilon.h"
@@ -34,13 +35,15 @@ static struct hanadu {
 	enum han_state state;
 
 	struct han_rx {
-		bool enabled;
 		struct rxbuf buf[4];
+		unsigned bufs_avail_bitmap;
+		Fifo nextbuf;
+		Fifo proc;
+		bool enabled;
 	} rx;
 	struct han_tx {
-		bool enabled;
-		uint8_t bufsel;
 		struct txbuf buf[2];
+		bool enabled;
 	} tx;
 } han;
 
@@ -58,31 +61,81 @@ hanadu_set_default_dip_afe(uint8_t dip)
 }
 
 static void
-hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * data, uint16_t len, uint8_t repcode)
+hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * data, uint16_t len,
+						   uint8_t repcode)
 {
-
 	/* If buffer successfully sent then generate interrupt */
 	qemu_set_irq(s->tx_irq, 1);
 	s->tx_irq_state = 1;
-
-	/* loop it back to receiver buffer 0 */
-#if 1
-	memcpy(han.rx.buf[0].data, data, len);
-
-	/* Need write accessor functions until then just write to regs */
-	han_trxm_rxm_psdulen0_set(s, len);
-	han_trxm_rxm_repcode0_set(s, repcode);
-	han_trxm_rxm_memory_bank_next_to_process_set(s, 0);
-
-
-#endif
 }
+
+#if 0
+static void
+hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, uint8_t * data,
+							 uint16_t len, uint8_t repcode, int8_t rssi)
+{
+	int i;
+	uint8_t fifo_used;
+	uint8_t *rxbuf;
+
+	/* first up get next available buffer */
+	i=0;
+	while(!(han.rx.bufs_avail_bitmap & (1<<i)) && i < 4)
+		i++;
+	if(i == 4) {
+		/* Overflow */
+		han_trxm_rx_mem_bank_overflow_set(s, true);
+	} else {
+		/* Clear the buffer from the bitmap as we are going to use it. */
+		han.rx.bufs_avail_bitmap &= ~(1<<i);
+		han_trxm_rx_mem_bank_overflow_set(s, false);
+		assert(i>=0 && i<4);
+		assert(!fifo_is_full(&han.rx.nextbuf));
+		switch(i) {
+		case 0:
+			han_trxm_rx_psdulen0_set(s, len);
+			han_trxm_rx_repcode0_set(s, repcode);
+			han_trxm_rx_mem_bank_full0_flag_set(s, 1);
+			break;
+		case 1:
+			han_trxm_rx_psdulen1_set(s, len);
+			han_trxm_rx_repcode1_set(s, repcode);
+			han_trxm_rx_mem_bank_full1_flag_set(s, 1);
+			break;
+		case 2:
+			han_trxm_rx_psdulen2_set(s, len);
+			han_trxm_rx_repcode2_set(s, repcode);
+			han_trxm_rx_mem_bank_full2_flag_set(s, 1);
+			break;
+		case 3:
+			han_trxm_rx_psdulen3_set(s, len);
+			han_trxm_rx_repcode3_set(s, repcode);
+			han_trxm_rx_mem_bank_full3_flag_set(s, 1);
+			break;
+		}
+		fifo_push8(&han.rx.nextbuf, i);
+		fifo_used = (uint8_t)fifo_num_used(&han.rx.nextbuf);
+		han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
+		han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
+		han_trxm_rx_rssi_latched_set(s, rssi);
+
+		/* copy data into the relevant buffer */
+		rxbuf = han.rx.buf[i].data;
+		for(i=0;i<len;i++)
+			*rxbuf++ = *data++;
+	}
+	qemu_set_irq(s->rx_irq, 1);
+	s->rx_irq_state = 1;
+
+}
+#endif
+
 
 /* __________________________________________________________ Hanadu Transceiver
  */
 
 static void
-han_trxm_txm_enable_changed(uint32_t value, void *hw_block)
+han_trxm_tx_enable_changed(uint32_t value, void *hw_block)
 {
 	if(value) {
 		assert(han.tx.enabled == false);
@@ -94,7 +147,7 @@ han_trxm_txm_enable_changed(uint32_t value, void *hw_block)
 }
 
 static void
-han_trxm_rxm_enable_changed(uint32_t value, void *hw_block)
+han_trxm_rx_enable_changed(uint32_t value, void *hw_block)
 {
 	if(value) {
 		assert(han.rx.enabled == false);
@@ -106,32 +159,7 @@ han_trxm_rxm_enable_changed(uint32_t value, void *hw_block)
 }
 
 static void
-han_trxm_txm_mem_bank_select_changed(uint32_t value, void *hw_block)
-{
-	han.tx.bufsel = value;
-}
-
-static int
-_han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size, uint64_t *value)
-{
-	struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
-
-	if(s->tx_irq_state) {
-		qemu_set_irq(s->tx_irq, 0);
-		s->tx_irq_state = 0;
-		qemu_set_irq(s->rx_irq, 1);
-		s->rx_irq_state = 1;
-	} else if(s->rx_irq_state) {
-		qemu_set_irq(s->rx_irq, 0);
-		s->rx_irq_state = 0;
-	}
-	return 0;
-}
-
-
-
-static void
-han_trxm_txm_start_changed(uint32_t value, void *hw_block)
+han_trxm_tx_start_changed(uint32_t value, void *hw_block)
 {
 	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
 	uint16_t psdu_len;
@@ -140,19 +168,127 @@ han_trxm_txm_start_changed(uint32_t value, void *hw_block)
 
 	if(value) {
 		/* Start transmission */
-		if(han.tx.bufsel == 0) {
-			psdu_len = han_trxm_txm_psdu_len0_get(hw_block);
-			rep_code = han_trxm_txm_rep_code0_get(hw_block);
+		if(han_trxm_tx_mem_bank_select_get(s) == 0) {
+			psdu_len = han_trxm_tx_psdu_len0_get(hw_block);
+			rep_code = han_trxm_tx_rep_code0_get(hw_block);
 			buf = han.tx.buf[0].data;
 		} else {
-			psdu_len = han_trxm_txm_psdu_len1_get(hw_block);
-			rep_code = han_trxm_txm_rep_code1_get(hw_block);
+			psdu_len = han_trxm_tx_psdu_len1_get(hw_block);
+			rep_code = han_trxm_tx_rep_code1_get(hw_block);
 			buf = han.tx.buf[1].data;
 		}
 		/* Send buffer to powerline network simulator */
 		hanadu_tx_buffer_to_netsim(s, buf, psdu_len, rep_code);
 	} else {
-		/* Tx finished, just do a sanity check */
+		/* Tx finished, we use this to de-assert the interrupt line */
+		if(s->tx_irq_state) {
+			qemu_set_irq(s->tx_irq, 0);
+			s->tx_irq_state = 0;
+		}
+	}
+}
+
+static int
+han_trxm_rx_next_membank_to_proc_read(uint32_t *value_out, void *hw_block)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+	uint8_t next_membank, fifo_used;
+
+	assert(!fifo_is_empty(&han.rx.nextbuf));
+	next_membank = fifo_pop8(&han.rx.nextbuf);
+	han_trxm_rx_mem_bank_next_to_process_set(s, next_membank);
+	fifo_push8(&han.rx.proc, next_membank);
+
+	/* The buffer would be moved from nextbuf FIFO to proc FIFO */
+	fifo_used = (uint8_t)fifo_num_used(&han.rx.nextbuf);
+	han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
+	han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
+	fifo_used = (uint8_t)fifo_num_used(&han.rx.proc);
+	han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
+	han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
+
+	/* We aren't going to terminate the read so return 0 so it's handled by
+	 * the caller which will go ahead and return the next bank bank to process */
+	return 0;
+}
+
+static void
+han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t membank)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+	/* Should be called twice, as the bit has to be pulsed by the driver */
+
+	if(value) {
+		uint8_t membank_processed, fifo_used;
+
+		/* when high adjust fifo levels. */
+		assert(!fifo_is_empty(&han.rx.proc));
+		membank_processed = fifo_pop8(&han.rx.proc);
+		assert(membank == membank_processed);
+		fifo_used = (uint8_t)fifo_num_used(&han.rx.proc);
+		han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
+		han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
+
+	} else {
+		/* when low deassert irq if still set */
+		assert((han.rx.bufs_avail_bitmap & (1 << membank)) == 0);
+		han.rx.bufs_avail_bitmap |= 1 << membank;
+		if(s->rx_irq_state) {
+			qemu_set_irq(s->rx_irq, 0);
+			s->rx_irq_state = 0;
+		}
+	}
+}
+
+static void
+han_trxm_rx_clear_membank_full0_changed(uint32_t value, void *hw_block)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+
+	han_trxm_rx_clear_membank_full_changed(value, hw_block, 0);
+	/* Clear the actual flag in the membank status register */
+	han_trxm_rx_mem_bank_full0_flag_set(s, 0);
+}
+static void
+han_trxm_rx_clear_membank_full1_changed(uint32_t value, void *hw_block)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+
+	han_trxm_rx_clear_membank_full_changed(value, hw_block, 1);
+	/* Clear the actual flag in the membank status register */
+	han_trxm_rx_mem_bank_full1_flag_set(s, 0);
+}
+static void
+han_trxm_rx_clear_membank_full2_changed(uint32_t value, void *hw_block)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+
+	han_trxm_rx_clear_membank_full_changed(value, hw_block, 2);
+	/* Clear the actual flag in the membank status register */
+	han_trxm_rx_mem_bank_full2_flag_set(s, 0);
+}
+static void
+han_trxm_rx_clear_membank_full3_changed(uint32_t value, void *hw_block)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+
+	han_trxm_rx_clear_membank_full_changed(value, hw_block, 3);
+	/* Clear the actual flag in the membank status register */
+	han_trxm_rx_mem_bank_full3_flag_set(s, 0);
+}
+
+static void
+han_trxm_rx_clear_membank_oflow_changed(uint32_t value, void *hw_block)
+{
+	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
+
+	if(!value) {
+		/* Clear the actual flag in the membank status register */
+		han_trxm_rx_mem_bank_overflow_set(s, 0);
+		if(s->rx_irq_state) {
+			qemu_set_irq(s->rx_irq, 0);
+			s->rx_irq_state = 0;
+		}
 	}
 }
 
@@ -214,11 +350,15 @@ static void han_trxm_instance_init(Object *obj)
     s->mem_region_write = NULL;
 
     /* Override Register/Bitfield changed functions */
-    s->mem_region_read = _han_trxm_mem_region_read;
-    s->regs.field_changed.txm_enable_changed = han_trxm_txm_enable_changed;
-    s->regs.field_changed.rxm_enable_changed = han_trxm_rxm_enable_changed;
-    s->regs.field_changed.txm_start_changed = han_trxm_txm_start_changed;
-    s->regs.field_changed.txm_mem_bank_select_changed = han_trxm_txm_mem_bank_select_changed;
+    s->regs.reg_read.trx_rx_next_membank_to_proc_read_cb = han_trxm_rx_next_membank_to_proc_read;
+    s->regs.field_changed.tx_enable_changed = han_trxm_tx_enable_changed;
+    s->regs.field_changed.rx_enable_changed = han_trxm_rx_enable_changed;
+    s->regs.field_changed.tx_start_changed = han_trxm_tx_start_changed;
+    s->regs.field_changed.rx_clear_membank_full0_changed = han_trxm_rx_clear_membank_full0_changed;
+    s->regs.field_changed.rx_clear_membank_full1_changed = han_trxm_rx_clear_membank_full1_changed;
+    s->regs.field_changed.rx_clear_membank_full2_changed = han_trxm_rx_clear_membank_full2_changed;
+    s->regs.field_changed.rx_clear_membank_full3_changed = han_trxm_rx_clear_membank_full3_changed;
+    s->regs.field_changed.rx_clear_membank_oflow_changed = han_trxm_rx_clear_membank_oflow_changed;
 }
 
 /* __________________________________________________________________ Hanadu AFE
@@ -459,12 +599,37 @@ static void han_txb_instance_init(Object *obj)
 static uint64_t
 han_rxb_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
-    return 0;
+	uint8_t * buf;
+
+	assert(size == 1);
+	if(addr < 0x1000) {
+		addr >>= 2;
+		buf = han.rx.buf[0].data + addr;
+	} else if(addr < 0x2000) {
+		addr -= 0x1000;
+		addr >>= 2;
+		buf = han.rx.buf[1].data + addr;
+	} else if(addr < 0x3000) {
+		addr -= 0x2000;
+		addr >>= 2;
+		buf = han.rx.buf[2].data + addr;
+	} else if(addr < 0x4000) {
+		addr -= 0x3000;
+		addr >>= 2;
+		buf = han.rx.buf[3].data + addr;
+	} else {
+		assert(addr >= 0x4000);
+	}
+	assert(addr <= 128);
+
+	return (uint64_t)*buf;
 }
 
 static void
 han_rxb_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
+	/* Shouldn't be writing to receive memories from the driver */
+	assert(1==0);
 }
 
 static const MemoryRegionOps han_rxb_mem_region_ops = {
@@ -644,6 +809,10 @@ static const TypeInfo han_hwv_info = {
 
 static void han_register_types(void)
 {
+    fifo_create8(&han.rx.nextbuf, 4);
+    fifo_create8(&han.rx.proc, 4);
+    han.rx.bufs_avail_bitmap = 0x0f;
+
     type_register_static(&han_trxm_info);
     type_register_static(&han_afe_info);
     type_register_static(&han_pwr_info);

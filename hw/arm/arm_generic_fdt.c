@@ -299,4 +299,4 @@ int endian = 0;
 machine_init(arm_generic_fdt_machine_init);
 
 fdt_register_compatibility_opaque(pflash_cfi01_fdt_init,
-                                  "compatibile:cfi-flash", 0, &endian);
+                                  "compatible:cfi-flash", 0, &endian);

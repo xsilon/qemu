@@ -3170,9 +3170,10 @@ STEXI
 ETEXI
 
 DEF("xsilon", HAS_ARG, QEMU_OPTION_xsilon,
-    "-xsilon [dipboard=val][,dipafe=val]\n"
+    "-xsilon [dipboard=val][,dipafe=val][,nsaddr=val][,nsport=val]\n"
     "                Set the board and AFE DIP switches\n"
     "                (default: 0 for both)\n",
+    "                Set Network Simulator address and port\n"
     QEMU_ARCH_ALL)
 
 STEXI

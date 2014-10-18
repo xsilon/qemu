@@ -556,8 +556,15 @@ static QemuOptsList qemu_xsilon_opts = {
             .name = "dipafe",
             .type = QEMU_OPT_STRING,
             .help = "Set Board AFE Switch (e.g. 0xa5)",
-        },
-        { /* end of list */ }
+        },{
+            .name = "nsaddr",
+            .type = QEMU_OPT_STRING,
+            .help = "Network simulator address/hostname",
+        },{
+            .name = "nsport",
+            .type = QEMU_OPT_NUMBER,
+            .help = "Network simulator port",
+        },{ /* end of list */ }
     },
 };
 
@@ -898,6 +905,22 @@ static void configure_xsilon(QemuOpts *opts)
             exit(1);
         } else {
             hanadu_set_default_dip_afe((uint8_t)dip);
+        }
+    }
+    value = qemu_opt_get(opts, "nsaddr");
+    if (value) {
+        hanadu_set_netsim_addr(value);
+    }
+    value = qemu_opt_get(opts, "nsport");
+    if (value) {
+        char * end;
+        unsigned long int port;
+        port = strtoul(value, &end, 0);
+        if(value == end) {
+            fprintf(stderr, "Invalid NetSim Port number\n");
+            exit(1);
+        } else {
+        	hanadu_set_netsim_port((int)port);
         }
     }
 }

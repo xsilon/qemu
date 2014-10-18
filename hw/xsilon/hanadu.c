@@ -12,6 +12,13 @@
 #include "xsilon.h"
 
 #include <assert.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+#define NETSIM_DEFAULT_PORT                     (12304)
+#define NETSIM_DEFAULT_ADDR                     (INADDR_LOOPBACK)
+#define NETSIM_PKT_LEN                          (256)
 
 enum han_state {
 	HAN_STATE_IDLE = 0,
@@ -34,6 +41,14 @@ static struct hanadu {
 
 	enum han_state state;
 
+	struct netsim {
+		int sockfd;
+		struct sockaddr_in server_addr;
+		struct sockaddr_in client_addr;
+		char * addr;
+		int port;
+		bool initialised;
+	} netsim;
 	struct han_rx {
 		struct rxbuf buf[4];
 		unsigned bufs_avail_bitmap;
@@ -60,13 +75,33 @@ hanadu_set_default_dip_afe(uint8_t dip)
 	han.dip_afe = dip;
 }
 
+void
+hanadu_set_netsim_addr(const char * addr)
+{
+    han.netsim.addr = strdup(addr);
+}
+
+void
+hanadu_set_netsim_port(int port)
+{
+    han.netsim.port = port;
+}
+
 static void
 hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * data, uint16_t len,
 						   uint8_t repcode)
 {
-	/* If buffer successfully sent then generate interrupt */
-	qemu_set_irq(s->tx_irq, 1);
-	s->tx_irq_state = 1;
+    /* Send data to netsim */
+    if(han.netsim.initialised) {
+        uint8_t * netsim_pkt = (uint8_t *)malloc(NETSIM_PKT_LEN);
+
+        sendto(han.netsim.sockfd,netsim_pkt, NETSIM_PKT_LEN, 0,
+               (struct sockaddr *)&han.netsim.server_addr,
+               sizeof(han.netsim.server_addr));
+        free(netsim_pkt);
+    }
+    qemu_set_irq(s->tx_irq, 1);
+    s->tx_irq_state = 1;
 }
 
 #if 0
@@ -129,6 +164,24 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, uint8_t * data,
 
 }
 #endif
+
+static void
+netsim_init(void)
+{
+	han.netsim.sockfd=socket(AF_INET,SOCK_DGRAM,0);
+
+	bzero(&han.netsim.server_addr,sizeof(han.netsim.server_addr));
+	han.netsim.server_addr.sin_family = AF_INET;
+	if (han.netsim.addr)
+		han.netsim.server_addr.sin_addr.s_addr=inet_addr(han.netsim.addr);
+	else
+		han.netsim.server_addr.sin_addr.s_addr=htonl(NETSIM_DEFAULT_ADDR);
+	if(han.netsim.port)
+		han.netsim.server_addr.sin_port=htons(han.netsim.port);
+	else
+		han.netsim.server_addr.sin_port=htons(NETSIM_DEFAULT_PORT);
+	han.netsim.initialised = true;
+}
 
 
 /* __________________________________________________________ Hanadu Transceiver
@@ -359,6 +412,8 @@ static void han_trxm_instance_init(Object *obj)
     s->regs.field_changed.rx_clear_membank_full2_changed = han_trxm_rx_clear_membank_full2_changed;
     s->regs.field_changed.rx_clear_membank_full3_changed = han_trxm_rx_clear_membank_full3_changed;
     s->regs.field_changed.rx_clear_membank_oflow_changed = han_trxm_rx_clear_membank_oflow_changed;
+
+    netsim_init();
 }
 
 /* __________________________________________________________________ Hanadu AFE

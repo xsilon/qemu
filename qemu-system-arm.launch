@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.cdt.launch.applicationLaunchType">
+<booleanAttribute key="org.eclipse.cdt.dsf.gdb.AUTO_SOLIB" value="true"/>
+<listAttribute key="org.eclipse.cdt.dsf.gdb.AUTO_SOLIB_LIST"/>
+<stringAttribute key="org.eclipse.cdt.dsf.gdb.DEBUG_NAME" value="gdb"/>
+<booleanAttribute key="org.eclipse.cdt.dsf.gdb.DEBUG_ON_FORK" value="false"/>
+<stringAttribute key="org.eclipse.cdt.dsf.gdb.GDB_INIT" value=".gdbinit"/>
+<booleanAttribute key="org.eclipse.cdt.dsf.gdb.NON_STOP" value="false"/>
+<booleanAttribute key="org.eclipse.cdt.dsf.gdb.REVERSE" value="false"/>
+<listAttribute key="org.eclipse.cdt.dsf.gdb.SOLIB_PATH"/>
+<stringAttribute key="org.eclipse.cdt.dsf.gdb.TRACEPOINT_MODE" value="TP_NORMAL_ONLY"/>
+<booleanAttribute key="org.eclipse.cdt.dsf.gdb.UPDATE_THREADLIST_ON_SUSPEND" value="false"/>
+<booleanAttribute key="org.eclipse.cdt.dsf.gdb.internal.ui.launching.LocalApplicationCDebuggerTab.DEFAULTS_SET" value="true"/>
+<intAttribute key="org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="0"/>
+<stringAttribute key="org.eclipse.cdt.launch.COREFILE_PATH" value=""/>
+<stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_ID" value="gdb"/>
+<stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="run"/>
+<booleanAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN" value="true"/>
+<stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN_SYMBOL" value="main"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_ARGUMENTS" value="-M arm-generic-fdt-plnx -gdb tcp::12255 -nographic -smp 2 -machine linux=on -serial mon:stdio -dtb /opt/poky/yocto-build/zynq702/debug/xsilon-zynq.dtb -kernel /opt/poky/yocto-build/zynq702/debug/brian-han9250-zynq-tmp-eglibc/work/han9250_zynq-oe-linux-gnueabi/linux-xlnx/3.16-xilinx+gitAUTOINC-r0/git/arch/arm/boot/uImage -netdev bridge,helper=/usr/local/libexec/qemu-bridge-helper,id=hn0 -net nic,macaddr=00:16:35:aa:00:ff,model=e1000,name=nic1,netdev=hn0 -append &quot;console=ttyPS0,115200 earlyprintk ip=:::::eth0:dhcp rootfstype=nfs root=/dev/nfs rw nfsroot=10.4.18.104:/export/han9250-zynq-rootfs-aa-00-ff,tcp,nolock,wsize=4096,rsize=4096 loglevel=5&quot; -xsilon dipafe=0x04,nsaddr=10.4.18.104,nsport=11555 -drive file=/opt/poky/yocto-build/zynq702/debug/qemu-flash-files/flash-aa-00-ff.img,if=pflash,format=raw,unit=1"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="arm-softmmu/qemu-system-arm"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="qemu"/>
+<booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="true"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="cdt.managedbuild.toolchain.gnu.base.401338499"/>
+<booleanAttribute key="org.eclipse.cdt.launch.use_terminal" value="true"/>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/qemu"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="4"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.dsf.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#10;&lt;memoryBlockExpressionList context=&quot;reserved-for-future-use&quot;&gt;&#10;&lt;gdbmemoryBlockExpression address=&quot;93825004943122&quot; label=&quot;han.tx.buf0.data&quot;/&gt;&#10;&lt;gdbmemoryBlockExpression address=&quot;93825006414257&quot; label=&quot;data&quot;/&gt;&#10;&lt;gdbmemoryBlockExpression address=&quot;93825006413684&quot; label=&quot;rxbuf&quot;/&gt;&#10;&lt;gdbmemoryBlockExpression address=&quot;140735676418240&quot; label=&quot;&amp;amp;(*(rxbuf))&quot;/&gt;&#10;&lt;/memoryBlockExpressionList&gt;&#10;"/>
+<stringAttribute key="process_factory_id" value="org.eclipse.cdt.dsf.gdb.GdbProcessFactory"/>
+</launchConfiguration>

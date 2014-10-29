@@ -224,6 +224,10 @@ no_dtb_arg:
     return;
 }
 
+
+#define FLASH_ADDR		0xe2000000
+#define FLASH_SIZE		(64*1024*1024)
+#define FLASH_SECT_SIZE	(128*1024)
 static void arm_generic_fdt_init_plnx(QEMUMachineInitArgs *args)
 {
     MemoryRegion *address_space_mem = get_system_memory();
@@ -239,7 +243,7 @@ static void arm_generic_fdt_init_plnx(QEMUMachineInitArgs *args)
         memory_region_add_subregion(address_space_mem, 0xFFFC0000, ocm_ram);
     }
 
-    /* FIXME: Descibe NAND in DTB and delete this */
+    /* FIXME: Describe NAND in DTB and delete this */
     /* NAND: */
     dev = qdev_create(NULL, "arm.pl35x");
     /* FIXME: handle this somewhere central */
@@ -257,9 +261,23 @@ static void arm_generic_fdt_init_plnx(QEMUMachineInitArgs *args)
     qdev_init_nofail(dev);
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0xe000e000);
+//    sysbus_mmio_map(busdev, 1, 0xe2000000);
     sysbus_mmio_map(busdev, 2, 0xe1000000);
 
     arm_generic_fdt_init(args);
+
+#if 0
+    DriveInfo *dinfo = drive_get(IF_PFLASH, 0, 0);
+    if (!pflash_cfi01_register(FLASH_ADDR, NULL, "zynq.pflash", FLASH_SIZE,
+                      dinfo ? dinfo->bdrv : NULL, FLASH_SECT_SIZE,
+                      FLASH_SIZE/FLASH_SECT_SIZE, 1,
+                      1, 0x0066, 0x0022, 0x0000, 0x0000, 0x0555, 0x2aa,
+                      0)
+    ) {
+        fprintf(stderr, "qemu: Error registering flash memory.\n");
+        exit(1);
+    }
+#endif
 
     /* FIXME: Descibe SCU in DTB and delete this */
     /* ZYNQ SCU: */

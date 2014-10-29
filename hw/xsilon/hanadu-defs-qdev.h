@@ -168,9 +168,9 @@ struct han_regmap_trxm
         field_changed_fn rx_clear_membank_full0_changed;
         field_changed_fn rx_enable_changed;
         field_changed_fn rx_hdr_reprate_changed;
-        field_changed_fn rx_ed_threshold_changed;
-        field_changed_fn rx_cca_auto_threshold_changed;
         field_changed_fn rx_hp_auto_threshold_changed;
+        field_changed_fn rx_cca_auto_threshold_changed;
+        field_changed_fn rx_ed_threshold_changed;
     } field_changed;
 
     /* Reg Read callback, implement if required */
@@ -243,10 +243,10 @@ struct han_regmap_mac
     /* 22 */ uint32_t mac_filter_ctrl;
     /* 23 */ uint32_t mac_lower_ctrl;
     /* 24 */ uint32_t mac_lower_status;
-    /* 25 */ uint32_t dummy25;
-    /* 26 */ uint32_t dummy26;
-    /* 27 */ uint32_t dummy27;
-    /* 28 */ uint32_t dummy28;
+    /* 25 */ uint32_t mac_ack_control;
+    /* 26 */ uint32_t mac_ack_payload;
+    /* 27 */ uint32_t mac_ack_processing_ctrl;
+    /* 28 */ uint32_t mac_ack_processing_status;
     /* 29 */ uint32_t dummy29;
     /* 30 */ uint32_t dummy30;
     /* 31 */ uint32_t dummy31;
@@ -278,10 +278,10 @@ struct han_regmap_mac
         /* 22 */ reg_changed_fn mac_filter_ctrl_changed_cb;
         /* 23 */ reg_changed_fn mac_lower_ctrl_changed_cb;
         /* 24 */ reg_changed_fn mac_lower_status_changed_cb;
-        /* 25 */ reg_changed_fn dummy25_cb;
-        /* 26 */ reg_changed_fn dummy26_cb;
-        /* 27 */ reg_changed_fn dummy27_cb;
-        /* 28 */ reg_changed_fn dummy28_cb;
+        /* 25 */ reg_changed_fn mac_ack_control_changed_cb;
+        /* 26 */ reg_changed_fn mac_ack_payload_changed_cb;
+        /* 27 */ reg_changed_fn mac_ack_processing_ctrl_changed_cb;
+        /* 28 */ reg_changed_fn mac_ack_processing_status_changed_cb;
         /* 29 */ reg_changed_fn dummy29_cb;
         /* 30 */ reg_changed_fn dummy30_cb;
         /* 31 */ reg_changed_fn dummy31_cb;
@@ -289,12 +289,14 @@ struct han_regmap_mac
 
     /* Reg field changed callback, implement if required */
     struct field_mac_changed_fns {
+        field_changed_fn mac_ctrl_pan_coord_changed;
+        field_changed_fn mac_ctrl_filter_enable_changed;
         field_changed_fn mac_timeout_strategy_changed;
         field_changed_fn mac_max_csma_backoffs_changed;
         field_changed_fn mac_min_be_changed;
         field_changed_fn mac_max_be_changed;
         field_changed_fn mac_csma_ign_rx_busy_changed;
-        field_changed_fn mac_ack_en_changed;
+        field_changed_fn lower_mac_ack_override_changed;
         field_changed_fn lower_mac_reset_changed;
         field_changed_fn lower_mac_bypass_changed;
     } field_changed;
@@ -326,10 +328,10 @@ struct han_regmap_mac
         /* 22 */ reg_read_fn mac_filter_ctrl_read_cb;
         /* 23 */ reg_read_fn mac_lower_ctrl_read_cb;
         /* 24 */ reg_read_fn mac_lower_status_read_cb;
-        /* 25 */ reg_read_fn dummy25_cb;
-        /* 26 */ reg_read_fn dummy26_cb;
-        /* 27 */ reg_read_fn dummy27_cb;
-        /* 28 */ reg_read_fn dummy28_cb;
+        /* 25 */ reg_read_fn mac_ack_control_read_cb;
+        /* 26 */ reg_read_fn mac_ack_payload_read_cb;
+        /* 27 */ reg_read_fn mac_ack_processing_ctrl_read_cb;
+        /* 28 */ reg_read_fn mac_ack_processing_status_read_cb;
         /* 29 */ reg_read_fn dummy29_cb;
         /* 30 */ reg_read_fn dummy30_cb;
         /* 31 */ reg_read_fn dummy31_cb;
@@ -696,8 +698,8 @@ struct han_regmap_hwvers
 
 /* ___________________ Transceiver
  */
-#define MAC_LOWER_BUSY_MASK                                         (0x00000020)
-#define MAC_LOWER_BUSY_SHIFT                                        (5)
+#define MAC_TX_ACK_BUSY_MASK                                        (0x00000020)
+#define MAC_TX_ACK_BUSY_SHIFT                                       (5)
 #define TX_BUSY_MASK                                                (0x00000010)
 #define TX_BUSY_SHIFT                                               (4)
 #define USER_TX_RAM_MASK                                            (0x00000008)
@@ -742,12 +744,12 @@ struct han_regmap_hwvers
 #define RXM_ENABLE_SHIFT                                            (0)
 #define HDR_REPRATE_MASK                                            (0x000000FF)
 #define HDR_REPRATE_SHIFT                                           (0)
-#define ED_THRESHOLD_MASK                                           (0x00FF0000)
-#define ED_THRESHOLD_SHIFT                                          (16)
+#define HP_THRESHOLD_MASK                                           (0x00FF0000)
+#define HP_THRESHOLD_SHIFT                                          (16)
 #define CCA_THRESHOLD_MASK                                          (0x0000FF00)
 #define CCA_THRESHOLD_SHIFT                                         (8)
-#define HP_THRESHOLD_MASK                                           (0x000000FF)
-#define HP_THRESHOLD_SHIFT                                          (0)
+#define ED_THRESHOLD_MASK                                           (0x000000FF)
+#define ED_THRESHOLD_SHIFT                                          (0)
 #define RESET_EXTRA_HDR3_MASK                                       (0x00800000)
 #define RESET_EXTRA_HDR3_SHIFT                                      (23)
 #define RESET_EXTRA_HDR2_MASK                                       (0x00400000)
@@ -889,8 +891,8 @@ struct han_regmap_hwvers
 #define MAC_MAX_BE_SHIFT                                            (4)
 #define MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK                            (0x00000008)
 #define MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT                           (3)
-#define MAC_ACK_EN_MASK                                             (0x00000004)
-#define MAC_ACK_EN_SHIFT                                            (2)
+#define LOWER_MAC_ACK_OVERRIDE_MASK                                 (0x00000004)
+#define LOWER_MAC_ACK_OVERRIDE_SHIFT                                (2)
 #define LOWER_MAC_RESET_MASK                                        (0x00000002)
 #define LOWER_MAC_RESET_SHIFT                                       (1)
 #define MAC_BYPASS_MASK                                             (0x00000001)
@@ -901,6 +903,24 @@ struct han_regmap_hwvers
 #define MAC_LOWER_BACKOFF_ATTEMPTS_SHIFT                            (8)
 #define MAC_LOWER_STATE_MASK                                        (0x0000000F)
 #define MAC_LOWER_STATE_SHIFT                                       (0)
+#define MAC_ACK_PGA_GAIN_MASK                                       (0x007F0000)
+#define MAC_ACK_PGA_GAIN_SHIFT                                      (16)
+#define MAC_ACK_REP_CODE_MASK                                       (0x0000FF00)
+#define MAC_ACK_REP_CODE_SHIFT                                      (8)
+#define MAC_ACK_ENABLE_MASK                                         (0x00000001)
+#define MAC_ACK_ENABLE_SHIFT                                        (0)
+#define MAC_ACK_EXTRA_HDR_MASK                                      (0xFFFF0000)
+#define MAC_ACK_EXTRA_HDR_SHIFT                                     (16)
+#define MAC_ACK_FC1_MASK                                            (0x0000FF00)
+#define MAC_ACK_FC1_SHIFT                                           (8)
+#define MAC_ACK_FC0_MASK                                            (0x000000FF)
+#define MAC_ACK_FC0_SHIFT                                           (0)
+#define MAC_MAX_RETRIES_MASK                                        (0x001F0000)
+#define MAC_MAX_RETRIES_SHIFT                                       (16)
+#define MAC_ACK_WAIT_DURATION_MASK                                  (0x00000FFF)
+#define MAC_ACK_WAIT_DURATION_SHIFT                                 (0)
+#define MAC_RETRY_ATTEMPTS_MASK                                     (0x0000001F)
+#define MAC_RETRY_ATTEMPTS_SHIFT                                    (0)
 
 /* ___________________ Power Up Controller
  */
@@ -982,6 +1002,10 @@ struct han_regmap_hwvers
 #define MAC_FILTER_CTRL                                            (22)
 #define MAC_LOWER_CTRL                                             (23)
 #define MAC_LOWER_STATUS                                           (24)
+#define MAC_ACK_CTRL                                               (25)
+#define MAC_ACK_PAYLOAD                                            (26)
+#define MAC_ACK_PROC_CTRL                                          (27)
+#define MAC_ACK_PROC_STATUS                                        (28)
 
 /* ___________________ Power Up Controller
  */

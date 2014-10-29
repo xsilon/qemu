@@ -224,9 +224,9 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
         break;
 
     case RX_THRESHOLDS:
-        if ((value & ED_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & ED_THRESHOLD_MASK)) {
-            if (s->regs.field_changed.rx_ed_threshold_changed) {
-                s->regs.field_changed.rx_ed_threshold_changed(((uint32_t)value & ED_THRESHOLD_MASK) >> ED_THRESHOLD_SHIFT, s);
+        if ((value & HP_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & HP_THRESHOLD_MASK)) {
+            if (s->regs.field_changed.rx_hp_auto_threshold_changed) {
+                s->regs.field_changed.rx_hp_auto_threshold_changed(((uint32_t)value & HP_THRESHOLD_MASK) >> HP_THRESHOLD_SHIFT, s);
             }
         }
         if ((value & CCA_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & CCA_THRESHOLD_MASK)) {
@@ -234,9 +234,9 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
                 s->regs.field_changed.rx_cca_auto_threshold_changed(((uint32_t)value & CCA_THRESHOLD_MASK) >> CCA_THRESHOLD_SHIFT, s);
             }
         }
-        if ((value & HP_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & HP_THRESHOLD_MASK)) {
-            if (s->regs.field_changed.rx_hp_auto_threshold_changed) {
-                s->regs.field_changed.rx_hp_auto_threshold_changed(((uint32_t)value & HP_THRESHOLD_MASK) >> HP_THRESHOLD_SHIFT, s);
+        if ((value & ED_THRESHOLD_MASK) != (s->regs.trx_rx_thresholds & ED_THRESHOLD_MASK)) {
+            if (s->regs.field_changed.rx_ed_threshold_changed) {
+                s->regs.field_changed.rx_ed_threshold_changed(((uint32_t)value & ED_THRESHOLD_MASK) >> ED_THRESHOLD_SHIFT, s);
             }
         }
 
@@ -259,6 +259,9 @@ han_mac_reg_reset(void *opaque)
     memset(&s->regs, 0, sizeof(s->regs));
     s->regs.mac_traf_mon_clear = 0x00000001;
     s->regs.mac_lower_ctrl = 0x00045491;
+    s->regs.mac_ack_control = 0x000f2000;
+    s->regs.mac_ack_payload = 0x00000002;
+    s->regs.mac_ack_processing_ctrl = 0x00040400;
 }
 
 uint64_t
@@ -305,6 +308,20 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
     switch(addr) {
     
+    case MAC_FILTER_CTRL:
+        if ((value & MAC_CTRL_PAN_COORD_MASK) != (s->regs.mac_filter_ctrl & MAC_CTRL_PAN_COORD_MASK)) {
+            if (s->regs.field_changed.mac_ctrl_pan_coord_changed) {
+                s->regs.field_changed.mac_ctrl_pan_coord_changed(((uint32_t)value & MAC_CTRL_PAN_COORD_MASK) >> MAC_CTRL_PAN_COORD_SHIFT, s);
+            }
+        }
+        if ((value & MAC_CTRL_FILTER_EN_MASK) != (s->regs.mac_filter_ctrl & MAC_CTRL_FILTER_EN_MASK)) {
+            if (s->regs.field_changed.mac_ctrl_filter_enable_changed) {
+                s->regs.field_changed.mac_ctrl_filter_enable_changed(((uint32_t)value & MAC_CTRL_FILTER_EN_MASK) >> MAC_CTRL_FILTER_EN_SHIFT, s);
+            }
+        }
+
+        break;
+
     case MAC_LOWER_CTRL:
         if ((value & MAC_TIMEOUT_STRATEGY_MASK) != (s->regs.mac_lower_ctrl & MAC_TIMEOUT_STRATEGY_MASK)) {
             if (s->regs.field_changed.mac_timeout_strategy_changed) {
@@ -331,9 +348,9 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
                 s->regs.field_changed.mac_csma_ign_rx_busy_changed(((uint32_t)value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) >> MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT, s);
             }
         }
-        if ((value & MAC_ACK_EN_MASK) != (s->regs.mac_lower_ctrl & MAC_ACK_EN_MASK)) {
-            if (s->regs.field_changed.mac_ack_en_changed) {
-                s->regs.field_changed.mac_ack_en_changed(((uint32_t)value & MAC_ACK_EN_MASK) >> MAC_ACK_EN_SHIFT, s);
+        if ((value & LOWER_MAC_ACK_OVERRIDE_MASK) != (s->regs.mac_lower_ctrl & LOWER_MAC_ACK_OVERRIDE_MASK)) {
+            if (s->regs.field_changed.lower_mac_ack_override_changed) {
+                s->regs.field_changed.lower_mac_ack_override_changed(((uint32_t)value & LOWER_MAC_ACK_OVERRIDE_MASK) >> LOWER_MAC_ACK_OVERRIDE_SHIFT, s);
             }
         }
         if ((value & LOWER_MAC_RESET_MASK) != (s->regs.mac_lower_ctrl & LOWER_MAC_RESET_MASK)) {

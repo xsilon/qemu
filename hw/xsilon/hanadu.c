@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <pthread.h>
 
 #define NETSIM_DEFAULT_PORT					 (12304)
 #define NETSIM_DEFAULT_ADDR					 (INADDR_LOOPBACK)
@@ -44,6 +45,11 @@ static struct hanadu {
 	enum han_state state;
 
 	struct netsim {
+		struct {
+			pthread_t threadinfo;
+			int sockfd;
+			struct sockaddr_in addr;
+		} rxmcast;
 		int sockfd;
 		struct sockaddr_in server_addr;
 		struct sockaddr_in client_addr;
@@ -62,6 +68,8 @@ static struct hanadu {
 		struct txbuf buf[2];
 		bool enabled;
 	} tx;
+	struct han_mac_dev *mac_dev;
+	uint8_t mac_addr[8];
 } han;
 
 
@@ -100,6 +108,7 @@ hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * txbuf,
 		uint8_t * data = netsim_pkt + NETSIM_PKT_HDR_SZ;
 
 		memset(hdr, 0, NETSIM_PKT_HDR_SZ);
+		memcpy(hdr->source_addr, han.mac_addr, sizeof(hdr->source_addr));
 		hdr->psdu_len = len;
 		hdr->rep_code = repcode;
 		/* @todo use this fields */
@@ -111,21 +120,18 @@ hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * txbuf,
 			   sizeof(han.netsim.server_addr));
 		free(netsim_pkt);
 	}
-
-	/* Assert Tx Done interrupt if packet has been sent or CSMA fails or if Ack
-	 * requested the max retries has exceeded. */
+	/* @todo set timer for receiving confirmation of packet successfully sent */
 	qemu_set_irq(s->tx_irq, 1);
 	s->tx_irq_state = 1;
 }
 
-#if 0
 static void
-hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, uint8_t * data,
-							 uint16_t len, uint8_t repcode, int8_t rssi)
+hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_pkt)
 {
 	int i;
 	uint8_t fifo_used;
 	uint8_t *rxbuf;
+	uint8_t * data;
 
 	/* first up get next available buffer */
 	i=0;
@@ -142,23 +148,23 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, uint8_t * data,
 		assert(!fifo_is_full(&han.rx.nextbuf));
 		switch(i) {
 		case 0:
-			han_trxm_rx_psdulen0_set(s, len);
-			han_trxm_rx_repcode0_set(s, repcode);
+			han_trxm_rx_psdulen0_set(s, rx_pkt->psdu_len);
+			han_trxm_rx_repcode0_set(s, rx_pkt->rep_code);
 			han_trxm_rx_mem_bank_full0_flag_set(s, 1);
 			break;
 		case 1:
-			han_trxm_rx_psdulen1_set(s, len);
-			han_trxm_rx_repcode1_set(s, repcode);
+			han_trxm_rx_psdulen1_set(s, rx_pkt->psdu_len);
+			han_trxm_rx_repcode1_set(s, rx_pkt->rep_code);
 			han_trxm_rx_mem_bank_full1_flag_set(s, 1);
 			break;
 		case 2:
-			han_trxm_rx_psdulen2_set(s, len);
-			han_trxm_rx_repcode2_set(s, repcode);
+			han_trxm_rx_psdulen2_set(s, rx_pkt->psdu_len);
+			han_trxm_rx_repcode2_set(s, rx_pkt->rep_code);
 			han_trxm_rx_mem_bank_full2_flag_set(s, 1);
 			break;
 		case 3:
-			han_trxm_rx_psdulen3_set(s, len);
-			han_trxm_rx_repcode3_set(s, repcode);
+			han_trxm_rx_psdulen3_set(s, rx_pkt->psdu_len);
+			han_trxm_rx_repcode3_set(s, rx_pkt->rep_code);
 			han_trxm_rx_mem_bank_full3_flag_set(s, 1);
 			break;
 		}
@@ -166,23 +172,112 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, uint8_t * data,
 		fifo_used = (uint8_t)fifo_num_used(&han.rx.nextbuf);
 		han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
 		han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
-		han_trxm_rx_rssi_latched_set(s, rssi);
+		han_trxm_rx_rssi_latched_set(s, rx_pkt->rssi);
 
 		/* copy data into the relevant buffer */
 		rxbuf = han.rx.buf[i].data;
-		for(i=0;i<len;i++)
+		data = (uint8_t *)rx_pkt + NETSIM_PKT_HDR_SZ;
+		for(i=0;i<rx_pkt->psdu_len;i++)
 			*rxbuf++ = *data++;
 	}
-	qemu_set_irq(s->rx_irq, 1);
-	s->rx_irq_state = 1;
-
+	/* Raise Rx Interrupt */
+	if(!s->tx_irq_state) {
+		qemu_set_irq(s->rx_irq, 1);
+		s->rx_irq_state = 1;
+	}
 }
-#endif
+
+static void *
+netsim_rxthread(void *arg)
+{
+	struct ip_mreq mreq;
+	int rv;
+	uint8_t *rxbuf;
+	struct han_trxm_dev *s = arg;
+	int optval;
+
+	han.netsim.rxmcast.sockfd = socket(AF_INET,SOCK_DGRAM,0);
+	optval = 1;
+	rv = setsockopt(han.netsim.rxmcast.sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
+	if (rv < 0) {
+		perror("Setting SO_REUSEADDR error");
+		close(han.netsim.rxmcast.sockfd);
+		exit(EXIT_FAILURE);
+	}
+//	rv = setsockopt(han.netsim.rxmcast.sockfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof optval);
+//	if (rv < 0) {
+//		perror("Setting SO_REUSEPORT error");
+//		close(han.netsim.rxmcast.sockfd);
+//		exit(EXIT_FAILURE);
+//	}
+
+	bzero(&han.netsim.rxmcast.addr,sizeof(han.netsim.rxmcast.addr));
+	han.netsim.rxmcast.addr.sin_family = AF_INET;
+	han.netsim.rxmcast.addr.sin_addr.s_addr=htonl(INADDR_ANY);
+	han.netsim.rxmcast.addr.sin_port=htons(22411);
+	rv = bind(han.netsim.rxmcast.sockfd,
+			  (struct sockaddr *)&han.netsim.rxmcast.addr,
+			  sizeof(han.netsim.rxmcast.addr));
+	if (rv) {
+		perror("Error binding rx multicast socket");
+		close(han.netsim.rxmcast.sockfd);
+		exit(EXIT_FAILURE);
+	}
+	mreq.imr_multiaddr.s_addr = inet_addr("224.1.1.1");
+	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+	rv = setsockopt(han.netsim.rxmcast.sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
+			   sizeof(mreq));
+	if (rv < 0) {
+		perror("Setting IP_ADD_MEMBERSHIP error");
+		close(han.netsim.rxmcast.sockfd);
+		exit(EXIT_FAILURE);
+	}
+
+	rxbuf = (uint8_t *)malloc(256);
+
+	for(;;) {
+		struct sockaddr_in cliaddr;
+		socklen_t len;
+		int n;
+		struct netsim_pkt_hdr * hdr;
+
+		len = sizeof(cliaddr);
+		n = recvfrom(han.netsim.rxmcast.sockfd, rxbuf, 256, 0 /*MSG_DONTWAIT*/,
+					 (struct sockaddr *)&cliaddr, &len);
+
+		if (n == -1) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				continue;
+		} else if (n == 0) {
+			continue;
+		}
+
+		hdr = (struct netsim_pkt_hdr *)rxbuf;
+		/* First check to see if it's the packet we last sent, ie from us. */
+		if(memcmp(han.mac_addr, hdr->source_addr, sizeof(han.mac_addr)) == 0) {
+			/* Assert Tx Done interrupt if packet has been sent or CSMA fails or if Ack
+			 * requested the max retries has exceeded. */
+//			qemu_set_irq(s->tx_irq, 1);
+//			s->tx_irq_state = 1;
+		} else {
+			hanadu_rx_buffer_from_netsim(s, hdr);
+		}
+	}
+	free(rxbuf);
+	close(han.netsim.rxmcast.sockfd);
+	pthread_exit(NULL);
+}
 
 static void
-netsim_init(void)
+netsim_init(struct han_trxm_dev *s)
 {
+	int rv;
+
 	han.netsim.sockfd=socket(AF_INET,SOCK_DGRAM,0);
+	if (han.netsim.sockfd == -1) {
+		perror("Failed to create netsim socket");
+		exit(EXIT_FAILURE);
+	}
 
 	bzero(&han.netsim.server_addr,sizeof(han.netsim.server_addr));
 	han.netsim.server_addr.sin_family = AF_INET;
@@ -195,6 +290,10 @@ netsim_init(void)
 	else
 		han.netsim.server_addr.sin_port=htons(NETSIM_DEFAULT_PORT);
 	han.netsim.initialised = true;
+
+	rv = pthread_create(&han.netsim.rxmcast.threadinfo, NULL, netsim_rxthread, s);
+	if(rv)
+		exit(EXIT_FAILURE);
 }
 
 
@@ -427,7 +526,8 @@ static void han_trxm_instance_init(Object *obj)
 	s->regs.field_changed.rx_clear_membank_full3_changed = han_trxm_rx_clear_membank_full3_changed;
 	s->regs.field_changed.rx_clear_membank_oflow_changed = han_trxm_rx_clear_membank_oflow_changed;
 
-	netsim_init();
+	/* Setup callbacks to capture filter reg changes */
+	netsim_init(s);
 }
 
 /* __________________________________________________________________ Hanadu AFE
@@ -532,6 +632,28 @@ static void han_pwr_instance_init(Object *obj)
 /* __________________________________________________________________ Hanadu MAC
  */
 
+static int
+han_mac_filter_ea_upper_changed(uint32_t value)
+{
+	han.mac_addr[0] = (uint8_t)((value >> 24) & 0xff);
+	han.mac_addr[1] = (uint8_t)((value >> 16) & 0xff);
+	han.mac_addr[2] = (uint8_t)((value >> 8) & 0xff);
+	han.mac_addr[3] = (uint8_t)(value & 0xff);
+
+	return 0;
+}
+
+static int
+han_mac_filter_ea_lower_changed(uint32_t value)
+{
+	han.mac_addr[4] = (uint8_t)((value >> 24) & 0xff);
+	han.mac_addr[5] = (uint8_t)((value >> 16) & 0xff);
+	han.mac_addr[6] = (uint8_t)((value >> 8) & 0xff);
+	han.mac_addr[7] = (uint8_t)(value & 0xff);
+
+	return 0;
+}
+
 static const MemoryRegionOps han_mac_mem_region_ops = {
 	.read = han_mac_mem_region_read,
 	.write = han_mac_mem_region_write,
@@ -575,6 +697,10 @@ static void han_mac_instance_init(Object *obj)
 						  "hanmac", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
+
+	han.mac_dev = s;
+	s->regs.reg_changed.mac_filter_ea_upper_changed_cb = han_mac_filter_ea_upper_changed;
+	s->regs.reg_changed.mac_filter_ea_lower_changed_cb = han_mac_filter_ea_lower_changed;
 }
 
 /* __________________________________________________________________ Hanadu TXB

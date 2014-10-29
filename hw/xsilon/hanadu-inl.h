@@ -20,7 +20,7 @@
  */
 
 static inline bool 
-han_trxm_tx_lower_mac_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_tx_ack_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline bool 
 han_trxm_tx_busy_get(struct han_trxm_dev *s) __attribute__((always_inline));
@@ -98,13 +98,13 @@ static inline uint8_t
 han_trxm_rx_hdr_reprate_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_rx_ed_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_hp_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
 han_trxm_rx_cca_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
-han_trxm_rx_hp_auto_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
+han_trxm_rx_ed_threshold_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
 han_trxm_rx_mem_bank_next_to_process_get(struct han_trxm_dev *s) __attribute__((always_inline));
@@ -174,7 +174,7 @@ han_trxm_rx_mem_bank_full0_flag_get(struct han_trxm_dev *s) __attribute__((alway
  */
 
 static inline void 
-han_trxm_tx_lower_mac_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+han_trxm_tx_ack_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
 han_trxm_tx_busy_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
@@ -252,13 +252,13 @@ static inline void
 han_trxm_rx_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rx_ed_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_rx_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_trxm_rx_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
+han_trxm_rx_ed_threshold_set(struct han_trxm_dev *s, int8_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_rx_mem_bank_next_to_process_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
@@ -327,6 +327,12 @@ han_trxm_rx_mem_bank_full0_flag_set(struct han_trxm_dev *s, bool value) __attrib
 /* ________________________ get accessor functions
  */
 
+static inline bool 
+han_mac_mac_ctrl_pan_coord_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_mac_ctrl_filter_enable_get(struct han_mac_dev *s) __attribute__((always_inline));
+
 static inline uint8_t
 han_mac_mac_timeout_strategy_get(struct han_mac_dev *s) __attribute__((always_inline));
 
@@ -343,7 +349,7 @@ static inline bool
 han_mac_mac_csma_ign_rx_busy_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_mac_mac_ack_en_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_lower_mac_ack_override_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline bool 
 han_mac_lower_mac_reset_get(struct han_mac_dev *s) __attribute__((always_inline));
@@ -354,6 +360,12 @@ han_mac_lower_mac_bypass_get(struct han_mac_dev *s) __attribute__((always_inline
 
 /* ________________________ set accessor functions
  */
+
+static inline void 
+han_mac_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_mac_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
 han_mac_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
@@ -371,7 +383,7 @@ static inline void
 han_mac_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_mac_mac_ack_en_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+han_mac_lower_mac_ack_override_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
 han_mac_lower_mac_reset_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
@@ -407,9 +419,9 @@ han_mac_lower_mac_bypass_set(struct han_mac_dev *s, bool value) __attribute__((a
  */
 
 static inline bool 
-han_trxm_tx_lower_mac_busy_get(struct han_trxm_dev *s)
+han_trxm_tx_ack_busy_get(struct han_trxm_dev *s)
 {
-    return (s->regs.trx_tx_ctrl & (1 << MAC_LOWER_BUSY_SHIFT)) ? true : false;
+    return (s->regs.trx_tx_ctrl & (1 << MAC_TX_ACK_BUSY_SHIFT)) ? true : false;
 }
 
 static inline bool 
@@ -602,11 +614,11 @@ han_trxm_rx_hdr_reprate_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_rx_ed_threshold_get(struct han_trxm_dev *s)
+han_trxm_rx_hp_auto_threshold_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
-    value = (int8_t)((s->regs.trx_rx_thresholds & ED_THRESHOLD_MASK) >> ED_THRESHOLD_SHIFT);
+    value = (int8_t)((s->regs.trx_rx_thresholds & HP_THRESHOLD_MASK) >> HP_THRESHOLD_SHIFT);
     return value;
 }
 
@@ -620,11 +632,11 @@ han_trxm_rx_cca_auto_threshold_get(struct han_trxm_dev *s)
 }
 
 static inline int8_t
-han_trxm_rx_hp_auto_threshold_get(struct han_trxm_dev *s)
+han_trxm_rx_ed_threshold_get(struct han_trxm_dev *s)
 {
     int8_t value;
 
-    value = (int8_t)((s->regs.trx_rx_thresholds & HP_THRESHOLD_MASK) >> HP_THRESHOLD_SHIFT);
+    value = (int8_t)((s->regs.trx_rx_thresholds & ED_THRESHOLD_MASK) >> ED_THRESHOLD_SHIFT);
     return value;
 }
 
@@ -801,12 +813,12 @@ han_trxm_rx_mem_bank_full0_flag_get(struct han_trxm_dev *s)
 
 
 static inline void
-han_trxm_tx_lower_mac_busy_set(struct han_trxm_dev *s, bool value)
+han_trxm_tx_ack_busy_set(struct han_trxm_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.trx_tx_ctrl;
-    reg_val &= ~MAC_LOWER_BUSY_MASK;
+    reg_val &= ~MAC_TX_ACK_BUSY_MASK;
     if(value)
-	    reg_val |= ((1 << MAC_LOWER_BUSY_SHIFT) & MAC_LOWER_BUSY_MASK);
+	    reg_val |= ((1 << MAC_TX_ACK_BUSY_SHIFT) & MAC_TX_ACK_BUSY_MASK);
     s->regs.trx_tx_ctrl = reg_val;
 }
 
@@ -1051,11 +1063,11 @@ han_trxm_rx_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_rx_ed_threshold_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_thresholds;
-    reg_val &= ~ED_THRESHOLD_MASK;
-    reg_val |= ((value << ED_THRESHOLD_SHIFT) & ED_THRESHOLD_MASK);
+    reg_val &= ~HP_THRESHOLD_MASK;
+    reg_val |= ((value << HP_THRESHOLD_SHIFT) & HP_THRESHOLD_MASK);
     s->regs.trx_rx_thresholds = reg_val;
 }
 
@@ -1069,11 +1081,11 @@ han_trxm_rx_cca_auto_threshold_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
-han_trxm_rx_hp_auto_threshold_set(struct han_trxm_dev *s, int8_t value)
+han_trxm_rx_ed_threshold_set(struct han_trxm_dev *s, int8_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_thresholds;
-    reg_val &= ~HP_THRESHOLD_MASK;
-    reg_val |= ((value << HP_THRESHOLD_SHIFT) & HP_THRESHOLD_MASK);
+    reg_val &= ~ED_THRESHOLD_MASK;
+    reg_val |= ((value << ED_THRESHOLD_SHIFT) & ED_THRESHOLD_MASK);
     s->regs.trx_rx_thresholds = reg_val;
 }
 
@@ -1280,6 +1292,18 @@ han_trxm_rx_mem_bank_full0_flag_set(struct han_trxm_dev *s, bool value)
 /* ________________________ get accessor functions
  */
 
+static inline bool 
+han_mac_mac_ctrl_pan_coord_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_filter_ctrl & (1 << MAC_CTRL_PAN_COORD_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_mac_mac_ctrl_filter_enable_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_filter_ctrl & (1 << MAC_CTRL_FILTER_EN_SHIFT)) ? true : false;
+}
+
 static inline uint8_t
 han_mac_mac_timeout_strategy_get(struct han_mac_dev *s)
 {
@@ -1323,9 +1347,9 @@ han_mac_mac_csma_ign_rx_busy_get(struct han_mac_dev *s)
 }
 
 static inline bool 
-han_mac_mac_ack_en_get(struct han_mac_dev *s)
+han_mac_lower_mac_ack_override_get(struct han_mac_dev *s)
 {
-    return (s->regs.mac_lower_ctrl & (1 << MAC_ACK_EN_SHIFT)) ? true : false;
+    return (s->regs.mac_lower_ctrl & (1 << LOWER_MAC_ACK_OVERRIDE_SHIFT)) ? true : false;
 }
 
 static inline bool 
@@ -1342,6 +1366,28 @@ han_mac_lower_mac_bypass_get(struct han_mac_dev *s)
 
 /* ________________________ set accessor functions
  */
+
+
+static inline void
+han_mac_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_filter_ctrl;
+    reg_val &= ~MAC_CTRL_PAN_COORD_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_CTRL_PAN_COORD_SHIFT) & MAC_CTRL_PAN_COORD_MASK);
+    s->regs.mac_filter_ctrl = reg_val;
+}
+
+
+static inline void
+han_mac_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_filter_ctrl;
+    reg_val &= ~MAC_CTRL_FILTER_EN_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_CTRL_FILTER_EN_SHIFT) & MAC_CTRL_FILTER_EN_MASK);
+    s->regs.mac_filter_ctrl = reg_val;
+}
 
 static inline void
 han_mac_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value)
@@ -1392,12 +1438,12 @@ han_mac_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value)
 
 
 static inline void
-han_mac_mac_ack_en_set(struct han_mac_dev *s, bool value)
+han_mac_lower_mac_ack_override_set(struct han_mac_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
-    reg_val &= ~MAC_ACK_EN_MASK;
+    reg_val &= ~LOWER_MAC_ACK_OVERRIDE_MASK;
     if(value)
-	    reg_val |= ((1 << MAC_ACK_EN_SHIFT) & MAC_ACK_EN_MASK);
+	    reg_val |= ((1 << LOWER_MAC_ACK_OVERRIDE_SHIFT) & LOWER_MAC_ACK_OVERRIDE_MASK);
     s->regs.mac_lower_ctrl = reg_val;
 }
 

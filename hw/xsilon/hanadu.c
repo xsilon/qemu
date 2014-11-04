@@ -121,8 +121,7 @@ hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * txbuf,
 		free(netsim_pkt);
 	}
 	/* @todo set timer for receiving confirmation of packet successfully sent */
-	qemu_set_irq(s->tx_irq, 1);
-	s->tx_irq_state = 1;
+	qemu_irq_pulse(s->tx_irq);
 }
 
 static void
@@ -181,10 +180,7 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_p
 			*rxbuf++ = *data++;
 	}
 	/* Raise Rx Interrupt */
-	if(!s->tx_irq_state) {
-		qemu_set_irq(s->rx_irq, 1);
-		s->rx_irq_state = 1;
-	}
+	qemu_irq_pulse(s->rx_irq);
 }
 
 static void *
@@ -257,8 +253,6 @@ netsim_rxthread(void *arg)
 		if(memcmp(han.mac_addr, hdr->source_addr, sizeof(han.mac_addr)) == 0) {
 			/* Assert Tx Done interrupt if packet has been sent or CSMA fails or if Ack
 			 * requested the max retries has exceeded. */
-//			qemu_set_irq(s->tx_irq, 1);
-//			s->tx_irq_state = 1;
 		} else {
 			hanadu_rx_buffer_from_netsim(s, hdr);
 		}
@@ -299,6 +293,7 @@ netsim_init(struct han_trxm_dev *s)
 
 /* __________________________________________________________ Hanadu Transceiver
  */
+
 
 static void
 han_trxm_tx_enable_changed(uint32_t value, void *hw_block)
@@ -346,11 +341,7 @@ han_trxm_tx_start_changed(uint32_t value, void *hw_block)
 		/* Send buffer to powerline network simulator */
 		hanadu_tx_buffer_to_netsim(s, buf, psdu_len, rep_code);
 	} else {
-		/* Tx finished, we use this to de-assert the interrupt line */
-		if(s->tx_irq_state) {
-			qemu_set_irq(s->tx_irq, 0);
-			s->tx_irq_state = 0;
-		}
+
 	}
 }
 
@@ -399,10 +390,6 @@ han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t m
 		/* when low deassert irq if still set */
 		assert((han.rx.bufs_avail_bitmap & (1 << membank)) == 0);
 		han.rx.bufs_avail_bitmap |= 1 << membank;
-		if(s->rx_irq_state) {
-			qemu_set_irq(s->rx_irq, 0);
-			s->rx_irq_state = 0;
-		}
 	}
 }
 
@@ -451,10 +438,6 @@ han_trxm_rx_clear_membank_oflow_changed(uint32_t value, void *hw_block)
 	if(!value) {
 		/* Clear the actual flag in the membank status register */
 		han_trxm_rx_mem_bank_overflow_set(s, 0);
-		if(s->rx_irq_state) {
-			qemu_set_irq(s->rx_irq, 0);
-			s->rx_irq_state = 0;
-		}
 	}
 }
 
@@ -512,8 +495,6 @@ static void han_trxm_instance_init(Object *obj)
 	sysbus_init_irq(sbd, &s->rx_irq);
 	sysbus_init_irq(sbd, &s->rx_fail_irq);
 	sysbus_init_irq(sbd, &s->tx_irq);
-
-	s->mem_region_write = NULL;
 
 	/* Override Register/Bitfield changed functions */
 	s->regs.reg_read.trx_rx_next_membank_to_proc_read_cb = han_trxm_rx_next_membank_to_proc_read;

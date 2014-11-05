@@ -68,7 +68,12 @@ static struct hanadu {
 		struct txbuf buf[2];
 		bool enabled;
 	} tx;
+	struct {
+		uint32_t regs[5];
+	} ad9865;
 	struct han_mac_dev *mac_dev;
+	struct han_pwr_dev *pwr_dev;
+	struct han_afe_dev *afe_dev;
 	uint8_t mac_addr[8];
 } han;
 
@@ -507,6 +512,7 @@ static void han_trxm_instance_init(Object *obj)
 	s->regs.field_changed.rx_clear_membank_full3_changed = han_trxm_rx_clear_membank_full3_changed;
 	s->regs.field_changed.rx_clear_membank_oflow_changed = han_trxm_rx_clear_membank_oflow_changed;
 
+	han_trxm_reg_reset(s);
 	/* Setup callbacks to capture filter reg changes */
 	netsim_init(s);
 }
@@ -557,6 +563,13 @@ static void han_afe_instance_init(Object *obj)
 						  "hanafe", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
+	han.afe_dev = s;
+	han_afe_reg_reset(s);
+	han.ad9865.regs[0] = s->regs.afe_ad9865_write_reg_0_3;
+	han.ad9865.regs[1] = s->regs.afe_ad9865_write_reg_4_7;
+	han.ad9865.regs[2] = s->regs.afe_ad9865_write_reg_8_11;
+	han.ad9865.regs[3] = s->regs.afe_ad9865_write_reg_12_15;
+	han.ad9865.regs[4] = s->regs.afe_ad9865_write_reg_16_19;
 }
 
 /* __________________________________________________________________ Hanadu PWR
@@ -567,6 +580,46 @@ static const MemoryRegionOps han_pwr_mem_region_ops = {
 	.write = han_pwr_mem_region_write,
 	.endianness = DEVICE_LITTLE_ENDIAN,
 };
+
+static void
+han_pup_kick_off_spi_write_changed(uint32_t value, void *hw_block)
+{
+	struct han_pwr_dev *s = HANADU_PWR_DEV(hw_block);
+
+	if(value) {
+		assert(han_pwr_pup_kick_off_spi_write_get(s) == false);
+		han_afe_afe_ad9865_spi_write_done_set(han.afe_dev, false);
+	} else {
+		assert(han_pwr_pup_kick_off_spi_write_get(s) == true);
+		/* When it's de-asserted copy the contents of the AD9865 registers in
+		 * the AFE into our internal AD9865 registers */
+		han.ad9865.regs[0] = han.afe_dev->regs.afe_ad9865_write_reg_0_3;
+		han.ad9865.regs[1] = han.afe_dev->regs.afe_ad9865_write_reg_4_7;
+		han.ad9865.regs[2] = han.afe_dev->regs.afe_ad9865_write_reg_8_11;
+		han.ad9865.regs[3] = han.afe_dev->regs.afe_ad9865_write_reg_12_15;
+		han.ad9865.regs[4] = han.afe_dev->regs.afe_ad9865_write_reg_16_19;
+		han_afe_afe_ad9865_spi_write_done_set(han.afe_dev, true);
+	}
+}
+
+static void
+han_pup_kick_off_spi_read_changed(uint32_t value, void *hw_block)
+{
+	struct han_pwr_dev *s = HANADU_PWR_DEV(hw_block);
+
+	if(value) {
+		assert(han_pwr_pup_kick_off_spi_read_get(s) == false);
+		han_afe_afe_ad9865_spi_read_done_set(han.afe_dev, false);
+	} else {
+		assert(han_pwr_pup_kick_off_spi_read_get(s) == true);
+		han.afe_dev->regs.afe_ad9865_read_reg_0_3 = han.ad9865.regs[0];
+		han.afe_dev->regs.afe_ad9865_read_reg_4_7 = han.ad9865.regs[1];
+		han.afe_dev->regs.afe_ad9865_read_reg_8_11 = han.ad9865.regs[2];
+		han.afe_dev->regs.afe_ad9865_read_reg_12_15 = han.ad9865.regs[3];
+		han.afe_dev->regs.afe_ad9865_read_reg_16_19 = han.ad9865.regs[4];
+		han_afe_afe_ad9865_spi_read_done_set(han.afe_dev, true);
+	}
+}
 
 static void han_pwr_realize(DeviceState *dev, Error **errp)
 {
@@ -608,6 +661,11 @@ static void han_pwr_instance_init(Object *obj)
 						  "hanpwr", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
+
+	han.pwr_dev = s;
+	s->regs.field_changed.pup_kick_off_spi_write_changed = han_pup_kick_off_spi_write_changed;
+	s->regs.field_changed.pup_kick_off_spi_read_changed = han_pup_kick_off_spi_read_changed;
+	han_pwr_reg_reset(s);
 }
 
 /* __________________________________________________________________ Hanadu MAC
@@ -682,6 +740,7 @@ static void han_mac_instance_init(Object *obj)
 	han.mac_dev = s;
 	s->regs.reg_changed.mac_filter_ea_upper_changed_cb = han_mac_filter_ea_upper_changed;
 	s->regs.reg_changed.mac_filter_ea_lower_changed_cb = han_mac_filter_ea_lower_changed;
+	han_mac_reg_reset(s);
 }
 
 /* __________________________________________________________________ Hanadu TXB

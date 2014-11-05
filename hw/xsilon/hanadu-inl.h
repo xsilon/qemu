@@ -395,17 +395,41 @@ han_mac_lower_mac_bypass_set(struct han_mac_dev *s, bool value) __attribute__((a
 /* ________________________ get accessor functions
  */
 
+static inline bool 
+han_pwr_pup_kick_off_spi_write_get(struct han_pwr_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_pwr_pup_kick_off_spi_read_get(struct han_pwr_dev *s) __attribute__((always_inline));
+
 
 /* ________________________ set accessor functions
  */
+
+static inline void 
+han_pwr_pup_kick_off_spi_write_set(struct han_pwr_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_pwr_pup_kick_off_spi_read_set(struct han_pwr_dev *s, bool value) __attribute__((always_inline));
 
 
 /* ________________________ get accessor functions
  */
 
+static inline bool 
+han_afe_afe_ad9865_spi_read_done_get(struct han_afe_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_afe_afe_ad9865_spi_write_done_get(struct han_afe_dev *s) __attribute__((always_inline));
+
 
 /* ________________________ set accessor functions
  */
+
+static inline void 
+han_afe_afe_ad9865_spi_read_done_set(struct han_afe_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_afe_afe_ad9865_spi_write_done_set(struct han_afe_dev *s, bool value) __attribute__((always_inline));
 
 
 /* ________________________ get accessor functions
@@ -1472,14 +1496,74 @@ han_mac_lower_mac_bypass_set(struct han_mac_dev *s, bool value)
 /* ________________________ get accessor functions
  */
 
+static inline bool 
+han_pwr_pup_kick_off_spi_write_get(struct han_pwr_dev *s)
+{
+    return (bool)s->regs.pup_kick_off_sw_ad9865_spi_write;
+}
+
+static inline bool 
+han_pwr_pup_kick_off_spi_read_get(struct han_pwr_dev *s)
+{
+    return (bool)s->regs.pup_kick_off_sw_ad9865_spi_read;
+}
+
 /* ________________________ set accessor functions
  */
+
+
+static inline void
+han_pwr_pup_kick_off_spi_write_set(struct han_pwr_dev *s, bool value)
+{
+    s->regs.pup_kick_off_sw_ad9865_spi_write = value;
+}
+
+
+static inline void
+han_pwr_pup_kick_off_spi_read_set(struct han_pwr_dev *s, bool value)
+{
+    s->regs.pup_kick_off_sw_ad9865_spi_read = value;
+}
 
 /* ________________________ get accessor functions
  */
 
+static inline bool 
+han_afe_afe_ad9865_spi_read_done_get(struct han_afe_dev *s)
+{
+    return (s->regs.afe_status & (1 << SPI_READ_DONE_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_afe_afe_ad9865_spi_write_done_get(struct han_afe_dev *s)
+{
+    return (s->regs.afe_status & (1 << SPI_WRITE_DONE_SHIFT)) ? true : false;
+}
+
 /* ________________________ set accessor functions
  */
+
+
+static inline void
+han_afe_afe_ad9865_spi_read_done_set(struct han_afe_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.afe_status;
+    reg_val &= ~SPI_READ_DONE_MASK;
+    if(value)
+	    reg_val |= ((1 << SPI_READ_DONE_SHIFT) & SPI_READ_DONE_MASK);
+    s->regs.afe_status = reg_val;
+}
+
+
+static inline void
+han_afe_afe_ad9865_spi_write_done_set(struct han_afe_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.afe_status;
+    reg_val &= ~SPI_WRITE_DONE_MASK;
+    if(value)
+	    reg_val |= ((1 << SPI_WRITE_DONE_SHIFT) & SPI_WRITE_DONE_MASK);
+    s->regs.afe_status = reg_val;
+}
 
 /* ________________________ get accessor functions
  */

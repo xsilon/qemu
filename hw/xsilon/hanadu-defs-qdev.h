@@ -247,7 +247,7 @@ struct han_regmap_mac
     /* 26 */ uint32_t mac_ack_payload;
     /* 27 */ uint32_t mac_ack_processing_ctrl;
     /* 28 */ uint32_t mac_ack_processing_status;
-    /* 29 */ uint32_t dummy29;
+    /* 29 */ uint32_t mac_ack_data;
     /* 30 */ uint32_t dummy30;
     /* 31 */ uint32_t dummy31;
 
@@ -282,7 +282,7 @@ struct han_regmap_mac
         /* 26 */ reg_changed_fn mac_ack_payload_changed_cb;
         /* 27 */ reg_changed_fn mac_ack_processing_ctrl_changed_cb;
         /* 28 */ reg_changed_fn mac_ack_processing_status_changed_cb;
-        /* 29 */ reg_changed_fn dummy29_cb;
+        /* 29 */ reg_changed_fn mac_ack_data_changed_cb;
         /* 30 */ reg_changed_fn dummy30_cb;
         /* 31 */ reg_changed_fn dummy31_cb;
     } reg_changed;
@@ -332,7 +332,7 @@ struct han_regmap_mac
         /* 26 */ reg_read_fn mac_ack_payload_read_cb;
         /* 27 */ reg_read_fn mac_ack_processing_ctrl_read_cb;
         /* 28 */ reg_read_fn mac_ack_processing_status_read_cb;
-        /* 29 */ reg_read_fn dummy29_cb;
+        /* 29 */ reg_read_fn mac_ack_data_read_cb;
         /* 30 */ reg_read_fn dummy30_cb;
         /* 31 */ reg_read_fn dummy31_cb;
     } reg_read;
@@ -417,6 +417,8 @@ struct han_regmap_pwr
 
     /* Reg field changed callback, implement if required */
     struct field_pwr_changed_fns {
+        field_changed_fn pup_kick_off_spi_write_changed;
+        field_changed_fn pup_kick_off_spi_read_changed;
     } field_changed;
 
     /* Reg Read callback, implement if required */
@@ -535,6 +537,8 @@ struct han_regmap_afe
 
     /* Reg field changed callback, implement if required */
     struct field_afe_changed_fns {
+        field_changed_fn afe_ad9865_spi_read_done_changed;
+        field_changed_fn afe_ad9865_spi_write_done_changed;
     } field_changed;
 
     /* Reg Read callback, implement if required */
@@ -907,6 +911,8 @@ struct han_regmap_hwvers
 #define MAC_ACK_PGA_GAIN_SHIFT                                      (16)
 #define MAC_ACK_REP_CODE_MASK                                       (0x0000FF00)
 #define MAC_ACK_REP_CODE_SHIFT                                      (8)
+#define MAC_ACK_DESTINATION_MASK                                    (0x00000002)
+#define MAC_ACK_DESTINATION_SHIFT                                   (1)
 #define MAC_ACK_ENABLE_MASK                                         (0x00000001)
 #define MAC_ACK_ENABLE_SHIFT                                        (0)
 #define MAC_ACK_EXTRA_HDR_MASK                                      (0xFFFF0000)
@@ -919,11 +925,21 @@ struct han_regmap_hwvers
 #define MAC_MAX_RETRIES_SHIFT                                       (16)
 #define MAC_ACK_WAIT_DURATION_MASK                                  (0x00000FFF)
 #define MAC_ACK_WAIT_DURATION_SHIFT                                 (0)
+#define MAC_ACK_SUCCESS_MASK                                        (0x00000020)
+#define MAC_ACK_SUCCESS_SHIFT                                       (5)
 #define MAC_RETRY_ATTEMPTS_MASK                                     (0x0000001F)
 #define MAC_RETRY_ATTEMPTS_SHIFT                                    (0)
+#define MAC_ACK_SEQ_NUM_MASK                                        (0x00FF0000)
+#define MAC_ACK_SEQ_NUM_SHIFT                                       (16)
+#define MAC_ACK_FC_MASK                                             (0x0000FFFF)
+#define MAC_ACK_FC_SHIFT                                            (0)
 
 /* ___________________ Power Up Controller
  */
+#define PUP_KICK_OFF_SPI_WRITE_MASK                                 (0x00000001)
+#define PUP_KICK_OFF_SPI_WRITE_SHIFT                                (0)
+#define PUP_KICK_OFF_SPI_READ_MASK                                  (0x00000001)
+#define PUP_KICK_OFF_SPI_READ_SHIFT                                 (0)
 
 /* ___________________ AFE Controller
  */
@@ -1006,9 +1022,13 @@ struct han_regmap_hwvers
 #define MAC_ACK_PAYLOAD                                            (26)
 #define MAC_ACK_PROC_CTRL                                          (27)
 #define MAC_ACK_PROC_STATUS                                        (28)
+#define MAC_ACK_DATA                                               (29)
 
 /* ___________________ Power Up Controller
  */
+#define PWR_SPI_WRITE                                              (1)
+#define PWR_SPI_READ                                               (2)
+#define PWR_TRX_SELECT                                             (3)
 #define PWR_DIPS_BOARD                                             (18)
 #define PWR_DIPS_MODEM                                             (19)
 

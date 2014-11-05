@@ -21,7 +21,7 @@ han_trxm_reg_reset(void *opaque)
 {
     struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
 
-    memset(&s->regs, 0, sizeof(s->regs));
+    memset(&s->regs, 0, sizeof(uint32_t) * 32);
     s->regs.trx_tx_ctrl = 0x04000000;
     s->regs.trx_rx_control = 0x30fdf400;
     s->regs.trx_rx_hdr_rep_rate = 0x00000096;
@@ -256,7 +256,7 @@ han_mac_reg_reset(void *opaque)
 {
     struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
 
-    memset(&s->regs, 0, sizeof(s->regs));
+    memset(&s->regs, 0, sizeof(uint32_t) * 32);
     s->regs.mac_traf_mon_clear = 0x00000001;
     s->regs.mac_lower_ctrl = 0x00045491;
     s->regs.mac_ack_control = 0x000f2000;
@@ -380,7 +380,7 @@ han_pwr_reg_reset(void *opaque)
 {
     struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
 
-    memset(&s->regs, 0, sizeof(s->regs));
+    memset(&s->regs, 0, sizeof(uint32_t) * 32);
     s->regs.pup_afe_reset = 0x00000001;
 }
 
@@ -428,6 +428,24 @@ han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
     switch(addr) {
     
+    case PWR_SPI_WRITE:
+        if ((value & PUP_KICK_OFF_SPI_WRITE_MASK) != (s->regs.pup_kick_off_sw_ad9865_spi_write & PUP_KICK_OFF_SPI_WRITE_MASK)) {
+            if (s->regs.field_changed.pup_kick_off_spi_write_changed) {
+                s->regs.field_changed.pup_kick_off_spi_write_changed(((uint32_t)value & PUP_KICK_OFF_SPI_WRITE_MASK) >> PUP_KICK_OFF_SPI_WRITE_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case PWR_SPI_READ:
+        if ((value & PUP_KICK_OFF_SPI_READ_MASK) != (s->regs.pup_kick_off_sw_ad9865_spi_read & PUP_KICK_OFF_SPI_READ_MASK)) {
+            if (s->regs.field_changed.pup_kick_off_spi_read_changed) {
+                s->regs.field_changed.pup_kick_off_spi_read_changed(((uint32_t)value & PUP_KICK_OFF_SPI_READ_MASK) >> PUP_KICK_OFF_SPI_READ_SHIFT, s);
+            }
+        }
+
+        break;
+
     }
 
     regs[addr] = value;
@@ -442,7 +460,7 @@ han_afe_reg_reset(void *opaque)
 {
     struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
 
-    memset(&s->regs, 0, sizeof(s->regs));
+    memset(&s->regs, 0, sizeof(uint32_t) * 32);
     s->regs.afe_agc_fixed_gain = 0x000000600;
     s->regs.afe_ad9865_write_reg_0_3 = 0x00750080;
     s->regs.afe_ad9865_write_reg_4_7 = 0x01c40036;
@@ -495,6 +513,20 @@ han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
     switch(addr) {
     
+    case AFE_STATUS:
+        if ((value & SPI_READ_DONE_MASK) != (s->regs.afe_status & SPI_READ_DONE_MASK)) {
+            if (s->regs.field_changed.afe_ad9865_spi_read_done_changed) {
+                s->regs.field_changed.afe_ad9865_spi_read_done_changed(((uint32_t)value & SPI_READ_DONE_MASK) >> SPI_READ_DONE_SHIFT, s);
+            }
+        }
+        if ((value & SPI_WRITE_DONE_MASK) != (s->regs.afe_status & SPI_WRITE_DONE_MASK)) {
+            if (s->regs.field_changed.afe_ad9865_spi_write_done_changed) {
+                s->regs.field_changed.afe_ad9865_spi_write_done_changed(((uint32_t)value & SPI_WRITE_DONE_MASK) >> SPI_WRITE_DONE_SHIFT, s);
+            }
+        }
+
+        break;
+
     }
 
     regs[addr] = value;
@@ -509,7 +541,7 @@ han_hwvers_reg_reset(void *opaque)
 {
     struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);
 
-    memset(&s->regs, 0, sizeof(s->regs));
+    memset(&s->regs, 0, sizeof(uint32_t) * 32);
 }
 
 uint64_t

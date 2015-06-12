@@ -6,7 +6,7 @@
  */
 #include "hw/sysbus.h"
 #include "qemu/log.h"
-#include "qemu/fifo.h"
+#include "qemu/fifo8.h"
 #include "hanadu.h"
 #include "hanadu-inl.h"
 #include "xsilon.h"
@@ -60,8 +60,8 @@ static struct hanadu {
 	struct han_rx {
 		struct rxbuf buf[4];
 		unsigned bufs_avail_bitmap;
-		Fifo nextbuf;
-		Fifo proc;
+		Fifo8 nextbuf;
+		Fifo8 proc;
 		bool enabled;
 	} rx;
 	struct han_tx {
@@ -149,7 +149,7 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_p
 		han.rx.bufs_avail_bitmap &= ~(1<<i);
 		han_trxm_rx_mem_bank_overflow_set(s, false);
 		assert(i>=0 && i<4);
-		assert(!fifo_is_full(&han.rx.nextbuf));
+		assert(!fifo8_is_full(&han.rx.nextbuf));
 		switch(i) {
 		case 0:
 			han_trxm_rx_psdulen0_set(s, rx_pkt->psdu_len);
@@ -172,8 +172,8 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_p
 			han_trxm_rx_mem_bank_full3_flag_set(s, 1);
 			break;
 		}
-		fifo_push8(&han.rx.nextbuf, i);
-		fifo_used = (uint8_t)fifo_num_used(&han.rx.nextbuf);
+		fifo8_push(&han.rx.nextbuf, i);
+		fifo_used = (uint8_t)han.rx.nextbuf.num;
 		han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
 		han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
 		han_trxm_rx_rssi_latched_set(s, rx_pkt->rssi);
@@ -356,16 +356,16 @@ han_trxm_rx_next_membank_to_proc_read(uint32_t *value_out, void *hw_block)
 	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
 	uint8_t next_membank, fifo_used;
 
-	assert(!fifo_is_empty(&han.rx.nextbuf));
-	next_membank = fifo_pop8(&han.rx.nextbuf);
+	assert(!fifo8_is_empty(&han.rx.nextbuf));
+	next_membank = fifo8_pop(&han.rx.nextbuf);
 	han_trxm_rx_mem_bank_next_to_process_set(s, next_membank);
-	fifo_push8(&han.rx.proc, next_membank);
+	fifo8_push(&han.rx.proc, next_membank);
 
 	/* The buffer would be moved from nextbuf FIFO to proc FIFO */
-	fifo_used = (uint8_t)fifo_num_used(&han.rx.nextbuf);
+	fifo_used = (uint8_t)han.rx.nextbuf.num;
 	han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
 	han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
-	fifo_used = (uint8_t)fifo_num_used(&han.rx.proc);
+	fifo_used = (uint8_t)han.rx.proc.num;
 	han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
 	han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
@@ -384,10 +384,10 @@ han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t m
 		uint8_t membank_processed, fifo_used;
 
 		/* when high adjust fifo levels. */
-		assert(!fifo_is_empty(&han.rx.proc));
-		membank_processed = fifo_pop8(&han.rx.proc);
+		assert(!fifo8_is_empty(&han.rx.proc));
+		membank_processed = fifo8_pop(&han.rx.proc);
 		assert(membank == membank_processed);
-		fifo_used = (uint8_t)fifo_num_used(&han.rx.proc);
+		fifo_used = (uint8_t)han.rx.proc.num;
 		han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
 		han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
@@ -493,8 +493,8 @@ static void han_trxm_instance_init(Object *obj)
 	struct han_trxm_dev *s = HANADU_TRXM_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_trxm_mem_region_ops, s,
-						  "hantrxm", 0x10000);
+	memory_region_init_io(&s->iomem, &han_trxm_mem_region_ops, s,
+			      "hantrxm", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 
 	sysbus_init_irq(sbd, &s->rx_irq);
@@ -559,8 +559,8 @@ static void han_afe_instance_init(Object *obj)
 	struct han_afe_dev *s = HANADU_AFE_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_afe_mem_region_ops, s,
-						  "hanafe", 0x10000);
+	memory_region_init_io(&s->iomem, &han_afe_mem_region_ops, s,
+			      "hanafe", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
 	han.afe_dev = s;
@@ -657,8 +657,8 @@ static void han_pwr_instance_init(Object *obj)
 	struct han_pwr_dev *s = HANADU_PWR_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_pwr_mem_region_ops, s,
-						  "hanpwr", 0x10000);
+	memory_region_init_io(&s->iomem, &han_pwr_mem_region_ops, s,
+			      "hanpwr", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
 
@@ -732,8 +732,8 @@ static void han_mac_instance_init(Object *obj)
 	struct han_mac_dev *s = HANADU_MAC_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_mac_mem_region_ops, s,
-						  "hanmac", 0x10000);
+	memory_region_init_io(&s->iomem, &han_mac_mem_region_ops, s,
+			      "hanmac", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
 
@@ -823,8 +823,8 @@ static void han_txb_instance_init(Object *obj)
 	struct han_txb_dev *s = HANADU_TXB_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_txb_mem_region_ops, s,
-						  "hantxb", 0x10000);
+	memory_region_init_io(&s->iomem, &han_txb_mem_region_ops, s,
+			      "hantxb", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 }
 
@@ -906,8 +906,8 @@ static void han_rxb_instance_init(Object *obj)
 	struct han_rxb_dev *s = HANADU_RXB_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_rxb_mem_region_ops, s,
-						  "hanrxb", 0x10000);
+	memory_region_init_io(&s->iomem, &han_rxb_mem_region_ops, s,
+			      "hanrxb", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 }
 
@@ -977,8 +977,8 @@ static void han_hwvers_instance_init(Object *obj)
 	struct han_hwvers_dev *s = HANADU_HWVERS_DEV(obj);
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
-	memory_region_init_io(&s->iomem, OBJECT(s), &han_hwvers_mem_region_ops, s,
-						  "hanhwv", 0x10000);
+	memory_region_init_io(&s->iomem, &han_hwvers_mem_region_ops, s,
+			      "hanhwv", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 	s->mem_region_write = NULL;
 }
@@ -1044,8 +1044,8 @@ static const TypeInfo han_hwv_info = {
 
 static void han_register_types(void)
 {
-	fifo_create8(&han.rx.nextbuf, 4);
-	fifo_create8(&han.rx.proc, 4);
+	fifo8_create(&han.rx.nextbuf, 4);
+	fifo8_create(&han.rx.proc, 4);
 	han.rx.bufs_avail_bitmap = 0x0f;
 
 	type_register_static(&han_trxm_info);

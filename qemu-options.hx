@@ -3095,6 +3095,35 @@ property must be set.  These objects are placed in the
 '/objects' path.
 ETEXI
 
+DEF("msg", HAS_ARG, QEMU_OPTION_msg,
+    "-msg timestamp[=on|off]\n"
+    "                change the format of messages\n"
+    "                on|off controls leading timestamps (default:on)\n",
+    QEMU_ARCH_ALL)
+STEXI
+@item -msg timestamp[=on|off]
+@findex -msg
+prepend a timestamp to each log message.(default:on)
+ETEXI
+
+DEFHEADING(Xsilon options:)
+STEXI
+@table @option
+ETEXI
+
+DEF("xsilon", HAS_ARG, QEMU_OPTION_xsilon,
+    "-xsilon [dipboard=val][,dipafe=val][,nsaddr=val][,nsport=val]\n"
+    "                Set the board and AFE DIP switches\n"
+    "                (default: 0 for both)\n"
+    "                Set Network Simulator address and port\n",
+    QEMU_ARCH_ALL)
+
+STEXI
+@end table
+ETEXI
+DEFHEADING()
+
+
 HXCOMM This is the last statement. Insert new options before this line!
 STEXI
 @end table

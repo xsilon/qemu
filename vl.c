@@ -170,6 +170,7 @@ int main(int argc, char **argv)
 
 #include "ui/qemu-spice.h"
 #include "qapi/string-input-visitor.h"
+#include "hw/xsilon/xsilon.h"
 
 //#define DEBUG_NET
 //#define DEBUG_SLIRP
@@ -526,6 +527,30 @@ static QemuOptsList qemu_realtime_opts = {
     },
 };
 
+static QemuOptsList qemu_xsilon_opts = {
+    .name = "xsilon",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_xsilon_opts.head),
+    .desc = {
+        {
+            .name = "dipboard",
+            .type = QEMU_OPT_STRING,
+            .help = "Set Board DIP Switch (e.g. 0xa5)",
+        },{
+            .name = "dipafe",
+            .type = QEMU_OPT_STRING,
+            .help = "Set Board AFE Switch (e.g. 0xa5)",
+        },{
+            .name = "nsaddr",
+            .type = QEMU_OPT_STRING,
+            .help = "Network simulator address/hostname",
+        },{
+            .name = "nsport",
+            .type = QEMU_OPT_NUMBER,
+            .help = "Network simulator port",
+        },{ /* end of list */ }
+    },
+};
+
 const char *qemu_get_vm_name(void)
 {
     return qemu_name;
@@ -810,6 +835,53 @@ static void configure_rtc(QemuOpts *opts)
         } else {
             fprintf(stderr, "qemu: invalid option value '%s'\n", value);
             exit(1);
+        }
+    }
+}
+
+/* Xsilon */
+static void configure_xsilon(QemuOpts *opts)
+{
+    const char *value;
+
+    value = qemu_opt_get(opts, "dipboard");
+    if (value) {
+        char * end;
+        unsigned long int dip;
+        dip = strtoul(value, &end, 0);
+        if(value == end) {
+            fprintf(stderr, "Invalid DIP board\n");
+            exit(1);
+        } else {
+            hanadu_set_default_dip_board((uint8_t)dip);
+        }
+    }
+    value = qemu_opt_get(opts, "dipafe");
+    if (value) {
+        char * end;
+        unsigned long int dip;
+        dip = strtoul(value, &end, 0);
+        if(value == end) {
+            fprintf(stderr, "Invalid DIP afe\n");
+            exit(1);
+        } else {
+            hanadu_set_default_dip_afe((uint8_t)dip);
+        }
+    }
+    value = qemu_opt_get(opts, "nsaddr");
+    if (value) {
+        hanadu_set_netsim_addr(value);
+    }
+    value = qemu_opt_get(opts, "nsport");
+    if (value) {
+        char * end;
+        unsigned long int port;
+        port = strtoul(value, &end, 0);
+        if(value == end) {
+            fprintf(stderr, "Invalid NetSim Port number\n");
+            exit(1);
+        } else {
+        	hanadu_set_netsim_port((int)port);
         }
     }
 }
@@ -2909,6 +2981,7 @@ int main(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_object_opts);
     qemu_add_opts(&qemu_tpmdev_opts);
     qemu_add_opts(&qemu_realtime_opts);
+    qemu_add_opts(&qemu_xsilon_opts);
 
     runstate_init();
 
@@ -3880,6 +3953,13 @@ int main(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 configure_realtime(opts);
+                break;
+            case QEMU_OPTION_xsilon:
+                opts = qemu_opts_parse(qemu_find_opts("xsilon"), optarg, 0);
+                if (!opts) {
+                    exit(1);
+                }
+                configure_xsilon(opts);
                 break;
             default:
                 os_parse_cmd_args(popt->index, optarg);

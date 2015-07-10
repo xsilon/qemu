@@ -37,6 +37,12 @@ han_trxm_tx_start_get(struct han_trxm_dev *s) __attribute__((always_inline));
 static inline bool 
 han_trxm_tx_enable_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
+static inline bool 
+han_trxm_tx_att_20db0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_tx_att_10db0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
 static inline uint8_t
 han_trxm_tx_pga_gain0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
@@ -46,8 +52,17 @@ han_trxm_tx_psdu_len0_get(struct han_trxm_dev *s) __attribute__((always_inline))
 static inline uint8_t
 han_trxm_tx_rep_code0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
+static inline uint8_t
+han_trxm_tx_hdr_preamble0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
 static inline uint16_t
 han_trxm_tx_hdr_extra0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_tx_att_20db1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_trxm_tx_att_10db1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
 han_trxm_tx_pga_gain1_get(struct han_trxm_dev *s) __attribute__((always_inline));
@@ -57,6 +72,9 @@ han_trxm_tx_psdu_len1_get(struct han_trxm_dev *s) __attribute__((always_inline))
 
 static inline uint8_t
 han_trxm_tx_rep_code1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_tx_preamble1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
 han_trxm_tx_hdr_extra1_get(struct han_trxm_dev *s) __attribute__((always_inline));
@@ -95,6 +113,9 @@ static inline bool
 han_trxm_rx_enable_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
+han_trxm_trx_num_carriers_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
 han_trxm_rx_hdr_reprate_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline int8_t
@@ -115,11 +136,17 @@ han_trxm_rx_psdulen0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 static inline uint8_t
 han_trxm_rx_repcode0_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
+static inline uint8_t
+han_trxm_rx_preamble0_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
 static inline uint16_t
 han_trxm_rx_psdulen1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
 han_trxm_rx_repcode1_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_preamble1_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint16_t
 han_trxm_rx_psdulen2_get(struct han_trxm_dev *s) __attribute__((always_inline));
@@ -127,11 +154,17 @@ han_trxm_rx_psdulen2_get(struct han_trxm_dev *s) __attribute__((always_inline));
 static inline uint8_t
 han_trxm_rx_repcode2_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
+static inline uint8_t
+han_trxm_rx_preamble2_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
 static inline uint16_t
 han_trxm_rx_psdulen3_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
 han_trxm_rx_repcode3_get(struct han_trxm_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_trxm_rx_preamble3_get(struct han_trxm_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
 han_trxm_rx_proc_fifo_wr_level_get(struct han_trxm_dev *s) __attribute__((always_inline));
@@ -191,6 +224,12 @@ han_trxm_tx_start_set(struct han_trxm_dev *s, bool value) __attribute__((always_
 static inline void 
 han_trxm_tx_enable_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
+static inline void 
+han_trxm_tx_att_20db0_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_tx_att_10db0_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
 static inline void
 han_trxm_tx_pga_gain0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
@@ -201,7 +240,16 @@ static inline void
 han_trxm_tx_rep_code0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
+han_trxm_tx_hdr_preamble0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
 han_trxm_tx_hdr_extra0_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_tx_att_20db1_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_trxm_tx_att_10db1_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
 han_trxm_tx_pga_gain1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
@@ -211,6 +259,9 @@ han_trxm_tx_psdu_len1_set(struct han_trxm_dev *s, uint16_t value) __attribute__(
 
 static inline void
 han_trxm_tx_rep_code1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_tx_preamble1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_tx_hdr_extra1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
@@ -249,6 +300,9 @@ static inline void
 han_trxm_rx_enable_set(struct han_trxm_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
+han_trxm_trx_num_carriers_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
 han_trxm_rx_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
@@ -270,10 +324,16 @@ static inline void
 han_trxm_rx_repcode0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
+han_trxm_rx_preamble0_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
 han_trxm_rx_psdulen1_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_rx_repcode1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_preamble1_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_rx_psdulen2_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
@@ -282,10 +342,16 @@ static inline void
 han_trxm_rx_repcode2_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
+han_trxm_rx_preamble2_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
 han_trxm_rx_psdulen3_set(struct han_trxm_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_rx_repcode3_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_trxm_rx_preamble3_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
 han_trxm_rx_proc_fifo_wr_level_set(struct han_trxm_dev *s, uint8_t value) __attribute__((always_inline));
@@ -327,69 +393,189 @@ han_trxm_rx_mem_bank_full0_flag_set(struct han_trxm_dev *s, bool value) __attrib
 /* ________________________ get accessor functions
  */
 
-static inline bool 
-han_mac_mac_ctrl_pan_coord_get(struct han_mac_dev *s) __attribute__((always_inline));
-
-static inline bool 
-han_mac_mac_ctrl_filter_enable_get(struct han_mac_dev *s) __attribute__((always_inline));
+static inline uint8_t
+han_mac_lifs_period_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_mac_mac_timeout_strategy_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_sifs_period_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_mac_mac_max_csma_backoffs_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_max_sifs_frame_size_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ifs_enable_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ctrl_pan_coord_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ctrl_filter_enable_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_mac_mac_min_be_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_timeout_strategy_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline uint8_t
-han_mac_mac_max_be_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_max_csma_backoffs_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_min_be_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_max_be_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_mac_mac_csma_ign_rx_busy_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_csma_ign_rx_busy_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_mac_lower_mac_ack_override_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_lower_ack_override_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline bool 
-han_mac_lower_mac_reset_get(struct han_mac_dev *s) __attribute__((always_inline));
+han_mac_lower_reset_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 static inline bool 
 han_mac_lower_mac_bypass_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_status_tx_timeout_occured_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_status_backoff_attempts_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_ack_pga_gain_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_ack_rep_code_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ack_seq_check_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ack_destination_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ack_enable_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_mac_ack_extra_hdr_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_ack_fc1_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_ack_fc0_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_max_retries_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_mac_ack_wait_dur_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_mac_ack_success_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_ack_retry_attempts_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint8_t
+han_mac_ack_rx_seq_num_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_mac_ack_rx_fc_get(struct han_mac_dev *s) __attribute__((always_inline));
 
 
 /* ________________________ set accessor functions
  */
 
-static inline void 
-han_mac_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
-
-static inline void 
-han_mac_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+static inline void
+han_mac_lifs_period_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_mac_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+han_mac_sifs_period_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_mac_mac_max_csma_backoffs_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+han_mac_max_sifs_frame_size_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ifs_enable_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void
-han_mac_mac_min_be_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+han_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void
-han_mac_mac_max_be_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+han_mac_max_csma_backoffs_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_min_be_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_max_be_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
 
 static inline void 
-han_mac_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+han_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_mac_lower_mac_ack_override_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+han_mac_lower_ack_override_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
-han_mac_lower_mac_reset_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+han_mac_lower_reset_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
 
 static inline void 
 han_mac_lower_mac_bypass_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_mac_status_tx_timeout_occured_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void
+han_mac_status_backoff_attempts_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_pga_gain_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_rep_code_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ack_seq_check_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ack_destination_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ack_enable_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_extra_hdr_set(struct han_mac_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_fc1_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_fc0_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_max_retries_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_wait_dur_set(struct han_mac_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void 
+han_mac_ack_success_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_retry_attempts_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_rx_seq_num_set(struct han_mac_dev *s, uint8_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ack_rx_fc_set(struct han_mac_dev *s, uint16_t value) __attribute__((always_inline));
 
 
 /* ________________________ get accessor functions
@@ -401,6 +587,12 @@ han_pwr_pup_kick_off_spi_write_get(struct han_pwr_dev *s) __attribute__((always_
 static inline bool 
 han_pwr_pup_kick_off_spi_read_get(struct han_pwr_dev *s) __attribute__((always_inline));
 
+static inline bool 
+han_pwr_relay_get(struct han_pwr_dev *s) __attribute__((always_inline));
+
+static inline bool 
+han_pwr_fpga_config_get(struct han_pwr_dev *s) __attribute__((always_inline));
+
 
 /* ________________________ set accessor functions
  */
@@ -410,6 +602,12 @@ han_pwr_pup_kick_off_spi_write_set(struct han_pwr_dev *s, bool value) __attribut
 
 static inline void 
 han_pwr_pup_kick_off_spi_read_set(struct han_pwr_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_pwr_relay_set(struct han_pwr_dev *s, bool value) __attribute__((always_inline));
+
+static inline void 
+han_pwr_fpga_config_set(struct han_pwr_dev *s, bool value) __attribute__((always_inline));
 
 
 /* ________________________ get accessor functions
@@ -481,6 +679,18 @@ han_trxm_tx_enable_get(struct han_trxm_dev *s)
     return (s->regs.trx_tx_ctrl & (1 << TX_ENABLE_SHIFT)) ? true : false;
 }
 
+static inline bool 
+han_trxm_tx_att_20db0_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_tx_hwbuf0_rc_psdulen & (1 << TX_ATT_20DB_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_tx_att_10db0_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_tx_hwbuf0_rc_psdulen & (1 << TX_ATT_10DB_SHIFT)) ? true : false;
+}
+
 static inline uint8_t
 han_trxm_tx_pga_gain0_get(struct han_trxm_dev *s)
 {
@@ -508,13 +718,34 @@ han_trxm_tx_rep_code0_get(struct han_trxm_dev *s)
     return value;
 }
 
+static inline uint8_t
+han_trxm_tx_hdr_preamble0_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_tx_hwbuf0_xtra & TX_PREAMBLE_MASK) >> TX_PREAMBLE_SHIFT);
+    return value;
+}
+
 static inline uint16_t
 han_trxm_tx_hdr_extra0_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
-    value = (uint16_t)s->regs.trx_tx_hwbuf0_xtra;
+    value = (uint16_t)((s->regs.trx_tx_hwbuf0_xtra & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT);
     return value;
+}
+
+static inline bool 
+han_trxm_tx_att_20db1_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_tx_hwbuf1_rc_psdulen & (1 << TX_ATT_20DB_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_trxm_tx_att_10db1_get(struct han_trxm_dev *s)
+{
+    return (s->regs.trx_tx_hwbuf1_rc_psdulen & (1 << TX_ATT_10DB_SHIFT)) ? true : false;
 }
 
 static inline uint8_t
@@ -544,12 +775,21 @@ han_trxm_tx_rep_code1_get(struct han_trxm_dev *s)
     return value;
 }
 
+static inline uint8_t
+han_trxm_tx_preamble1_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_tx_hwbuf1_xtra & TX_PREAMBLE_MASK) >> TX_PREAMBLE_SHIFT);
+    return value;
+}
+
 static inline uint16_t
 han_trxm_tx_hdr_extra1_get(struct han_trxm_dev *s)
 {
     uint16_t value;
 
-    value = (uint16_t)s->regs.trx_tx_hwbuf1_xtra;
+    value = (uint16_t)((s->regs.trx_tx_hwbuf1_xtra & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT);
     return value;
 }
 
@@ -629,11 +869,20 @@ han_trxm_rx_enable_get(struct han_trxm_dev *s)
 }
 
 static inline uint8_t
+han_trxm_trx_num_carriers_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_hdr_rep_rate & NUM_CARRIERS_MASK) >> NUM_CARRIERS_SHIFT);
+    return value;
+}
+
+static inline uint8_t
 han_trxm_rx_hdr_reprate_get(struct han_trxm_dev *s)
 {
     uint8_t value;
 
-    value = (uint8_t)s->regs.trx_rx_hdr_rep_rate;
+    value = (uint8_t)((s->regs.trx_rx_hdr_rep_rate & HDR_REPRATE_MASK) >> HDR_REPRATE_SHIFT);
     return value;
 }
 
@@ -691,6 +940,15 @@ han_trxm_rx_repcode0_get(struct han_trxm_dev *s)
     return value;
 }
 
+static inline uint8_t
+han_trxm_rx_preamble0_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf0_xtra & RX_PREAMBLE_MASK) >> RX_PREAMBLE_SHIFT);
+    return value;
+}
+
 static inline uint16_t
 han_trxm_rx_psdulen1_get(struct han_trxm_dev *s)
 {
@@ -706,6 +964,15 @@ han_trxm_rx_repcode1_get(struct han_trxm_dev *s)
     uint8_t value;
 
     value = (uint8_t)((s->regs.trx_rx_buf1_rc_psdulen & RX_REP_CODE_MASK) >> RX_REP_CODE_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_preamble1_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf1_xtra & RX_PREAMBLE_MASK) >> RX_PREAMBLE_SHIFT);
     return value;
 }
 
@@ -727,6 +994,15 @@ han_trxm_rx_repcode2_get(struct han_trxm_dev *s)
     return value;
 }
 
+static inline uint8_t
+han_trxm_rx_preamble2_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf2_xtra & RX_PREAMBLE_MASK) >> RX_PREAMBLE_SHIFT);
+    return value;
+}
+
 static inline uint16_t
 han_trxm_rx_psdulen3_get(struct han_trxm_dev *s)
 {
@@ -742,6 +1018,15 @@ han_trxm_rx_repcode3_get(struct han_trxm_dev *s)
     uint8_t value;
 
     value = (uint8_t)((s->regs.trx_rx_buf3_rc_psdulen & RX_REP_CODE_MASK) >> RX_REP_CODE_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_trxm_rx_preamble3_get(struct han_trxm_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.trx_rx_buf3_xtra & RX_PREAMBLE_MASK) >> RX_PREAMBLE_SHIFT);
     return value;
 }
 
@@ -899,6 +1184,28 @@ han_trxm_tx_enable_set(struct han_trxm_dev *s, bool value)
     s->regs.trx_tx_ctrl = reg_val;
 }
 
+
+static inline void
+han_trxm_tx_att_20db0_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_tx_hwbuf0_rc_psdulen;
+    reg_val &= ~TX_ATT_20DB_MASK;
+    if(value)
+	    reg_val |= ((1 << TX_ATT_20DB_SHIFT) & TX_ATT_20DB_MASK);
+    s->regs.trx_tx_hwbuf0_rc_psdulen = reg_val;
+}
+
+
+static inline void
+han_trxm_tx_att_10db0_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_tx_hwbuf0_rc_psdulen;
+    reg_val &= ~TX_ATT_10DB_MASK;
+    if(value)
+	    reg_val |= ((1 << TX_ATT_10DB_SHIFT) & TX_ATT_10DB_MASK);
+    s->regs.trx_tx_hwbuf0_rc_psdulen = reg_val;
+}
+
 static inline void
 han_trxm_tx_pga_gain0_set(struct han_trxm_dev *s, uint8_t value)
 {
@@ -927,9 +1234,43 @@ han_trxm_tx_rep_code0_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
+han_trxm_tx_hdr_preamble0_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_tx_hwbuf0_xtra;
+    reg_val &= ~TX_PREAMBLE_MASK;
+    reg_val |= ((value << TX_PREAMBLE_SHIFT) & TX_PREAMBLE_MASK);
+    s->regs.trx_tx_hwbuf0_xtra = reg_val;
+}
+
+static inline void
 han_trxm_tx_hdr_extra0_set(struct han_trxm_dev *s, uint16_t value)
 {
-    s->regs.trx_tx_hwbuf0_xtra = value;
+    uint32_t reg_val = s->regs.trx_tx_hwbuf0_xtra;
+    reg_val &= ~TX_HDR_XTRA_MASK;
+    reg_val |= ((value << TX_HDR_XTRA_SHIFT) & TX_HDR_XTRA_MASK);
+    s->regs.trx_tx_hwbuf0_xtra = reg_val;
+}
+
+
+static inline void
+han_trxm_tx_att_20db1_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_tx_hwbuf1_rc_psdulen;
+    reg_val &= ~TX_ATT_20DB_MASK;
+    if(value)
+	    reg_val |= ((1 << TX_ATT_20DB_SHIFT) & TX_ATT_20DB_MASK);
+    s->regs.trx_tx_hwbuf1_rc_psdulen = reg_val;
+}
+
+
+static inline void
+han_trxm_tx_att_10db1_set(struct han_trxm_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.trx_tx_hwbuf1_rc_psdulen;
+    reg_val &= ~TX_ATT_10DB_MASK;
+    if(value)
+	    reg_val |= ((1 << TX_ATT_10DB_SHIFT) & TX_ATT_10DB_MASK);
+    s->regs.trx_tx_hwbuf1_rc_psdulen = reg_val;
 }
 
 static inline void
@@ -960,9 +1301,21 @@ han_trxm_tx_rep_code1_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
+han_trxm_tx_preamble1_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_tx_hwbuf1_xtra;
+    reg_val &= ~TX_PREAMBLE_MASK;
+    reg_val |= ((value << TX_PREAMBLE_SHIFT) & TX_PREAMBLE_MASK);
+    s->regs.trx_tx_hwbuf1_xtra = reg_val;
+}
+
+static inline void
 han_trxm_tx_hdr_extra1_set(struct han_trxm_dev *s, uint16_t value)
 {
-    s->regs.trx_tx_hwbuf1_xtra = value;
+    uint32_t reg_val = s->regs.trx_tx_hwbuf1_xtra;
+    reg_val &= ~TX_HDR_XTRA_MASK;
+    reg_val |= ((value << TX_HDR_XTRA_SHIFT) & TX_HDR_XTRA_MASK);
+    s->regs.trx_tx_hwbuf1_xtra = reg_val;
 }
 
 static inline void
@@ -1081,9 +1434,21 @@ han_trxm_rx_enable_set(struct han_trxm_dev *s, bool value)
 }
 
 static inline void
+han_trxm_trx_num_carriers_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_hdr_rep_rate;
+    reg_val &= ~NUM_CARRIERS_MASK;
+    reg_val |= ((value << NUM_CARRIERS_SHIFT) & NUM_CARRIERS_MASK);
+    s->regs.trx_rx_hdr_rep_rate = reg_val;
+}
+
+static inline void
 han_trxm_rx_hdr_reprate_set(struct han_trxm_dev *s, uint8_t value)
 {
-    s->regs.trx_rx_hdr_rep_rate = value;
+    uint32_t reg_val = s->regs.trx_rx_hdr_rep_rate;
+    reg_val &= ~HDR_REPRATE_MASK;
+    reg_val |= ((value << HDR_REPRATE_SHIFT) & HDR_REPRATE_MASK);
+    s->regs.trx_rx_hdr_rep_rate = reg_val;
 }
 
 static inline void
@@ -1138,6 +1503,15 @@ han_trxm_rx_repcode0_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
+han_trxm_rx_preamble0_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf0_xtra;
+    reg_val &= ~RX_PREAMBLE_MASK;
+    reg_val |= ((value << RX_PREAMBLE_SHIFT) & RX_PREAMBLE_MASK);
+    s->regs.trx_rx_buf0_xtra = reg_val;
+}
+
+static inline void
 han_trxm_rx_psdulen1_set(struct han_trxm_dev *s, uint16_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_buf1_rc_psdulen;
@@ -1153,6 +1527,15 @@ han_trxm_rx_repcode1_set(struct han_trxm_dev *s, uint8_t value)
     reg_val &= ~RX_REP_CODE_MASK;
     reg_val |= ((value << RX_REP_CODE_SHIFT) & RX_REP_CODE_MASK);
     s->regs.trx_rx_buf1_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_preamble1_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf1_xtra;
+    reg_val &= ~RX_PREAMBLE_MASK;
+    reg_val |= ((value << RX_PREAMBLE_SHIFT) & RX_PREAMBLE_MASK);
+    s->regs.trx_rx_buf1_xtra = reg_val;
 }
 
 static inline void
@@ -1174,6 +1557,15 @@ han_trxm_rx_repcode2_set(struct han_trxm_dev *s, uint8_t value)
 }
 
 static inline void
+han_trxm_rx_preamble2_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf2_xtra;
+    reg_val &= ~RX_PREAMBLE_MASK;
+    reg_val |= ((value << RX_PREAMBLE_SHIFT) & RX_PREAMBLE_MASK);
+    s->regs.trx_rx_buf2_xtra = reg_val;
+}
+
+static inline void
 han_trxm_rx_psdulen3_set(struct han_trxm_dev *s, uint16_t value)
 {
     uint32_t reg_val = s->regs.trx_rx_buf3_rc_psdulen;
@@ -1189,6 +1581,15 @@ han_trxm_rx_repcode3_set(struct han_trxm_dev *s, uint8_t value)
     reg_val &= ~RX_REP_CODE_MASK;
     reg_val |= ((value << RX_REP_CODE_SHIFT) & RX_REP_CODE_MASK);
     s->regs.trx_rx_buf3_rc_psdulen = reg_val;
+}
+
+static inline void
+han_trxm_rx_preamble3_set(struct han_trxm_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.trx_rx_buf3_xtra;
+    reg_val &= ~RX_PREAMBLE_MASK;
+    reg_val |= ((value << RX_PREAMBLE_SHIFT) & RX_PREAMBLE_MASK);
+    s->regs.trx_rx_buf3_xtra = reg_val;
 }
 
 static inline void
@@ -1316,20 +1717,53 @@ han_trxm_rx_mem_bank_full0_flag_set(struct han_trxm_dev *s, bool value)
 /* ________________________ get accessor functions
  */
 
+static inline uint8_t
+han_mac_lifs_period_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ifs & MAC_LIFS_PERIOD_MASK) >> MAC_LIFS_PERIOD_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_sifs_period_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ifs & MAC_SIFS_PERIOD_MASK) >> MAC_SIFS_PERIOD_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_max_sifs_frame_size_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ifs & MAC_MAX_SIFS_FRAME_SIZE_MASK) >> MAC_MAX_SIFS_FRAME_SIZE_SHIFT);
+    return value;
+}
+
 static inline bool 
-han_mac_mac_ctrl_pan_coord_get(struct han_mac_dev *s)
+han_mac_ifs_enable_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_ifs & (1 << MAC_IFS_ENABLE_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_mac_ctrl_pan_coord_get(struct han_mac_dev *s)
 {
     return (s->regs.mac_filter_ctrl & (1 << MAC_CTRL_PAN_COORD_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_mac_mac_ctrl_filter_enable_get(struct han_mac_dev *s)
+han_mac_ctrl_filter_enable_get(struct han_mac_dev *s)
 {
     return (s->regs.mac_filter_ctrl & (1 << MAC_CTRL_FILTER_EN_SHIFT)) ? true : false;
 }
 
 static inline uint8_t
-han_mac_mac_timeout_strategy_get(struct han_mac_dev *s)
+han_mac_timeout_strategy_get(struct han_mac_dev *s)
 {
     uint8_t value;
 
@@ -1338,7 +1772,7 @@ han_mac_mac_timeout_strategy_get(struct han_mac_dev *s)
 }
 
 static inline uint8_t
-han_mac_mac_max_csma_backoffs_get(struct han_mac_dev *s)
+han_mac_max_csma_backoffs_get(struct han_mac_dev *s)
 {
     uint8_t value;
 
@@ -1347,7 +1781,7 @@ han_mac_mac_max_csma_backoffs_get(struct han_mac_dev *s)
 }
 
 static inline uint8_t
-han_mac_mac_min_be_get(struct han_mac_dev *s)
+han_mac_min_be_get(struct han_mac_dev *s)
 {
     uint8_t value;
 
@@ -1356,7 +1790,7 @@ han_mac_mac_min_be_get(struct han_mac_dev *s)
 }
 
 static inline uint8_t
-han_mac_mac_max_be_get(struct han_mac_dev *s)
+han_mac_max_be_get(struct han_mac_dev *s)
 {
     uint8_t value;
 
@@ -1365,19 +1799,19 @@ han_mac_mac_max_be_get(struct han_mac_dev *s)
 }
 
 static inline bool 
-han_mac_mac_csma_ign_rx_busy_get(struct han_mac_dev *s)
+han_mac_csma_ign_rx_busy_get(struct han_mac_dev *s)
 {
     return (s->regs.mac_lower_ctrl & (1 << MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_mac_lower_mac_ack_override_get(struct han_mac_dev *s)
+han_mac_lower_ack_override_get(struct han_mac_dev *s)
 {
     return (s->regs.mac_lower_ctrl & (1 << LOWER_MAC_ACK_OVERRIDE_SHIFT)) ? true : false;
 }
 
 static inline bool 
-han_mac_lower_mac_reset_get(struct han_mac_dev *s)
+han_mac_lower_reset_get(struct han_mac_dev *s)
 {
     return (s->regs.mac_lower_ctrl & (1 << LOWER_MAC_RESET_SHIFT)) ? true : false;
 }
@@ -1388,12 +1822,179 @@ han_mac_lower_mac_bypass_get(struct han_mac_dev *s)
     return (s->regs.mac_lower_ctrl & (1 << MAC_BYPASS_SHIFT)) ? true : false;
 }
 
+static inline bool 
+han_mac_status_tx_timeout_occured_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_lower_status & (1 << MAC_LOWER_TX_TIMOUT_OCCURRED_SHIFT)) ? true : false;
+}
+
+static inline uint8_t
+han_mac_status_backoff_attempts_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_lower_status & MAC_LOWER_BACKOFF_ATTEMPTS_MASK) >> MAC_LOWER_BACKOFF_ATTEMPTS_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_ack_pga_gain_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_control & MAC_ACK_PGA_GAIN_MASK) >> MAC_ACK_PGA_GAIN_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_ack_rep_code_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_control & MAC_ACK_REP_CODE_MASK) >> MAC_ACK_REP_CODE_SHIFT);
+    return value;
+}
+
+static inline bool 
+han_mac_ack_seq_check_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_ack_control & (1 << MAC_ACK_SEQ_CHECK_ENABLE_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_mac_ack_destination_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_ack_control & (1 << MAC_ACK_DESTINATION_SHIFT)) ? true : false;
+}
+
+static inline bool 
+han_mac_ack_enable_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_ack_control & (1 << MAC_ACK_ENABLE_SHIFT)) ? true : false;
+}
+
+static inline uint16_t
+han_mac_ack_extra_hdr_get(struct han_mac_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)((s->regs.mac_ack_payload & MAC_ACK_EXTRA_HDR_MASK) >> MAC_ACK_EXTRA_HDR_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_ack_fc1_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_payload & MAC_ACK_FC1_MASK) >> MAC_ACK_FC1_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_ack_fc0_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_payload & MAC_ACK_FC0_MASK) >> MAC_ACK_FC0_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_max_retries_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_processing_ctrl & MAC_MAX_RETRIES_MASK) >> MAC_MAX_RETRIES_SHIFT);
+    return value;
+}
+
+static inline uint16_t
+han_mac_ack_wait_dur_get(struct han_mac_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)((s->regs.mac_ack_processing_ctrl & MAC_ACK_WAIT_DURATION_MASK) >> MAC_ACK_WAIT_DURATION_SHIFT);
+    return value;
+}
+
+static inline bool 
+han_mac_ack_success_get(struct han_mac_dev *s)
+{
+    return (s->regs.mac_ack_processing_status & (1 << MAC_ACK_SUCCESS_SHIFT)) ? true : false;
+}
+
+static inline uint8_t
+han_mac_ack_retry_attempts_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_processing_status & MAC_RETRY_ATTEMPTS_MASK) >> MAC_RETRY_ATTEMPTS_SHIFT);
+    return value;
+}
+
+static inline uint8_t
+han_mac_ack_rx_seq_num_get(struct han_mac_dev *s)
+{
+    uint8_t value;
+
+    value = (uint8_t)((s->regs.mac_ack_data & MAC_ACK_SEQ_NUM_MASK) >> MAC_ACK_SEQ_NUM_SHIFT);
+    return value;
+}
+
+static inline uint16_t
+han_mac_ack_rx_fc_get(struct han_mac_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)((s->regs.mac_ack_data & MAC_ACK_FC_MASK) >> MAC_ACK_FC_SHIFT);
+    return value;
+}
+
 /* ________________________ set accessor functions
  */
 
+static inline void
+han_mac_lifs_period_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ifs;
+    reg_val &= ~MAC_LIFS_PERIOD_MASK;
+    reg_val |= ((value << MAC_LIFS_PERIOD_SHIFT) & MAC_LIFS_PERIOD_MASK);
+    s->regs.mac_ifs = reg_val;
+}
 
 static inline void
-han_mac_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value)
+han_mac_sifs_period_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ifs;
+    reg_val &= ~MAC_SIFS_PERIOD_MASK;
+    reg_val |= ((value << MAC_SIFS_PERIOD_SHIFT) & MAC_SIFS_PERIOD_MASK);
+    s->regs.mac_ifs = reg_val;
+}
+
+static inline void
+han_mac_max_sifs_frame_size_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ifs;
+    reg_val &= ~MAC_MAX_SIFS_FRAME_SIZE_MASK;
+    reg_val |= ((value << MAC_MAX_SIFS_FRAME_SIZE_SHIFT) & MAC_MAX_SIFS_FRAME_SIZE_MASK);
+    s->regs.mac_ifs = reg_val;
+}
+
+
+static inline void
+han_mac_ifs_enable_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_ifs;
+    reg_val &= ~MAC_IFS_ENABLE_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_IFS_ENABLE_SHIFT) & MAC_IFS_ENABLE_MASK);
+    s->regs.mac_ifs = reg_val;
+}
+
+
+static inline void
+han_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.mac_filter_ctrl;
     reg_val &= ~MAC_CTRL_PAN_COORD_MASK;
@@ -1404,7 +2005,7 @@ han_mac_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value)
 
 
 static inline void
-han_mac_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value)
+han_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.mac_filter_ctrl;
     reg_val &= ~MAC_CTRL_FILTER_EN_MASK;
@@ -1414,7 +2015,7 @@ han_mac_mac_ctrl_filter_enable_set(struct han_mac_dev *s, bool value)
 }
 
 static inline void
-han_mac_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value)
+han_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~MAC_TIMEOUT_STRATEGY_MASK;
@@ -1423,7 +2024,7 @@ han_mac_mac_timeout_strategy_set(struct han_mac_dev *s, uint8_t value)
 }
 
 static inline void
-han_mac_mac_max_csma_backoffs_set(struct han_mac_dev *s, uint8_t value)
+han_mac_max_csma_backoffs_set(struct han_mac_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~MAC_MAX_CSMA_BACKOFFS_MASK;
@@ -1432,7 +2033,7 @@ han_mac_mac_max_csma_backoffs_set(struct han_mac_dev *s, uint8_t value)
 }
 
 static inline void
-han_mac_mac_min_be_set(struct han_mac_dev *s, uint8_t value)
+han_mac_min_be_set(struct han_mac_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~MAC_MIN_BE_MASK;
@@ -1441,7 +2042,7 @@ han_mac_mac_min_be_set(struct han_mac_dev *s, uint8_t value)
 }
 
 static inline void
-han_mac_mac_max_be_set(struct han_mac_dev *s, uint8_t value)
+han_mac_max_be_set(struct han_mac_dev *s, uint8_t value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~MAC_MAX_BE_MASK;
@@ -1451,7 +2052,7 @@ han_mac_mac_max_be_set(struct han_mac_dev *s, uint8_t value)
 
 
 static inline void
-han_mac_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value)
+han_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK;
@@ -1462,7 +2063,7 @@ han_mac_mac_csma_ign_rx_busy_set(struct han_mac_dev *s, bool value)
 
 
 static inline void
-han_mac_lower_mac_ack_override_set(struct han_mac_dev *s, bool value)
+han_mac_lower_ack_override_set(struct han_mac_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~LOWER_MAC_ACK_OVERRIDE_MASK;
@@ -1473,7 +2074,7 @@ han_mac_lower_mac_ack_override_set(struct han_mac_dev *s, bool value)
 
 
 static inline void
-han_mac_lower_mac_reset_set(struct han_mac_dev *s, bool value)
+han_mac_lower_reset_set(struct han_mac_dev *s, bool value)
 {
     uint32_t reg_val = s->regs.mac_lower_ctrl;
     reg_val &= ~LOWER_MAC_RESET_MASK;
@@ -1493,6 +2094,160 @@ han_mac_lower_mac_bypass_set(struct han_mac_dev *s, bool value)
     s->regs.mac_lower_ctrl = reg_val;
 }
 
+
+static inline void
+han_mac_status_tx_timeout_occured_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_lower_status;
+    reg_val &= ~MAC_LOWER_TX_TIMOUT_OCCURRED_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_LOWER_TX_TIMOUT_OCCURRED_SHIFT) & MAC_LOWER_TX_TIMOUT_OCCURRED_MASK);
+    s->regs.mac_lower_status = reg_val;
+}
+
+static inline void
+han_mac_status_backoff_attempts_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_lower_status;
+    reg_val &= ~MAC_LOWER_BACKOFF_ATTEMPTS_MASK;
+    reg_val |= ((value << MAC_LOWER_BACKOFF_ATTEMPTS_SHIFT) & MAC_LOWER_BACKOFF_ATTEMPTS_MASK);
+    s->regs.mac_lower_status = reg_val;
+}
+
+static inline void
+han_mac_ack_pga_gain_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_control;
+    reg_val &= ~MAC_ACK_PGA_GAIN_MASK;
+    reg_val |= ((value << MAC_ACK_PGA_GAIN_SHIFT) & MAC_ACK_PGA_GAIN_MASK);
+    s->regs.mac_ack_control = reg_val;
+}
+
+static inline void
+han_mac_ack_rep_code_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_control;
+    reg_val &= ~MAC_ACK_REP_CODE_MASK;
+    reg_val |= ((value << MAC_ACK_REP_CODE_SHIFT) & MAC_ACK_REP_CODE_MASK);
+    s->regs.mac_ack_control = reg_val;
+}
+
+
+static inline void
+han_mac_ack_seq_check_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_ack_control;
+    reg_val &= ~MAC_ACK_SEQ_CHECK_ENABLE_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_ACK_SEQ_CHECK_ENABLE_SHIFT) & MAC_ACK_SEQ_CHECK_ENABLE_MASK);
+    s->regs.mac_ack_control = reg_val;
+}
+
+
+static inline void
+han_mac_ack_destination_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_ack_control;
+    reg_val &= ~MAC_ACK_DESTINATION_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_ACK_DESTINATION_SHIFT) & MAC_ACK_DESTINATION_MASK);
+    s->regs.mac_ack_control = reg_val;
+}
+
+
+static inline void
+han_mac_ack_enable_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_ack_control;
+    reg_val &= ~MAC_ACK_ENABLE_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_ACK_ENABLE_SHIFT) & MAC_ACK_ENABLE_MASK);
+    s->regs.mac_ack_control = reg_val;
+}
+
+static inline void
+han_mac_ack_extra_hdr_set(struct han_mac_dev *s, uint16_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_payload;
+    reg_val &= ~MAC_ACK_EXTRA_HDR_MASK;
+    reg_val |= ((value << MAC_ACK_EXTRA_HDR_SHIFT) & MAC_ACK_EXTRA_HDR_MASK);
+    s->regs.mac_ack_payload = reg_val;
+}
+
+static inline void
+han_mac_ack_fc1_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_payload;
+    reg_val &= ~MAC_ACK_FC1_MASK;
+    reg_val |= ((value << MAC_ACK_FC1_SHIFT) & MAC_ACK_FC1_MASK);
+    s->regs.mac_ack_payload = reg_val;
+}
+
+static inline void
+han_mac_ack_fc0_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_payload;
+    reg_val &= ~MAC_ACK_FC0_MASK;
+    reg_val |= ((value << MAC_ACK_FC0_SHIFT) & MAC_ACK_FC0_MASK);
+    s->regs.mac_ack_payload = reg_val;
+}
+
+static inline void
+han_mac_max_retries_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_processing_ctrl;
+    reg_val &= ~MAC_MAX_RETRIES_MASK;
+    reg_val |= ((value << MAC_MAX_RETRIES_SHIFT) & MAC_MAX_RETRIES_MASK);
+    s->regs.mac_ack_processing_ctrl = reg_val;
+}
+
+static inline void
+han_mac_ack_wait_dur_set(struct han_mac_dev *s, uint16_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_processing_ctrl;
+    reg_val &= ~MAC_ACK_WAIT_DURATION_MASK;
+    reg_val |= ((value << MAC_ACK_WAIT_DURATION_SHIFT) & MAC_ACK_WAIT_DURATION_MASK);
+    s->regs.mac_ack_processing_ctrl = reg_val;
+}
+
+
+static inline void
+han_mac_ack_success_set(struct han_mac_dev *s, bool value)
+{
+    uint32_t reg_val = s->regs.mac_ack_processing_status;
+    reg_val &= ~MAC_ACK_SUCCESS_MASK;
+    if(value)
+	    reg_val |= ((1 << MAC_ACK_SUCCESS_SHIFT) & MAC_ACK_SUCCESS_MASK);
+    s->regs.mac_ack_processing_status = reg_val;
+}
+
+static inline void
+han_mac_ack_retry_attempts_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_processing_status;
+    reg_val &= ~MAC_RETRY_ATTEMPTS_MASK;
+    reg_val |= ((value << MAC_RETRY_ATTEMPTS_SHIFT) & MAC_RETRY_ATTEMPTS_MASK);
+    s->regs.mac_ack_processing_status = reg_val;
+}
+
+static inline void
+han_mac_ack_rx_seq_num_set(struct han_mac_dev *s, uint8_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_data;
+    reg_val &= ~MAC_ACK_SEQ_NUM_MASK;
+    reg_val |= ((value << MAC_ACK_SEQ_NUM_SHIFT) & MAC_ACK_SEQ_NUM_MASK);
+    s->regs.mac_ack_data = reg_val;
+}
+
+static inline void
+han_mac_ack_rx_fc_set(struct han_mac_dev *s, uint16_t value)
+{
+    uint32_t reg_val = s->regs.mac_ack_data;
+    reg_val &= ~MAC_ACK_FC_MASK;
+    reg_val |= ((value << MAC_ACK_FC_SHIFT) & MAC_ACK_FC_MASK);
+    s->regs.mac_ack_data = reg_val;
+}
+
 /* ________________________ get accessor functions
  */
 
@@ -1506,6 +2261,18 @@ static inline bool
 han_pwr_pup_kick_off_spi_read_get(struct han_pwr_dev *s)
 {
     return (bool)s->regs.pup_kick_off_sw_ad9865_spi_read;
+}
+
+static inline bool 
+han_pwr_relay_get(struct han_pwr_dev *s)
+{
+    return (bool)s->regs.pup_appliance_on;
+}
+
+static inline bool 
+han_pwr_fpga_config_get(struct han_pwr_dev *s)
+{
+    return (bool)s->regs.pup_fpga_config;
 }
 
 /* ________________________ set accessor functions
@@ -1523,6 +2290,20 @@ static inline void
 han_pwr_pup_kick_off_spi_read_set(struct han_pwr_dev *s, bool value)
 {
     s->regs.pup_kick_off_sw_ad9865_spi_read = value;
+}
+
+
+static inline void
+han_pwr_relay_set(struct han_pwr_dev *s, bool value)
+{
+    s->regs.pup_appliance_on = value;
+}
+
+
+static inline void
+han_pwr_fpga_config_set(struct han_pwr_dev *s, bool value)
+{
+    s->regs.pup_fpga_config = value;
 }
 
 /* ________________________ get accessor functions

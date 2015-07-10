@@ -6,77 +6,23 @@
  */
 #include "hw/sysbus.h"
 #include "qemu/log.h"
-#include "qemu/fifo8.h"
 #include "hanadu.h"
 #include "hanadu-inl.h"
 #include "xsilon.h"
-#include "x6losim_interface.h"
 
 #include <assert.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <errno.h>
 #include <pthread.h>
+#include <byteswap.h>
+#include <stdint.h>
 
-#define NETSIM_DEFAULT_PORT					 (12304)
-#define NETSIM_DEFAULT_ADDR					 (INADDR_LOOPBACK)
-#define NETSIM_PKT_LEN						  (256)
+#define NETSIM_DEFAULT_PORT					(HANADU_NODE_PORT)
+#define NETSIM_DEFAULT_ADDR					(INADDR_LOOPBACK)
+#define NETSIM_PKT_LEN						(256)
 
 
-enum han_state {
-	HAN_STATE_IDLE = 0,
-	HAN_STATE_RX,
-	HAN_STATE_TX_CSMA,
-	HAN_STATE_TX_BACKOFF,
-	HAN_STATE_TX,
-};
 
-struct txbuf {
-	uint8_t data[128];
-};
-struct rxbuf {
-	uint8_t data[128];
-};
-
-static struct hanadu {
-	uint8_t dip_board;
-	uint8_t dip_afe;
-
-	enum han_state state;
-
-	struct netsim {
-		struct {
-			pthread_t threadinfo;
-			int sockfd;
-			struct sockaddr_in addr;
-		} rxmcast;
-		int sockfd;
-		struct sockaddr_in server_addr;
-		struct sockaddr_in client_addr;
-		char * addr;
-		int port;
-		bool initialised;
-	} netsim;
-	struct han_rx {
-		struct rxbuf buf[4];
-		unsigned bufs_avail_bitmap;
-		Fifo8 nextbuf;
-		Fifo8 proc;
-		bool enabled;
-	} rx;
-	struct han_tx {
-		struct txbuf buf[2];
-		bool enabled;
-	} tx;
-	struct {
-		uint32_t regs[5];
-	} ad9865;
-	struct han_mac_dev *mac_dev;
-	struct han_pwr_dev *pwr_dev;
-	struct han_afe_dev *afe_dev;
-	uint8_t mac_addr[8];
-} han;
-
+struct hanadu han;
 
 void
 hanadu_set_default_dip_board(uint8_t dip)
@@ -103,176 +49,26 @@ hanadu_set_netsim_port(int port)
 }
 
 static void
-hanadu_tx_buffer_to_netsim(struct han_trxm_dev *s, uint8_t * txbuf,
-						   uint16_t len, uint8_t repcode)
-{
-	/* Send data to netsim */
-	if(han.netsim.initialised) {
-		uint8_t * netsim_pkt = (uint8_t *)malloc(NETSIM_PKT_LEN);
-		struct netsim_pkt_hdr * hdr = (struct netsim_pkt_hdr *)netsim_pkt;
-		uint8_t * data = netsim_pkt + NETSIM_PKT_HDR_SZ;
-
-		memset(hdr, 0, NETSIM_PKT_HDR_SZ);
-		memcpy(hdr->source_addr, han.mac_addr, sizeof(hdr->source_addr));
-		hdr->psdu_len = len;
-		hdr->rep_code = repcode;
-		/* @todo use this fields */
-		hdr->cca_mode = 0;
-		hdr->tx_power = 0;
-		memcpy(data, txbuf, len);
-		sendto(han.netsim.sockfd,netsim_pkt, NETSIM_PKT_LEN, 0,
-			   (struct sockaddr *)&han.netsim.server_addr,
-			   sizeof(han.netsim.server_addr));
-		free(netsim_pkt);
-	}
-	/* @todo set timer for receiving confirmation of packet successfully sent */
-	qemu_irq_pulse(s->tx_irq);
-}
-
-static void
-hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_pkt)
-{
-	int i;
-	uint8_t fifo_used;
-	uint8_t *rxbuf;
-	uint8_t * data;
-
-	/* first up get next available buffer */
-	i=0;
-	while(!(han.rx.bufs_avail_bitmap & (1<<i)) && i < 4)
-		i++;
-	if(i == 4) {
-		/* Overflow */
-		han_trxm_rx_mem_bank_overflow_set(s, true);
-	} else {
-		/* Clear the buffer from the bitmap as we are going to use it. */
-		han.rx.bufs_avail_bitmap &= ~(1<<i);
-		han_trxm_rx_mem_bank_overflow_set(s, false);
-		assert(i>=0 && i<4);
-		assert(!fifo8_is_full(&han.rx.nextbuf));
-		switch(i) {
-		case 0:
-			han_trxm_rx_psdulen0_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode0_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full0_flag_set(s, 1);
-			break;
-		case 1:
-			han_trxm_rx_psdulen1_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode1_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full1_flag_set(s, 1);
-			break;
-		case 2:
-			han_trxm_rx_psdulen2_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode2_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full2_flag_set(s, 1);
-			break;
-		case 3:
-			han_trxm_rx_psdulen3_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode3_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full3_flag_set(s, 1);
-			break;
-		}
-		fifo8_push(&han.rx.nextbuf, i);
-		fifo_used = (uint8_t)han.rx.nextbuf.num;
-		han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
-		han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
-		han_trxm_rx_rssi_latched_set(s, rx_pkt->rssi);
-
-		/* copy data into the relevant buffer */
-		rxbuf = han.rx.buf[i].data;
-		data = (uint8_t *)rx_pkt + NETSIM_PKT_HDR_SZ;
-		for(i=0;i<rx_pkt->psdu_len;i++)
-			*rxbuf++ = *data++;
-	}
-	/* Raise Rx Interrupt */
-	qemu_irq_pulse(s->rx_irq);
-}
-
-static void *
-netsim_rxthread(void *arg)
-{
-	struct ip_mreq mreq;
-	int rv;
-	uint8_t *rxbuf;
-	struct han_trxm_dev *s = arg;
-	int optval;
-
-	han.netsim.rxmcast.sockfd = socket(AF_INET,SOCK_DGRAM,0);
-	optval = 1;
-	rv = setsockopt(han.netsim.rxmcast.sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
-	if (rv < 0) {
-		perror("Setting SO_REUSEADDR error");
-		close(han.netsim.rxmcast.sockfd);
-		exit(EXIT_FAILURE);
-	}
-//	rv = setsockopt(han.netsim.rxmcast.sockfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof optval);
-//	if (rv < 0) {
-//		perror("Setting SO_REUSEPORT error");
-//		close(han.netsim.rxmcast.sockfd);
-//		exit(EXIT_FAILURE);
-//	}
-
-	bzero(&han.netsim.rxmcast.addr,sizeof(han.netsim.rxmcast.addr));
-	han.netsim.rxmcast.addr.sin_family = AF_INET;
-	han.netsim.rxmcast.addr.sin_addr.s_addr=htonl(INADDR_ANY);
-	han.netsim.rxmcast.addr.sin_port=htons(22411);
-	rv = bind(han.netsim.rxmcast.sockfd,
-			  (struct sockaddr *)&han.netsim.rxmcast.addr,
-			  sizeof(han.netsim.rxmcast.addr));
-	if (rv) {
-		perror("Error binding rx multicast socket");
-		close(han.netsim.rxmcast.sockfd);
-		exit(EXIT_FAILURE);
-	}
-	mreq.imr_multiaddr.s_addr = inet_addr("224.1.1.1");
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-	rv = setsockopt(han.netsim.rxmcast.sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
-			   sizeof(mreq));
-	if (rv < 0) {
-		perror("Setting IP_ADD_MEMBERSHIP error");
-		close(han.netsim.rxmcast.sockfd);
-		exit(EXIT_FAILURE);
-	}
-
-	rxbuf = (uint8_t *)malloc(256);
-
-	for(;;) {
-		struct sockaddr_in cliaddr;
-		socklen_t len;
-		int n;
-		struct netsim_pkt_hdr * hdr;
-
-		len = sizeof(cliaddr);
-		n = recvfrom(han.netsim.rxmcast.sockfd, rxbuf, 256, 0 /*MSG_DONTWAIT*/,
-					 (struct sockaddr *)&cliaddr, &len);
-
-		if (n == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				continue;
-		} else if (n == 0) {
-			continue;
-		}
-
-		hdr = (struct netsim_pkt_hdr *)rxbuf;
-		/* First check to see if it's the packet we last sent, ie from us. */
-		if(memcmp(han.mac_addr, hdr->source_addr, sizeof(han.mac_addr)) == 0) {
-			/* Assert Tx Done interrupt if packet has been sent or CSMA fails or if Ack
-			 * requested the max retries has exceeded. */
-		} else {
-			hanadu_rx_buffer_from_netsim(s, hdr);
-		}
-	}
-	free(rxbuf);
-	close(han.netsim.rxmcast.sockfd);
-	pthread_exit(NULL);
-}
-
-static void
 netsim_init(struct han_trxm_dev *s)
 {
 	int rv;
+	struct sigevent sev;
+	struct sigaction sa;
+	pthread_mutexattr_t sm_mutex_attr;
 
-	han.netsim.sockfd=socket(AF_INET,SOCK_DGRAM,0);
+	qemu_log("NetSim Initialisation");
+
+	pthread_mutexattr_init(&sm_mutex_attr);
+	pthread_mutexattr_settype(&sm_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+	if (pthread_mutex_init(&han.sm_mutex, &sm_mutex_attr) != 0) {
+		perror("Failed to create State Machine mutex");
+		exit(EXIT_FAILURE);
+	}
+	han.state = NULL;
+	hanadu_state_change(hanadu_state_idle_get());
+
+	/* Create TCP connection to Network Simulator */
+	han.netsim.sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (han.netsim.sockfd == -1) {
 		perror("Failed to create netsim socket");
 		exit(EXIT_FAILURE);
@@ -284,15 +80,64 @@ netsim_init(struct han_trxm_dev *s)
 		han.netsim.server_addr.sin_addr.s_addr=inet_addr(han.netsim.addr);
 	else
 		han.netsim.server_addr.sin_addr.s_addr=htonl(NETSIM_DEFAULT_ADDR);
-	if(han.netsim.port)
+	if (han.netsim.port)
 		han.netsim.server_addr.sin_port=htons(han.netsim.port);
 	else
 		han.netsim.server_addr.sin_port=htons(NETSIM_DEFAULT_PORT);
-	han.netsim.initialised = true;
+
+	han.mac.tx_started = false;
+	han.mac.start_tx_latched = false;
+	/* Create CSMA Backoff timer */
+	sa.sa_flags = SA_SIGINFO;
+	sa.sa_sigaction = backoff_timer_signal_handler;
+	sigemptyset(&sa.sa_mask);
+	if (sigaction(BACKOFF_TIMER_SIG, &sa, NULL) == -1)
+		exit(EXIT_FAILURE);
+
+	sev.sigev_notify = SIGEV_SIGNAL;
+	sev.sigev_signo = BACKOFF_TIMER_SIG;
+	sev.sigev_value.sival_ptr = &han.mac.backoff_timer;
+	if (timer_create(CLOCK_REALTIME, &sev, &han.mac.backoff_timer) == -1)
+		exit(EXIT_FAILURE);
+
+	/* Create Tx timer */
+	sa.sa_flags = SA_SIGINFO;
+	sa.sa_sigaction = tx_timer_signal_handler;
+	sigemptyset(&sa.sa_mask);
+	if (sigaction(TX_TIMER_SIG, &sa, NULL) == -1)
+		exit(EXIT_FAILURE);
+
+	sev.sigev_notify = SIGEV_SIGNAL;
+	sev.sigev_signo = TX_TIMER_SIG;
+	sev.sigev_value.sival_ptr = &han.mac.tx_timer;
+	if (timer_create(CLOCK_REALTIME, &sev, &han.mac.tx_timer) == -1)
+		exit(EXIT_FAILURE);
+
+	/* Create IFS timer */
+	sa.sa_flags = SA_SIGINFO;
+	sa.sa_sigaction = ifs_timer_signal_handler;
+	sigemptyset(&sa.sa_mask);
+	if (sigaction(IFS_TIMER_SIG, &sa, NULL) == -1)
+		exit(EXIT_FAILURE);
+
+	sev.sigev_notify = SIGEV_SIGNAL;
+	sev.sigev_signo = IFS_TIMER_SIG;
+	sev.sigev_value.sival_ptr = &han.mac.ifs_timer;
+	if (timer_create(CLOCK_REALTIME, &sev, &han.mac.ifs_timer) == -1)
+		exit(EXIT_FAILURE);
+
+	/* Connect to NetSim server */
+	if (connect(han.netsim.sockfd, (struct sockaddr *)&han.netsim.server_addr,
+			sizeof(han.netsim.server_addr)) < 0) {
+		perror("Failed to connect to Network Simualtor TCP socket");
+		exit(EXIT_FAILURE);
+	}
 
 	rv = pthread_create(&han.netsim.rxmcast.threadinfo, NULL, netsim_rxthread, s);
-	if(rv)
+	if (rv)
 		exit(EXIT_FAILURE);
+
+	han.netsim.initialised = true;
 }
 
 
@@ -303,7 +148,7 @@ netsim_init(struct han_trxm_dev *s)
 static void
 han_trxm_tx_enable_changed(uint32_t value, void *hw_block)
 {
-	if(value) {
+	if (value) {
 		assert(han.tx.enabled == false);
 		han.tx.enabled = true;
 	} else {
@@ -315,7 +160,7 @@ han_trxm_tx_enable_changed(uint32_t value, void *hw_block)
 static void
 han_trxm_rx_enable_changed(uint32_t value, void *hw_block)
 {
-	if(value) {
+	if (value) {
 		assert(han.rx.enabled == false);
 		han.rx.enabled = true;
 	} else {
@@ -327,26 +172,15 @@ han_trxm_rx_enable_changed(uint32_t value, void *hw_block)
 static void
 han_trxm_tx_start_changed(uint32_t value, void *hw_block)
 {
-	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
-	uint16_t psdu_len;
-	uint8_t rep_code;
-	uint8_t * buf;
-
-	if(value) {
+	if (value) {
 		/* Start transmission */
-		if(han_trxm_tx_mem_bank_select_get(s) == 0) {
-			psdu_len = han_trxm_tx_psdu_len0_get(hw_block);
-			rep_code = han_trxm_tx_rep_code0_get(hw_block);
-			buf = han.tx.buf[0].data;
-		} else {
-			psdu_len = han_trxm_tx_psdu_len1_get(hw_block);
-			rep_code = han_trxm_tx_rep_code1_get(hw_block);
-			buf = han.tx.buf[1].data;
-		}
-		/* Send buffer to powerline network simulator */
-		hanadu_tx_buffer_to_netsim(s, buf, psdu_len, rep_code);
-	} else {
+		assert(han.state->handle_start_tx);
+		han.state->handle_start_tx();
 
+	} else {
+		/* The Hanadu Tx IRQ will call xsi_hal_txm_transmit_stop(...)
+		 * which will end up here so any Hanadu HW emulation code for
+		 * this event should go here. */
 	}
 }
 
@@ -380,7 +214,7 @@ han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t m
 	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
 	/* Should be called twice, as the bit has to be pulsed by the driver */
 
-	if(value) {
+	if (value) {
 		uint8_t membank_processed, fifo_used;
 
 		/* when high adjust fifo levels. */
@@ -392,7 +226,6 @@ han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t m
 		han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
 	} else {
-		/* when low deassert irq if still set */
 		assert((han.rx.bufs_avail_bitmap & (1 << membank)) == 0);
 		han.rx.bufs_avail_bitmap |= 1 << membank;
 	}
@@ -440,7 +273,7 @@ han_trxm_rx_clear_membank_oflow_changed(uint32_t value, void *hw_block)
 {
 	struct han_trxm_dev *s = HANADU_TRXM_DEV(hw_block);
 
-	if(!value) {
+	if (!value) {
 		/* Clear the actual flag in the membank status register */
 		han_trxm_rx_mem_bank_overflow_set(s, 0);
 	}
@@ -514,6 +347,8 @@ static void han_trxm_instance_init(Object *obj)
 
 	han_trxm_reg_reset(s);
 	/* Setup callbacks to capture filter reg changes */
+	han.trx_dev = s;
+
 	netsim_init(s);
 }
 
@@ -586,7 +421,7 @@ han_pup_kick_off_spi_write_changed(uint32_t value, void *hw_block)
 {
 	struct han_pwr_dev *s = HANADU_PWR_DEV(hw_block);
 
-	if(value) {
+	if (value) {
 		assert(han_pwr_pup_kick_off_spi_write_get(s) == false);
 		han_afe_afe_ad9865_spi_write_done_set(han.afe_dev, false);
 	} else {
@@ -607,7 +442,7 @@ han_pup_kick_off_spi_read_changed(uint32_t value, void *hw_block)
 {
 	struct han_pwr_dev *s = HANADU_PWR_DEV(hw_block);
 
-	if(value) {
+	if (value) {
 		assert(han_pwr_pup_kick_off_spi_read_get(s) == false);
 		han_afe_afe_ad9865_spi_read_done_set(han.afe_dev, false);
 	} else {
@@ -752,7 +587,7 @@ han_txb_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 	uint8_t * buf;
 
 	assert(size == 1);
-	if(addr < 0x1000) {
+	if (addr < 0x1000) {
 		addr >>= 2;
 		buf = han.tx.buf[0].data + addr;
 	} else {
@@ -771,7 +606,7 @@ han_txb_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 	uint8_t * buf;
 
 	assert(size == 1);
-	if(addr < 0x1000) {
+	if (addr < 0x1000) {
 		addr >>= 2;
 		buf = han.tx.buf[0].data + addr;
 	} else {
@@ -837,18 +672,18 @@ han_rxb_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 	uint8_t * buf;
 
 	assert(size == 1);
-	if(addr < 0x1000) {
+	if (addr < 0x1000) {
 		addr >>= 2;
 		buf = han.rx.buf[0].data + addr;
-	} else if(addr < 0x2000) {
+	} else if (addr < 0x2000) {
 		addr -= 0x1000;
 		addr >>= 2;
 		buf = han.rx.buf[1].data + addr;
-	} else if(addr < 0x3000) {
+	} else if (addr < 0x3000) {
 		addr -= 0x2000;
 		addr >>= 2;
 		buf = han.rx.buf[2].data + addr;
-	} else if(addr < 0x4000) {
+	} else if (addr < 0x4000) {
 		addr -= 0x3000;
 		addr >>= 2;
 		buf = han.rx.buf[3].data + addr;
@@ -983,6 +818,72 @@ static void han_hwvers_instance_init(Object *obj)
 	s->mem_region_write = NULL;
 }
 
+/* __________________________________________________________ Hanadu System Info
+ */
+
+static uint64_t
+han_sysinfo_mem_region_read(void *opaque, hwaddr addr, unsigned size)
+{
+	assert(1==0);
+}
+
+static void
+han_sysinfo_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
+{
+	uint8_t * buf;
+
+	assert(size == 1);
+	if (addr < 0x1000) {
+//		addr >>= 2;
+		buf = (uint8_t *)&han.sysinfo;
+		buf += addr;
+	}
+	assert(addr <= 128);
+
+	*buf = (uint8_t)value;
+
+	if (addr == sizeof(han.sysinfo) - 1) {
+		/* We should receive a registration request message, handle this and
+		 * send back the registration confirm */
+		netsim_rx_reg_req_msg();
+	}
+}
+
+static const MemoryRegionOps han_sysinfo_mem_region_ops = {
+	.read = han_sysinfo_mem_region_read,
+	.write = han_sysinfo_mem_region_write,
+	.endianness = DEVICE_LITTLE_ENDIAN,
+};
+
+static void han_sysinfo_realize(DeviceState *dev, Error **errp)
+{
+	return;
+}
+
+static void han_sysinfo_reset(DeviceState *dev)
+{
+}
+
+
+static void han_sysinfo_class_init(ObjectClass *klass, void *data)
+{
+	DeviceClass *dc = DEVICE_CLASS(klass);
+
+	dc->realize = han_sysinfo_realize;
+	dc->props = NULL;
+	dc->reset = han_sysinfo_reset;
+}
+
+static void han_sysinfo_instance_init(Object *obj)
+{
+	struct han_sysinfo_dev *s = HANADU_SYSINFO_DEV(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+
+	memory_region_init_io(&s->iomem, &han_sysinfo_mem_region_ops, s,
+			      "hansysinfo", 0x10000);
+	sysbus_init_mmio(sbd, &s->iomem);
+}
+
 /* _________________________________________________________ Hanadu Registration
  */
 
@@ -1042,6 +943,14 @@ static const TypeInfo han_hwv_info = {
 	.instance_init = han_hwvers_instance_init,
 };
 
+static const TypeInfo han_sysinfo_info = {
+	.name  = TYPE_HANADU_SYSINFO,
+	.parent = TYPE_SYS_BUS_DEVICE,
+	.instance_size  = sizeof(struct han_hwvers_dev),
+	.class_init = han_sysinfo_class_init,
+	.instance_init = han_sysinfo_instance_init,
+};
+
 static void han_register_types(void)
 {
 	fifo8_create(&han.rx.nextbuf, 4);
@@ -1055,6 +964,7 @@ static void han_register_types(void)
 	type_register_static(&han_txb_info);
 	type_register_static(&han_rxb_info);
 	type_register_static(&han_hwv_info);
+	type_register_static(&han_sysinfo_info);
 }
 
 type_init(han_register_types)

@@ -24,7 +24,7 @@ han_trxm_reg_reset(void *opaque)
     memset(&s->regs, 0, sizeof(uint32_t) * 32);
     s->regs.trx_tx_ctrl = 0x04000000;
     s->regs.trx_rx_control = 0x30fdf400;
-    s->regs.trx_rx_hdr_rep_rate = 0x00000096;
+    s->regs.trx_rx_hdr_rep_rate = 0x00005696;
     s->regs.trx_rx_thresholds = 0x008080ce;
     s->regs.trx_xcorr_thresh = 0x0000008c;
     s->regs.trx_rx_fifo_levels = 0x00003300;
@@ -100,6 +100,16 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
         break;
 
     case TX_PARAMS_BANK0:
+        if ((value & TX_ATT_20DB_MASK) != (s->regs.trx_tx_hwbuf0_rc_psdulen & TX_ATT_20DB_MASK)) {
+            if (s->regs.field_changed.tx_att_20db0_changed) {
+                s->regs.field_changed.tx_att_20db0_changed(((uint32_t)value & TX_ATT_20DB_MASK) >> TX_ATT_20DB_SHIFT, s);
+            }
+        }
+        if ((value & TX_ATT_10DB_MASK) != (s->regs.trx_tx_hwbuf0_rc_psdulen & TX_ATT_10DB_MASK)) {
+            if (s->regs.field_changed.tx_att_10db0_changed) {
+                s->regs.field_changed.tx_att_10db0_changed(((uint32_t)value & TX_ATT_10DB_MASK) >> TX_ATT_10DB_SHIFT, s);
+            }
+        }
         if ((value & TX_PGA_GAIN_MASK) != (s->regs.trx_tx_hwbuf0_rc_psdulen & TX_PGA_GAIN_MASK)) {
             if (s->regs.field_changed.tx_pga_gain0_changed) {
                 s->regs.field_changed.tx_pga_gain0_changed(((uint32_t)value & TX_PGA_GAIN_MASK) >> TX_PGA_GAIN_SHIFT, s);
@@ -119,6 +129,11 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
         break;
 
     case TX_EXTRA_HDR_BANK0:
+        if ((value & TX_PREAMBLE_MASK) != (s->regs.trx_tx_hwbuf0_xtra & TX_PREAMBLE_MASK)) {
+            if (s->regs.field_changed.tx_hdr_preamble0_changed) {
+                s->regs.field_changed.tx_hdr_preamble0_changed(((uint32_t)value & TX_PREAMBLE_MASK) >> TX_PREAMBLE_SHIFT, s);
+            }
+        }
         if ((value & TX_HDR_XTRA_MASK) != (s->regs.trx_tx_hwbuf0_xtra & TX_HDR_XTRA_MASK)) {
             if (s->regs.field_changed.tx_hdr_extra0_changed) {
                 s->regs.field_changed.tx_hdr_extra0_changed(((uint32_t)value & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT, s);
@@ -128,6 +143,16 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
         break;
 
     case TX_PARAMS_BANK1:
+        if ((value & TX_ATT_20DB_MASK) != (s->regs.trx_tx_hwbuf1_rc_psdulen & TX_ATT_20DB_MASK)) {
+            if (s->regs.field_changed.tx_att_20db1_changed) {
+                s->regs.field_changed.tx_att_20db1_changed(((uint32_t)value & TX_ATT_20DB_MASK) >> TX_ATT_20DB_SHIFT, s);
+            }
+        }
+        if ((value & TX_ATT_10DB_MASK) != (s->regs.trx_tx_hwbuf1_rc_psdulen & TX_ATT_10DB_MASK)) {
+            if (s->regs.field_changed.tx_att_10db1_changed) {
+                s->regs.field_changed.tx_att_10db1_changed(((uint32_t)value & TX_ATT_10DB_MASK) >> TX_ATT_10DB_SHIFT, s);
+            }
+        }
         if ((value & TX_PGA_GAIN_MASK) != (s->regs.trx_tx_hwbuf1_rc_psdulen & TX_PGA_GAIN_MASK)) {
             if (s->regs.field_changed.tx_pga_gain1_changed) {
                 s->regs.field_changed.tx_pga_gain1_changed(((uint32_t)value & TX_PGA_GAIN_MASK) >> TX_PGA_GAIN_SHIFT, s);
@@ -147,6 +172,11 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
         break;
 
     case TX_EXTRA_HDR_BANK1:
+        if ((value & TX_PREAMBLE_MASK) != (s->regs.trx_tx_hwbuf1_xtra & TX_PREAMBLE_MASK)) {
+            if (s->regs.field_changed.tx_preamble1_changed) {
+                s->regs.field_changed.tx_preamble1_changed(((uint32_t)value & TX_PREAMBLE_MASK) >> TX_PREAMBLE_SHIFT, s);
+            }
+        }
         if ((value & TX_HDR_XTRA_MASK) != (s->regs.trx_tx_hwbuf1_xtra & TX_HDR_XTRA_MASK)) {
             if (s->regs.field_changed.tx_hdr_extra1_changed) {
                 s->regs.field_changed.tx_hdr_extra1_changed(((uint32_t)value & TX_HDR_XTRA_MASK) >> TX_HDR_XTRA_SHIFT, s);
@@ -215,6 +245,11 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
         break;
 
     case RX_HDR_REP_RATE:
+        if ((value & NUM_CARRIERS_MASK) != (s->regs.trx_rx_hdr_rep_rate & NUM_CARRIERS_MASK)) {
+            if (s->regs.field_changed.trx_num_carriers_changed) {
+                s->regs.field_changed.trx_num_carriers_changed(((uint32_t)value & NUM_CARRIERS_MASK) >> NUM_CARRIERS_SHIFT, s);
+            }
+        }
         if ((value & HDR_REPRATE_MASK) != (s->regs.trx_rx_hdr_rep_rate & HDR_REPRATE_MASK)) {
             if (s->regs.field_changed.rx_hdr_reprate_changed) {
                 s->regs.field_changed.rx_hdr_reprate_changed(((uint32_t)value & HDR_REPRATE_MASK) >> HDR_REPRATE_SHIFT, s);
@@ -258,6 +293,7 @@ han_mac_reg_reset(void *opaque)
 
     memset(&s->regs, 0, sizeof(uint32_t) * 32);
     s->regs.mac_traf_mon_clear = 0x00000001;
+    s->regs.mac_ifs = 0x280C1200;
     s->regs.mac_lower_ctrl = 0x00045491;
     s->regs.mac_ack_control = 0x000f2000;
     s->regs.mac_ack_payload = 0x00000002;
@@ -308,15 +344,39 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
     switch(addr) {
     
+    case MAC_IFS:
+        if ((value & MAC_LIFS_PERIOD_MASK) != (s->regs.mac_ifs & MAC_LIFS_PERIOD_MASK)) {
+            if (s->regs.field_changed.lifs_period_changed) {
+                s->regs.field_changed.lifs_period_changed(((uint32_t)value & MAC_LIFS_PERIOD_MASK) >> MAC_LIFS_PERIOD_SHIFT, s);
+            }
+        }
+        if ((value & MAC_SIFS_PERIOD_MASK) != (s->regs.mac_ifs & MAC_SIFS_PERIOD_MASK)) {
+            if (s->regs.field_changed.sifs_period_changed) {
+                s->regs.field_changed.sifs_period_changed(((uint32_t)value & MAC_SIFS_PERIOD_MASK) >> MAC_SIFS_PERIOD_SHIFT, s);
+            }
+        }
+        if ((value & MAC_MAX_SIFS_FRAME_SIZE_MASK) != (s->regs.mac_ifs & MAC_MAX_SIFS_FRAME_SIZE_MASK)) {
+            if (s->regs.field_changed.max_sifs_frame_size_changed) {
+                s->regs.field_changed.max_sifs_frame_size_changed(((uint32_t)value & MAC_MAX_SIFS_FRAME_SIZE_MASK) >> MAC_MAX_SIFS_FRAME_SIZE_SHIFT, s);
+            }
+        }
+        if ((value & MAC_IFS_ENABLE_MASK) != (s->regs.mac_ifs & MAC_IFS_ENABLE_MASK)) {
+            if (s->regs.field_changed.ifs_enable_changed) {
+                s->regs.field_changed.ifs_enable_changed(((uint32_t)value & MAC_IFS_ENABLE_MASK) >> MAC_IFS_ENABLE_SHIFT, s);
+            }
+        }
+
+        break;
+
     case MAC_FILTER_CTRL:
         if ((value & MAC_CTRL_PAN_COORD_MASK) != (s->regs.mac_filter_ctrl & MAC_CTRL_PAN_COORD_MASK)) {
-            if (s->regs.field_changed.mac_ctrl_pan_coord_changed) {
-                s->regs.field_changed.mac_ctrl_pan_coord_changed(((uint32_t)value & MAC_CTRL_PAN_COORD_MASK) >> MAC_CTRL_PAN_COORD_SHIFT, s);
+            if (s->regs.field_changed.ctrl_pan_coord_changed) {
+                s->regs.field_changed.ctrl_pan_coord_changed(((uint32_t)value & MAC_CTRL_PAN_COORD_MASK) >> MAC_CTRL_PAN_COORD_SHIFT, s);
             }
         }
         if ((value & MAC_CTRL_FILTER_EN_MASK) != (s->regs.mac_filter_ctrl & MAC_CTRL_FILTER_EN_MASK)) {
-            if (s->regs.field_changed.mac_ctrl_filter_enable_changed) {
-                s->regs.field_changed.mac_ctrl_filter_enable_changed(((uint32_t)value & MAC_CTRL_FILTER_EN_MASK) >> MAC_CTRL_FILTER_EN_SHIFT, s);
+            if (s->regs.field_changed.ctrl_filter_enable_changed) {
+                s->regs.field_changed.ctrl_filter_enable_changed(((uint32_t)value & MAC_CTRL_FILTER_EN_MASK) >> MAC_CTRL_FILTER_EN_SHIFT, s);
             }
         }
 
@@ -324,43 +384,105 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
     case MAC_LOWER_CTRL:
         if ((value & MAC_TIMEOUT_STRATEGY_MASK) != (s->regs.mac_lower_ctrl & MAC_TIMEOUT_STRATEGY_MASK)) {
-            if (s->regs.field_changed.mac_timeout_strategy_changed) {
-                s->regs.field_changed.mac_timeout_strategy_changed(((uint32_t)value & MAC_TIMEOUT_STRATEGY_MASK) >> MAC_TIMEOUT_STRATEGY_SHIFT, s);
+            if (s->regs.field_changed.timeout_strategy_changed) {
+                s->regs.field_changed.timeout_strategy_changed(((uint32_t)value & MAC_TIMEOUT_STRATEGY_MASK) >> MAC_TIMEOUT_STRATEGY_SHIFT, s);
             }
         }
         if ((value & MAC_MAX_CSMA_BACKOFFS_MASK) != (s->regs.mac_lower_ctrl & MAC_MAX_CSMA_BACKOFFS_MASK)) {
-            if (s->regs.field_changed.mac_max_csma_backoffs_changed) {
-                s->regs.field_changed.mac_max_csma_backoffs_changed(((uint32_t)value & MAC_MAX_CSMA_BACKOFFS_MASK) >> MAC_MAX_CSMA_BACKOFFS_SHIFT, s);
+            if (s->regs.field_changed.max_csma_backoffs_changed) {
+                s->regs.field_changed.max_csma_backoffs_changed(((uint32_t)value & MAC_MAX_CSMA_BACKOFFS_MASK) >> MAC_MAX_CSMA_BACKOFFS_SHIFT, s);
             }
         }
         if ((value & MAC_MIN_BE_MASK) != (s->regs.mac_lower_ctrl & MAC_MIN_BE_MASK)) {
-            if (s->regs.field_changed.mac_min_be_changed) {
-                s->regs.field_changed.mac_min_be_changed(((uint32_t)value & MAC_MIN_BE_MASK) >> MAC_MIN_BE_SHIFT, s);
+            if (s->regs.field_changed.min_be_changed) {
+                s->regs.field_changed.min_be_changed(((uint32_t)value & MAC_MIN_BE_MASK) >> MAC_MIN_BE_SHIFT, s);
             }
         }
         if ((value & MAC_MAX_BE_MASK) != (s->regs.mac_lower_ctrl & MAC_MAX_BE_MASK)) {
-            if (s->regs.field_changed.mac_max_be_changed) {
-                s->regs.field_changed.mac_max_be_changed(((uint32_t)value & MAC_MAX_BE_MASK) >> MAC_MAX_BE_SHIFT, s);
+            if (s->regs.field_changed.max_be_changed) {
+                s->regs.field_changed.max_be_changed(((uint32_t)value & MAC_MAX_BE_MASK) >> MAC_MAX_BE_SHIFT, s);
             }
         }
         if ((value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) != (s->regs.mac_lower_ctrl & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK)) {
-            if (s->regs.field_changed.mac_csma_ign_rx_busy_changed) {
-                s->regs.field_changed.mac_csma_ign_rx_busy_changed(((uint32_t)value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) >> MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT, s);
+            if (s->regs.field_changed.csma_ign_rx_busy_changed) {
+                s->regs.field_changed.csma_ign_rx_busy_changed(((uint32_t)value & MAC_CSMA_IGN_RX_BUSY_FOR_TX_MASK) >> MAC_CSMA_IGN_RX_BUSY_FOR_TX_SHIFT, s);
             }
         }
         if ((value & LOWER_MAC_ACK_OVERRIDE_MASK) != (s->regs.mac_lower_ctrl & LOWER_MAC_ACK_OVERRIDE_MASK)) {
-            if (s->regs.field_changed.lower_mac_ack_override_changed) {
-                s->regs.field_changed.lower_mac_ack_override_changed(((uint32_t)value & LOWER_MAC_ACK_OVERRIDE_MASK) >> LOWER_MAC_ACK_OVERRIDE_SHIFT, s);
+            if (s->regs.field_changed.lower_ack_override_changed) {
+                s->regs.field_changed.lower_ack_override_changed(((uint32_t)value & LOWER_MAC_ACK_OVERRIDE_MASK) >> LOWER_MAC_ACK_OVERRIDE_SHIFT, s);
             }
         }
         if ((value & LOWER_MAC_RESET_MASK) != (s->regs.mac_lower_ctrl & LOWER_MAC_RESET_MASK)) {
-            if (s->regs.field_changed.lower_mac_reset_changed) {
-                s->regs.field_changed.lower_mac_reset_changed(((uint32_t)value & LOWER_MAC_RESET_MASK) >> LOWER_MAC_RESET_SHIFT, s);
+            if (s->regs.field_changed.lower_reset_changed) {
+                s->regs.field_changed.lower_reset_changed(((uint32_t)value & LOWER_MAC_RESET_MASK) >> LOWER_MAC_RESET_SHIFT, s);
             }
         }
         if ((value & MAC_BYPASS_MASK) != (s->regs.mac_lower_ctrl & MAC_BYPASS_MASK)) {
             if (s->regs.field_changed.lower_mac_bypass_changed) {
                 s->regs.field_changed.lower_mac_bypass_changed(((uint32_t)value & MAC_BYPASS_MASK) >> MAC_BYPASS_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case MAC_ACK_CTRL:
+        if ((value & MAC_ACK_PGA_GAIN_MASK) != (s->regs.mac_ack_control & MAC_ACK_PGA_GAIN_MASK)) {
+            if (s->regs.field_changed.ack_pga_gain_changed) {
+                s->regs.field_changed.ack_pga_gain_changed(((uint32_t)value & MAC_ACK_PGA_GAIN_MASK) >> MAC_ACK_PGA_GAIN_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_REP_CODE_MASK) != (s->regs.mac_ack_control & MAC_ACK_REP_CODE_MASK)) {
+            if (s->regs.field_changed.ack_rep_code_changed) {
+                s->regs.field_changed.ack_rep_code_changed(((uint32_t)value & MAC_ACK_REP_CODE_MASK) >> MAC_ACK_REP_CODE_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_SEQ_CHECK_ENABLE_MASK) != (s->regs.mac_ack_control & MAC_ACK_SEQ_CHECK_ENABLE_MASK)) {
+            if (s->regs.field_changed.ack_seq_check_changed) {
+                s->regs.field_changed.ack_seq_check_changed(((uint32_t)value & MAC_ACK_SEQ_CHECK_ENABLE_MASK) >> MAC_ACK_SEQ_CHECK_ENABLE_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_DESTINATION_MASK) != (s->regs.mac_ack_control & MAC_ACK_DESTINATION_MASK)) {
+            if (s->regs.field_changed.ack_destination_changed) {
+                s->regs.field_changed.ack_destination_changed(((uint32_t)value & MAC_ACK_DESTINATION_MASK) >> MAC_ACK_DESTINATION_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_ENABLE_MASK) != (s->regs.mac_ack_control & MAC_ACK_ENABLE_MASK)) {
+            if (s->regs.field_changed.ack_enable_changed) {
+                s->regs.field_changed.ack_enable_changed(((uint32_t)value & MAC_ACK_ENABLE_MASK) >> MAC_ACK_ENABLE_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case MAC_ACK_PAYLOAD:
+        if ((value & MAC_ACK_EXTRA_HDR_MASK) != (s->regs.mac_ack_payload & MAC_ACK_EXTRA_HDR_MASK)) {
+            if (s->regs.field_changed.ack_extra_hdr_changed) {
+                s->regs.field_changed.ack_extra_hdr_changed(((uint32_t)value & MAC_ACK_EXTRA_HDR_MASK) >> MAC_ACK_EXTRA_HDR_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_FC1_MASK) != (s->regs.mac_ack_payload & MAC_ACK_FC1_MASK)) {
+            if (s->regs.field_changed.ack_fc1_changed) {
+                s->regs.field_changed.ack_fc1_changed(((uint32_t)value & MAC_ACK_FC1_MASK) >> MAC_ACK_FC1_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_FC0_MASK) != (s->regs.mac_ack_payload & MAC_ACK_FC0_MASK)) {
+            if (s->regs.field_changed.ack_fc0_changed) {
+                s->regs.field_changed.ack_fc0_changed(((uint32_t)value & MAC_ACK_FC0_MASK) >> MAC_ACK_FC0_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case MAC_ACK_PROC_CTRL:
+        if ((value & MAC_MAX_RETRIES_MASK) != (s->regs.mac_ack_processing_ctrl & MAC_MAX_RETRIES_MASK)) {
+            if (s->regs.field_changed.max_retries_changed) {
+                s->regs.field_changed.max_retries_changed(((uint32_t)value & MAC_MAX_RETRIES_MASK) >> MAC_MAX_RETRIES_SHIFT, s);
+            }
+        }
+        if ((value & MAC_ACK_WAIT_DURATION_MASK) != (s->regs.mac_ack_processing_ctrl & MAC_ACK_WAIT_DURATION_MASK)) {
+            if (s->regs.field_changed.ack_wait_dur_changed) {
+                s->regs.field_changed.ack_wait_dur_changed(((uint32_t)value & MAC_ACK_WAIT_DURATION_MASK) >> MAC_ACK_WAIT_DURATION_SHIFT, s);
             }
         }
 
@@ -441,6 +563,24 @@ han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
         if ((value & PUP_KICK_OFF_SPI_READ_MASK) != (s->regs.pup_kick_off_sw_ad9865_spi_read & PUP_KICK_OFF_SPI_READ_MASK)) {
             if (s->regs.field_changed.pup_kick_off_spi_read_changed) {
                 s->regs.field_changed.pup_kick_off_spi_read_changed(((uint32_t)value & PUP_KICK_OFF_SPI_READ_MASK) >> PUP_KICK_OFF_SPI_READ_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case PWR_RELAY:
+        if ((value & RELAY_MASK) != (s->regs.pup_appliance_on & RELAY_MASK)) {
+            if (s->regs.field_changed.relay_changed) {
+                s->regs.field_changed.relay_changed(((uint32_t)value & RELAY_MASK) >> RELAY_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case PWR_FPGA_CONFIG:
+        if ((value & FPGA_CONFIG_MASK) != (s->regs.pup_fpga_config & FPGA_CONFIG_MASK)) {
+            if (s->regs.field_changed.fpga_config_changed) {
+                s->regs.field_changed.fpga_config_changed(((uint32_t)value & FPGA_CONFIG_MASK) >> FPGA_CONFIG_SHIFT, s);
             }
         }
 

@@ -148,13 +148,19 @@ struct han_regmap_trxm
         field_changed_fn tx_mem_bank_select_changed;
         field_changed_fn tx_start_changed;
         field_changed_fn tx_enable_changed;
+        field_changed_fn tx_att_20db0_changed;
+        field_changed_fn tx_att_10db0_changed;
         field_changed_fn tx_pga_gain0_changed;
         field_changed_fn tx_psdu_len0_changed;
         field_changed_fn tx_rep_code0_changed;
+        field_changed_fn tx_hdr_preamble0_changed;
         field_changed_fn tx_hdr_extra0_changed;
+        field_changed_fn tx_att_20db1_changed;
+        field_changed_fn tx_att_10db1_changed;
         field_changed_fn tx_pga_gain1_changed;
         field_changed_fn tx_psdu_len1_changed;
         field_changed_fn tx_rep_code1_changed;
+        field_changed_fn tx_preamble1_changed;
         field_changed_fn tx_hdr_extra1_changed;
         field_changed_fn rx_acg_max_db_changed;
         field_changed_fn rx_acg_lower_thresh_changed;
@@ -167,6 +173,7 @@ struct han_regmap_trxm
         field_changed_fn rx_clear_membank_full1_changed;
         field_changed_fn rx_clear_membank_full0_changed;
         field_changed_fn rx_enable_changed;
+        field_changed_fn trx_num_carriers_changed;
         field_changed_fn rx_hdr_reprate_changed;
         field_changed_fn rx_hp_auto_threshold_changed;
         field_changed_fn rx_cca_auto_threshold_changed;
@@ -220,7 +227,7 @@ struct han_regmap_mac
 {
     /* 0  */ uint32_t mac_traf_mon_ctrl;
     /* 1  */ uint32_t mac_traf_mon_clear;
-    /* 2  */ uint32_t dummy2;
+    /* 2  */ uint32_t mac_ifs;
     /* 3  */ uint32_t dummy3;
     /* 4  */ uint32_t dummy4;
     /* 5  */ uint32_t dummy5;
@@ -255,7 +262,7 @@ struct han_regmap_mac
     struct reg_mac_changed_fns {
         /* 0  */ reg_changed_fn mac_traf_mon_ctrl_changed_cb;
         /* 1  */ reg_changed_fn mac_traf_mon_clear_changed_cb;
-        /* 2  */ reg_changed_fn dummy2_cb;
+        /* 2  */ reg_changed_fn mac_ifs_changed_cb;
         /* 3  */ reg_changed_fn dummy3_cb;
         /* 4  */ reg_changed_fn dummy4_cb;
         /* 5  */ reg_changed_fn dummy5_cb;
@@ -289,23 +296,37 @@ struct han_regmap_mac
 
     /* Reg field changed callback, implement if required */
     struct field_mac_changed_fns {
-        field_changed_fn mac_ctrl_pan_coord_changed;
-        field_changed_fn mac_ctrl_filter_enable_changed;
-        field_changed_fn mac_timeout_strategy_changed;
-        field_changed_fn mac_max_csma_backoffs_changed;
-        field_changed_fn mac_min_be_changed;
-        field_changed_fn mac_max_be_changed;
-        field_changed_fn mac_csma_ign_rx_busy_changed;
-        field_changed_fn lower_mac_ack_override_changed;
-        field_changed_fn lower_mac_reset_changed;
+        field_changed_fn lifs_period_changed;
+        field_changed_fn sifs_period_changed;
+        field_changed_fn max_sifs_frame_size_changed;
+        field_changed_fn ifs_enable_changed;
+        field_changed_fn ctrl_pan_coord_changed;
+        field_changed_fn ctrl_filter_enable_changed;
+        field_changed_fn timeout_strategy_changed;
+        field_changed_fn max_csma_backoffs_changed;
+        field_changed_fn min_be_changed;
+        field_changed_fn max_be_changed;
+        field_changed_fn csma_ign_rx_busy_changed;
+        field_changed_fn lower_ack_override_changed;
+        field_changed_fn lower_reset_changed;
         field_changed_fn lower_mac_bypass_changed;
+        field_changed_fn ack_pga_gain_changed;
+        field_changed_fn ack_rep_code_changed;
+        field_changed_fn ack_seq_check_changed;
+        field_changed_fn ack_destination_changed;
+        field_changed_fn ack_enable_changed;
+        field_changed_fn ack_extra_hdr_changed;
+        field_changed_fn ack_fc1_changed;
+        field_changed_fn ack_fc0_changed;
+        field_changed_fn max_retries_changed;
+        field_changed_fn ack_wait_dur_changed;
     } field_changed;
 
     /* Reg Read callback, implement if required */
     struct reg_mac_read_fns {
         /* 0  */ reg_read_fn mac_traf_mon_ctrl_read_cb;
         /* 1  */ reg_read_fn mac_traf_mon_clear_read_cb;
-        /* 2  */ reg_read_fn dummy2_cb;
+        /* 2  */ reg_read_fn mac_ifs_read_cb;
         /* 3  */ reg_read_fn dummy3_cb;
         /* 4  */ reg_read_fn dummy4_cb;
         /* 5  */ reg_read_fn dummy5_cb;
@@ -355,8 +376,8 @@ struct han_regmap_pwr
     /* 6  */ uint32_t pup_afe_reset;
     /* 7  */ uint32_t pup_dcm_reset;
     /* 8  */ uint32_t dummy8;
-    /* 9  */ uint32_t dummy9;
-    /* 10 */ uint32_t dummy10;
+    /* 9  */ uint32_t pup_appliance_on;
+    /* 10 */ uint32_t pup_fpga_config;
     /* 11 */ uint32_t dummy11;
     /* 12 */ uint32_t dummy12;
     /* 13 */ uint32_t dummy13;
@@ -390,8 +411,8 @@ struct han_regmap_pwr
         /* 6  */ reg_changed_fn pup_afe_reset_changed_cb;
         /* 7  */ reg_changed_fn pup_dcm_reset_changed_cb;
         /* 8  */ reg_changed_fn dummy8_cb;
-        /* 9  */ reg_changed_fn dummy9_cb;
-        /* 10 */ reg_changed_fn dummy10_cb;
+        /* 9  */ reg_changed_fn pup_appliance_on_changed_cb;
+        /* 10 */ reg_changed_fn pup_fpga_config_changed_cb;
         /* 11 */ reg_changed_fn dummy11_cb;
         /* 12 */ reg_changed_fn dummy12_cb;
         /* 13 */ reg_changed_fn dummy13_cb;
@@ -419,6 +440,8 @@ struct han_regmap_pwr
     struct field_pwr_changed_fns {
         field_changed_fn pup_kick_off_spi_write_changed;
         field_changed_fn pup_kick_off_spi_read_changed;
+        field_changed_fn relay_changed;
+        field_changed_fn fpga_config_changed;
     } field_changed;
 
     /* Reg Read callback, implement if required */
@@ -432,8 +455,8 @@ struct han_regmap_pwr
         /* 6  */ reg_read_fn pup_afe_reset_read_cb;
         /* 7  */ reg_read_fn pup_dcm_reset_read_cb;
         /* 8  */ reg_read_fn dummy8_cb;
-        /* 9  */ reg_read_fn dummy9_cb;
-        /* 10 */ reg_read_fn dummy10_cb;
+        /* 9  */ reg_read_fn pup_appliance_on_read_cb;
+        /* 10 */ reg_read_fn pup_fpga_config_read_cb;
         /* 11 */ reg_read_fn dummy11_cb;
         /* 12 */ reg_read_fn dummy12_cb;
         /* 13 */ reg_read_fn dummy13_cb;
@@ -590,7 +613,7 @@ struct han_regmap_hwvers
     /* 1  */ uint32_t minor_ver;
     /* 2  */ uint32_t provisional_ver;
     /* 3  */ uint32_t proc_interface_ver;
-    /* 4  */ uint32_t dummy4;
+    /* 4  */ uint32_t db_ver;
     /* 5  */ uint32_t dummy5;
     /* 6  */ uint32_t dummy6;
     /* 7  */ uint32_t dummy7;
@@ -625,7 +648,7 @@ struct han_regmap_hwvers
         /* 1  */ reg_changed_fn minor_ver_changed_cb;
         /* 2  */ reg_changed_fn provisional_ver_changed_cb;
         /* 3  */ reg_changed_fn proc_interface_ver_changed_cb;
-        /* 4  */ reg_changed_fn dummy4_cb;
+        /* 4  */ reg_changed_fn db_ver_changed_cb;
         /* 5  */ reg_changed_fn dummy5_cb;
         /* 6  */ reg_changed_fn dummy6_cb;
         /* 7  */ reg_changed_fn dummy7_cb;
@@ -665,7 +688,7 @@ struct han_regmap_hwvers
         /* 1  */ reg_read_fn minor_ver_read_cb;
         /* 2  */ reg_read_fn provisional_ver_read_cb;
         /* 3  */ reg_read_fn proc_interface_ver_read_cb;
-        /* 4  */ reg_read_fn dummy4_cb;
+        /* 4  */ reg_read_fn db_ver_read_cb;
         /* 5  */ reg_read_fn dummy5_cb;
         /* 6  */ reg_read_fn dummy6_cb;
         /* 7  */ reg_read_fn dummy7_cb;
@@ -714,14 +737,24 @@ struct han_regmap_hwvers
 #define TX_START_SHIFT                                              (1)
 #define TX_ENABLE_MASK                                              (0x00000001)
 #define TX_ENABLE_SHIFT                                             (0)
+#define TX_ATT_20DB_MASK                                            (0x80000000)
+#define TX_ATT_20DB_SHIFT                                           (31)
+#define TX_ATT_10DB_MASK                                            (0x40000000)
+#define TX_ATT_10DB_SHIFT                                           (30)
 #define TX_PGA_GAIN_MASK                                            (0x3F000000)
 #define TX_PGA_GAIN_SHIFT                                           (24)
 #define TX_PSDU_LENGTH_MASK                                         (0x0003FF00)
 #define TX_PSDU_LENGTH_SHIFT                                        (8)
 #define TX_REP_CODE_MASK                                            (0x000000FF)
 #define TX_REP_CODE_SHIFT                                           (0)
+#define TX_PREAMBLE_MASK                                            (0x00070000)
+#define TX_PREAMBLE_SHIFT                                           (16)
 #define TX_HDR_XTRA_MASK                                            (0x0000FFFF)
 #define TX_HDR_XTRA_SHIFT                                           (0)
+#define TX_ATT_20DB_MASK                                            (0x80000000)
+#define TX_ATT_20DB_SHIFT                                           (31)
+#define TX_ATT_10DB_MASK                                            (0x40000000)
+#define TX_ATT_10DB_SHIFT                                           (30)
 #define TX_PGA_GAIN_MASK                                            (0x3F000000)
 #define TX_PGA_GAIN_SHIFT                                           (24)
 #define AGC_MAXDB_MASK                                              (0xFF000000)
@@ -746,6 +779,8 @@ struct han_regmap_hwvers
 #define CLEAR_MEM_FULL_FLAG_BANK0_SHIFT                             (1)
 #define RXM_ENABLE_MASK                                             (0x00000001)
 #define RXM_ENABLE_SHIFT                                            (0)
+#define NUM_CARRIERS_MASK                                           (0x00007F00)
+#define NUM_CARRIERS_SHIFT                                          (8)
 #define HDR_REPRATE_MASK                                            (0x000000FF)
 #define HDR_REPRATE_SHIFT                                           (0)
 #define HP_THRESHOLD_MASK                                           (0x00FF0000)
@@ -754,6 +789,14 @@ struct han_regmap_hwvers
 #define CCA_THRESHOLD_SHIFT                                         (8)
 #define ED_THRESHOLD_MASK                                           (0x000000FF)
 #define ED_THRESHOLD_SHIFT                                          (0)
+#define RESET_PREAMBLE_SIG3_MASK                                    (0x08000000)
+#define RESET_PREAMBLE_SIG3_SHIFT                                   (27)
+#define RESET_PREAMBLE_SIG2_MASK                                    (0x04000000)
+#define RESET_PREAMBLE_SIG2_SHIFT                                   (26)
+#define RESET_PREAMBLE_SIG1_MASK                                    (0x02000000)
+#define RESET_PREAMBLE_SIG1_SHIFT                                   (25)
+#define RESET_PREAMBLE_SIG0_MASK                                    (0x01000000)
+#define RESET_PREAMBLE_SIG0_SHIFT                                   (24)
 #define RESET_EXTRA_HDR3_MASK                                       (0x00800000)
 #define RESET_EXTRA_HDR3_SHIFT                                      (23)
 #define RESET_EXTRA_HDR2_MASK                                       (0x00400000)
@@ -808,6 +851,8 @@ struct han_regmap_hwvers
 #define RX_PSDU_LENGTH_SHIFT                                        (16)
 #define RX_REP_CODE_MASK                                            (0x000000FF)
 #define RX_REP_CODE_SHIFT                                           (0)
+#define RX_PREAMBLE_MASK                                            (0x00070000)
+#define RX_PREAMBLE_SHIFT                                           (16)
 #define XCORR_THRESH_MASK                                           (0x0000FFFF)
 #define XCORR_THRESH_SHIFT                                          (0)
 #define PROC_FIFO_WR_LEVEL_MASK                                     (0x0000F000)
@@ -853,6 +898,14 @@ struct han_regmap_hwvers
 #define TRAFMON_ENABLE_SHIFT                                        (0)
 #define TRAFMON_CLEAR_MASK                                          (0x00000001)
 #define TRAFMON_CLEAR_SHIFT                                         (0)
+#define MAC_LIFS_PERIOD_MASK                                        (0x3F000000)
+#define MAC_LIFS_PERIOD_SHIFT                                       (24)
+#define MAC_SIFS_PERIOD_MASK                                        (0x003F0000)
+#define MAC_SIFS_PERIOD_SHIFT                                       (16)
+#define MAC_MAX_SIFS_FRAME_SIZE_MASK                                (0x00001F00)
+#define MAC_MAX_SIFS_FRAME_SIZE_SHIFT                               (8)
+#define MAC_IFS_ENABLE_MASK                                         (0x00000001)
+#define MAC_IFS_ENABLE_SHIFT                                        (0)
 #define TRAFMON_PSDULEN_AVG_MASK                                    (0x0000007F)
 #define TRAFMON_PSDULEN_AVG_SHIFT                                   (0)
 #define TRAFMON_REPCODE_AVG_MASK                                    (0x000000FF)
@@ -907,10 +960,12 @@ struct han_regmap_hwvers
 #define MAC_LOWER_BACKOFF_ATTEMPTS_SHIFT                            (8)
 #define MAC_LOWER_STATE_MASK                                        (0x0000000F)
 #define MAC_LOWER_STATE_SHIFT                                       (0)
-#define MAC_ACK_PGA_GAIN_MASK                                       (0x007F0000)
+#define MAC_ACK_PGA_GAIN_MASK                                       (0x00FF0000)
 #define MAC_ACK_PGA_GAIN_SHIFT                                      (16)
 #define MAC_ACK_REP_CODE_MASK                                       (0x0000FF00)
 #define MAC_ACK_REP_CODE_SHIFT                                      (8)
+#define MAC_ACK_SEQ_CHECK_ENABLE_MASK                               (0x00000004)
+#define MAC_ACK_SEQ_CHECK_ENABLE_SHIFT                              (2)
 #define MAC_ACK_DESTINATION_MASK                                    (0x00000002)
 #define MAC_ACK_DESTINATION_SHIFT                                   (1)
 #define MAC_ACK_ENABLE_MASK                                         (0x00000001)
@@ -940,6 +995,14 @@ struct han_regmap_hwvers
 #define PUP_KICK_OFF_SPI_WRITE_SHIFT                                (0)
 #define PUP_KICK_OFF_SPI_READ_MASK                                  (0x00000001)
 #define PUP_KICK_OFF_SPI_READ_SHIFT                                 (0)
+#define PUP_PGA_MUX_SELECT_MASK                                     (0x00000001)
+#define PUP_PGA_MUX_SELECT_SHIFT                                    (0)
+#define PUP_TX_TONEGEN_MUX_SELECT_MASK                              (0x00000001)
+#define PUP_TX_TONEGEN_MUX_SELECT_SHIFT                             (0)
+#define RELAY_MASK                                                  (0x00000001)
+#define RELAY_SHIFT                                                 (0)
+#define FPGA_CONFIG_MASK                                            (0x00000001)
+#define FPGA_CONFIG_SHIFT                                           (0)
 
 /* ___________________ AFE Controller
  */
@@ -1003,6 +1066,7 @@ struct han_regmap_hwvers
  */
 #define MAC_TRAFMON_CTRL                                           (0)
 #define MAC_TRAFMON_CLEAR                                          (1)
+#define MAC_IFS                                                    (2)
 #define MAC_TRAFMON_PSDULEN_AVG                                    (10)
 #define MAC_TRAFMON_REPCODE_AVG                                    (11)
 #define MAC_TRAFMON_HDR_CRC_PASS                                   (12)
@@ -1029,6 +1093,10 @@ struct han_regmap_hwvers
 #define PWR_SPI_WRITE                                              (1)
 #define PWR_SPI_READ                                               (2)
 #define PWR_TRX_SELECT                                             (3)
+#define PWR_PGA_MUX_SEL                                            (4)
+#define PWR_TONGEN_SEL                                             (5)
+#define PWR_RELAY                                                  (9)
+#define PWR_FPGA_CONFIG                                            (10)
 #define PWR_DIPS_BOARD                                             (18)
 #define PWR_DIPS_MODEM                                             (19)
 
@@ -1043,6 +1111,7 @@ struct han_regmap_hwvers
 #define HWVERS_MINOR                                               (1)
 #define HWVERS_REVISION                                            (2)
 #define HWVERS_PROC_INTERFACE                                      (3)
+#define HWVERS_DB                                                  (4)
 
 
 #endif

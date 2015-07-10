@@ -14,6 +14,23 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+#include <byteswap.h>
+
+#ifndef ntohll
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+static inline uint64_t ntohll(uint64_t x) {
+	return bswap_64(x);
+}
+#elif __BYTE_ORDER == __BIG_ENDIAN
+static inline uint64_t ntohll(uint64_t x)
+{
+	return x;
+}
+#endif
+#endif
+#ifndef htonll
+#define htonll ntohll
+#endif
 
 #define BACKOFF_TIMER_SIG		(SIGRTMAX)
 #define TX_TIMER_SIG			(SIGRTMAX-1)
@@ -117,6 +134,14 @@ struct han_sysinfo_dev {
     MemoryRegion iomem;
 };
 
+
+#define EVENT_PIPE_FD_READ		(0)
+#define EVENT_PIPE_FD_WRITE		(1)
+struct han_event
+{
+	int pipe_fds[2];
+};
+
 struct system_info_reg {
 	char os[32];
 	char os_version[32];
@@ -135,12 +160,13 @@ struct hanadu {
 	uint8_t dip_afe;
 
 	/* State Machine Mutex */
-	pthread_mutex_t sm_mutex;
+	pthread_t sm_threadinfo;
 	struct han_state * state;
+	struct han_event txstart_event;
+	struct han_event sysinfo_available;
 
 	struct netsim {
 		struct {
-			pthread_t threadinfo;
 			int sockfd;
 			struct sockaddr_in addr;
 		} rxmcast;
@@ -179,13 +205,13 @@ struct hanadu {
 		int be;
 
 		/* Timer for random backoff for CSMA state. */
-		timer_t backoff_timer;
+		int backoff_timer;
 		/* Timer for transmissions.  NetSim will wait for the time it
 		 * would take for the packet to be transmitted before sending
 		 * it out on the multicast channel and sending the tx done ind. */
-		timer_t tx_timer;
+		int tx_timer;
 		/* Interframe Spacing timer */
-		timer_t ifs_timer;
+		int ifs_timer;
 	} mac;
 	struct han_ad9865 {
 		uint32_t regs[5];
@@ -207,74 +233,36 @@ ssize_t
 netsim_tx_reg_con(void);
 ssize_t
 netsim_tx_cca_req(void);
+/* TODO: return ssize_t */
+void
+netsim_tx_data_ind(void);
 
-void
-netsim_rx_reg_req_msg(void);
-int
-netsim_rx_cca_con_msg(void);
-int
-netsim_rx_tx_done_ind_msg(void);
-void
-netsim_rx_tx_data_ind_msg(struct netsim_data_ind_pkt *data_ind);
-
-void
-hanadu_tx_buffer_to_netsim(void);
-void
-hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_pkt);
 void *
-netsim_rxthread(void *arg);
+netsim_rx_read_msg(void);
+void
+netsim_rx_reg_req_msg(struct netsim_to_node_registration_req_pkt *req_req);
+int
+netsim_rx_cca_con_msg(struct netsim_to_node_cca_con_pkt * cca_con);
+int
+netsim_rx_tx_done_ind_msg(struct netsim_to_node_tx_done_ind_pkt *tx_done_ind);
+struct netsim_data_ind_pkt *
+netsim_rx_tx_data_ind_msg(struct netsim_data_ind_pkt *data_ind);
+void
+netsim_rxmcast_init(void);
+
+
 
 /* ________________________________________________________ Hanadu State Machine
  */
 
-enum han_state_enum {
-	HAN_STATE_IDLE = 0,
-	HAN_STATE_RX_PKT,
-	HAN_STATE_CSMA,
-	HAN_STATE_TX_PKT,
-	HAN_STATE_WAIT_RX_ACK,
-	HAN_STATE_TX_ACK,
-	HAN_STATE_IFS
-};
 
-typedef void (* han_state_enter)(void);
-typedef void (* han_state_exit)(void);
-typedef void (* han_state_handle_rx_pkt)(struct netsim_data_ind_pkt *data_ind);
-typedef void (* han_state_handle_start_tx)(void);
-typedef void (* han_state_handle_cca_con)(int);
-typedef void (* han_state_handle_tx_done_ind)(void);
-typedef void (* han_state_handle_backoff_timer_expires)(void);
-typedef void (* han_state_handle_tx_timer_expires)(void);
-typedef void (* han_state_handle_ifs_timer_expires)(void);
-
-struct han_state {
-	enum han_state_enum id;
-
-	han_state_enter enter;
-	han_state_exit exit;
-	han_state_handle_rx_pkt handle_rx_pkt;
-	han_state_handle_start_tx handle_start_tx;
-	han_state_handle_cca_con handle_cca_con;
-	han_state_handle_tx_done_ind handle_tx_done_ind;
-	han_state_handle_backoff_timer_expires handle_backoff_timer_expires;
-	han_state_handle_tx_timer_expires handle_tx_timer_expires;
-	han_state_handle_ifs_timer_expires handle_ifs_timer_expires;
-};
-
+int
+han_event_init(struct han_event * event);
 void
-backoff_timer_signal_handler(int sig, siginfo_t *si, void *uc);
-void
-tx_timer_signal_handler(int sig, siginfo_t *si, void *uc);
-void
-ifs_timer_signal_handler(int sig, siginfo_t *si, void *uc);
+han_event_signal(struct han_event * event);
 
-bool
-hanadu_state_is_listening(void);
-bool
-hanadu_state_is_transmitting(void);
-void
-hanadu_state_change(struct han_state *new_state);
-struct han_state *
-hanadu_state_idle_get(void);
+
+void *
+hanadu_modem_model_thread(void *arg);
 
 #endif

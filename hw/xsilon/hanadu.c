@@ -13,8 +13,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <byteswap.h>
 #include <stdint.h>
+#include <sys/timerfd.h>
 
 #define NETSIM_DEFAULT_PORT					(HANADU_NODE_PORT)
 #define NETSIM_DEFAULT_ADDR					(INADDR_LOOPBACK)
@@ -52,20 +52,8 @@ static void
 netsim_init(struct han_trxm_dev *s)
 {
 	int rv;
-	struct sigevent sev;
-	struct sigaction sa;
-	pthread_mutexattr_t sm_mutex_attr;
 
 	qemu_log("NetSim Initialisation");
-
-	pthread_mutexattr_init(&sm_mutex_attr);
-	pthread_mutexattr_settype(&sm_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
-	if (pthread_mutex_init(&han.sm_mutex, &sm_mutex_attr) != 0) {
-		perror("Failed to create State Machine mutex");
-		exit(EXIT_FAILURE);
-	}
-	han.state = NULL;
-	hanadu_state_change(hanadu_state_idle_get());
 
 	/* Create TCP connection to Network Simulator */
 	han.netsim.sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -73,6 +61,7 @@ netsim_init(struct han_trxm_dev *s)
 		perror("Failed to create netsim socket");
 		exit(EXIT_FAILURE);
 	}
+	/* TODO: Non blocking and closeexec flags */
 
 	bzero(&han.netsim.server_addr,sizeof(han.netsim.server_addr));
 	han.netsim.server_addr.sin_family = AF_INET;
@@ -88,43 +77,30 @@ netsim_init(struct han_trxm_dev *s)
 	han.mac.tx_started = false;
 	han.mac.start_tx_latched = false;
 	/* Create CSMA Backoff timer */
-	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = backoff_timer_signal_handler;
-	sigemptyset(&sa.sa_mask);
-	if (sigaction(BACKOFF_TIMER_SIG, &sa, NULL) == -1)
-		exit(EXIT_FAILURE);
-
-	sev.sigev_notify = SIGEV_SIGNAL;
-	sev.sigev_signo = BACKOFF_TIMER_SIG;
-	sev.sigev_value.sival_ptr = &han.mac.backoff_timer;
-	if (timer_create(CLOCK_REALTIME, &sev, &han.mac.backoff_timer) == -1)
+	han.mac.backoff_timer = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC | TFD_NONBLOCK);
+	if (han.mac.backoff_timer == -1)
 		exit(EXIT_FAILURE);
 
 	/* Create Tx timer */
-	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = tx_timer_signal_handler;
-	sigemptyset(&sa.sa_mask);
-	if (sigaction(TX_TIMER_SIG, &sa, NULL) == -1)
-		exit(EXIT_FAILURE);
-
-	sev.sigev_notify = SIGEV_SIGNAL;
-	sev.sigev_signo = TX_TIMER_SIG;
-	sev.sigev_value.sival_ptr = &han.mac.tx_timer;
-	if (timer_create(CLOCK_REALTIME, &sev, &han.mac.tx_timer) == -1)
+	han.mac.tx_timer = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC | TFD_NONBLOCK);
+	if (han.mac.tx_timer == -1)
 		exit(EXIT_FAILURE);
 
 	/* Create IFS timer */
-	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = ifs_timer_signal_handler;
-	sigemptyset(&sa.sa_mask);
-	if (sigaction(IFS_TIMER_SIG, &sa, NULL) == -1)
+	han.mac.ifs_timer = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC | TFD_NONBLOCK);
+	if (han.mac.ifs_timer == -1)
 		exit(EXIT_FAILURE);
 
-	sev.sigev_notify = SIGEV_SIGNAL;
-	sev.sigev_signo = IFS_TIMER_SIG;
-	sev.sigev_value.sival_ptr = &han.mac.ifs_timer;
-	if (timer_create(CLOCK_REALTIME, &sev, &han.mac.ifs_timer) == -1)
+	/* Create txstart event */
+	if (han_event_init(&han.txstart_event) == -1) {
+		perror("Failed to create txstart event");
 		exit(EXIT_FAILURE);
+	}
+	/* Create sysinfo avilable event */
+	if (han_event_init(&han.sysinfo_available) == -1) {
+		perror("Failed to create sysinfo available event");
+		exit(EXIT_FAILURE);
+	}
 
 	/* Connect to NetSim server */
 	if (connect(han.netsim.sockfd, (struct sockaddr *)&han.netsim.server_addr,
@@ -133,7 +109,10 @@ netsim_init(struct han_trxm_dev *s)
 		exit(EXIT_FAILURE);
 	}
 
-	rv = pthread_create(&han.netsim.rxmcast.threadinfo, NULL, netsim_rxthread, s);
+	netsim_rxmcast_init();
+
+	rv = pthread_create(&han.sm_threadinfo, NULL,
+			    hanadu_modem_model_thread, s);
 	if (rv)
 		exit(EXIT_FAILURE);
 
@@ -174,8 +153,7 @@ han_trxm_tx_start_changed(uint32_t value, void *hw_block)
 {
 	if (value) {
 		/* Start transmission */
-		assert(han.state->handle_start_tx);
-		han.state->handle_start_tx();
+		han_event_signal(&han.txstart_event);
 
 	} else {
 		/* The Hanadu Tx IRQ will call xsi_hal_txm_transmit_stop(...)
@@ -843,9 +821,7 @@ han_sysinfo_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned
 	*buf = (uint8_t)value;
 
 	if (addr == sizeof(han.sysinfo) - 1) {
-		/* We should receive a registration request message, handle this and
-		 * send back the registration confirm */
-		netsim_rx_reg_req_msg();
+		han_event_signal(&han.sysinfo_available);
 	}
 }
 

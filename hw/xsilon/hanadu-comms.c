@@ -10,22 +10,6 @@
 #include "hanadu.h"
 #include "hanadu-inl.h"
 
-#ifndef ntohll
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-static inline uint64_t ntohll(uint64_t x) {
-	return bswap_64(x);
-}
-#elif __BYTE_ORDER == __BIG_ENDIAN
-static inline uint64_t ntohll(uint64_t x)
-{
-	return x;
-}
-#endif
-#endif
-#ifndef htonll
-#define htonll ntohll
-#endif
-
 
 static uint16_t
 generate_checksum(void *msg, int msglen)
@@ -84,7 +68,7 @@ netsim_rx_read_bytes(void *buf, int bytes)
 }
 
 /* This will malloc the message, caller must free */
-static void *
+void *
 netsim_rx_read_msg(void)
 {
 	uint16_t cksum, calculated_cksum;
@@ -161,7 +145,7 @@ const char* tx_power_hex_to_dbstring(u8 hexvalue){
 #endif
 
 void
-hanadu_tx_buffer_to_netsim(void)
+netsim_tx_data_ind(void)
 {
 	uint16_t psdu_len;
 	uint8_t rep_code;
@@ -215,10 +199,11 @@ hanadu_tx_buffer_to_netsim(void)
 	free(data_ind_pkt);
 }
 
+// TODO: This will end up in the State Machine
+#if 0
 void
 hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_pkt)
 {
-#if 0
 	int i;
 	uint8_t fifo_used;
 	uint8_t *rxbuf;
@@ -273,8 +258,8 @@ hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_p
 	}
 	/* Raise Rx Interrupt */
 	qemu_irq_pulse(s->rx_irq);
-#endif
 }
+#endif
 
 ssize_t
 netsim_tx_reg_con(void)
@@ -304,48 +289,26 @@ netsim_tx_cca_req(void)
 }
 
 void
-netsim_rx_reg_req_msg(void)
+netsim_rx_reg_req_msg(struct netsim_to_node_registration_req_pkt *reg_req)
 {
-	struct netsim_to_node_registration_req_pkt * reg_req;
+	/* TODO: Change assert to log and drop message */
+	assert(ntohs(reg_req->hdr.msg_type) == MSG_TYPE_REG_REQ);
 
-	reg_req = netsim_rx_read_msg();
-
-	if (reg_req) {
-		/* TODO: Change assert to log and drop message */
-		assert(ntohs(reg_req->hdr.msg_type) == MSG_TYPE_REG_REQ);
-
-		/* Take node id and save and send back confirm */
-		han.netsim.node_id = ntohll(reg_req->hdr.node_id);
-		free(reg_req);
-
-		/* TODO: Check return and log errors */
-		netsim_tx_reg_con();
-	} else {
-		/* TODO: Log message */
-		exit(EXIT_FAILURE);
-	}
+	/* Take node id and save and send back confirm */
+	han.netsim.node_id = ntohll(reg_req->hdr.node_id);
 }
 
 /* Returns whether CCA was successful or not */
 int
-netsim_rx_cca_con_msg(void)
+netsim_rx_cca_con_msg(struct netsim_to_node_cca_con_pkt * cca_con)
 {
-	struct netsim_to_node_cca_con_pkt * cca_con;
 	int rv = true;
 
-	cca_con = netsim_rx_read_msg();
+	/* TODO: Change assert to log and drop message */
+	assert(ntohs(cca_con->hdr.msg_type) == MSG_TYPE_CCA_CON);
+	assert(ntohll(cca_con->hdr.node_id) == han.netsim.node_id);
 
-	if (cca_con) {
-		/* TODO: Change assert to log and drop message */
-		assert(ntohs(cca_con->hdr.msg_type) == MSG_TYPE_CCA_CON);
-		assert(ntohll(cca_con->hdr.node_id) == han.netsim.node_id);
-
-		rv = cca_con->result;
-		free(cca_con);
-	} else {
-		/* TODO: Log message */
-		exit(EXIT_FAILURE);
-	}
+	rv = cca_con->result;
 
 	return rv;
 }
@@ -354,29 +317,20 @@ netsim_rx_cca_con_msg(void)
  * of use to our HW model as in real life the Modem doesn't get this information
  * so we will ignore. */
 int
-netsim_rx_tx_done_ind_msg(void)
+netsim_rx_tx_done_ind_msg(struct netsim_to_node_tx_done_ind_pkt *tx_done_ind)
 {
-	struct netsim_to_node_tx_done_ind_pkt * tx_done_ind;
 	int rv = true;
 
-	tx_done_ind = netsim_rx_read_msg();
+	/* TODO: Change assert to log and drop message */
+	assert(ntohs(tx_done_ind->hdr.msg_type) == MSG_TYPE_TX_DONE_IND);
+	assert(ntohll(tx_done_ind->hdr.node_id) == han.netsim.node_id);
 
-	if (tx_done_ind) {
-		/* TODO: Change assert to log and drop message */
-		assert(ntohs(tx_done_ind->hdr.msg_type) == MSG_TYPE_TX_DONE_IND);
-		assert(ntohll(tx_done_ind->hdr.node_id) == han.netsim.node_id);
-
-		rv = tx_done_ind->result;
-		free(tx_done_ind);
-	} else {
-		/* TODO: Log message */
-		exit(EXIT_FAILURE);
-	}
+	rv = tx_done_ind->result;
 
 	return rv;
 }
 
-void
+struct netsim_data_ind_pkt *
 netsim_rx_tx_data_ind_msg(struct netsim_data_ind_pkt *data_ind)
 {
 	struct netsim_pkt_hdr * hdr;
@@ -399,18 +353,14 @@ netsim_rx_tx_data_ind_msg(struct netsim_data_ind_pkt *data_ind)
 	data_ind_copy = malloc(len);
 	memcpy(data_ind_copy, data_ind, len);
 
-	/* Hanada Modem HW model is now responsible for the data_ind_copy buffer */
-	han.state->handle_rx_pkt(data_ind_copy);
+	return data_ind_copy;
 }
 
-/* ______________________________________________ Receive 802.15.4 Packet Thread
- */
-void *
-netsim_rxthread(void *arg)
+void
+netsim_rxmcast_init(void)
 {
 	struct ip_mreq mreq;
 	int rv;
-	uint8_t *rxbuf;
 	int optval;
 
 	qemu_log("Starting NetSim Rx Thread");
@@ -422,6 +372,8 @@ netsim_rxthread(void *arg)
 		close(han.netsim.rxmcast.sockfd);
 		exit(EXIT_FAILURE);
 	}
+	/* TODO: Non blocking and closeexec flags */
+
 //	rv = setsockopt(han.netsim.rxmcast.sockfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof optval);
 //	if (rv < 0) {
 //		perror("Setting SO_REUSEPORT error");
@@ -452,38 +404,5 @@ netsim_rxthread(void *arg)
 		close(han.netsim.rxmcast.sockfd);
 		exit(EXIT_FAILURE);
 	}
-
-	rxbuf = (uint8_t *)malloc(256);
-
-	for(;;) {
-		struct netsim_pkt_hdr *hdr;
-		struct sockaddr_in cliaddr;
-		socklen_t len;
-		int n;
-
-		len = sizeof(cliaddr);
-		n = recvfrom(han.netsim.rxmcast.sockfd, rxbuf, 256, 0 /*MSG_DONTWAIT*/,
-					 (struct sockaddr *)&cliaddr, &len);
-
-		if (n == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				continue;
-		} else if (n == 0) {
-			continue;
-		}
-
-		/* We will receive data packets we send out as they are sent
-		 * over the TCP control channel and the network channel then
-		 * sends them over the multicast channel. */
-		assert(n > sizeof(*hdr));
-		hdr = (struct netsim_pkt_hdr *)rxbuf;
-		if(!(ntohll(hdr->node_id) == han.netsim.node_id)) {
-			netsim_rx_tx_data_ind_msg((struct netsim_data_ind_pkt *)hdr);
-		}
-
-	}
-	free(rxbuf);
-	close(han.netsim.rxmcast.sockfd);
-	pthread_exit(NULL);
 }
 

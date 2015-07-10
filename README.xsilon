@@ -1,0 +1,230 @@
+Introduction
+============
+
+This Yocto build directory is for the HAN9250 QEMU Zynq platform.  To setup
+Yocto you run:
+source oe-init-build-env yocto-build/han9250-qemuzynq/debug
+
+from your Poky installation directory, e.g. /opt/poky
+
+Main build targets are
+virtual/kernel
+	Will build the Linux Kernel
+core-image-minimal
+	Will build the Linux Kernel and root-fs for our Brian Distro
+meta-ide-support
+	Will build QEMU and GDB as well as all the files necessary for 
+	debugging using eclipse.
+
+
+QEMU
+====
+
+Creating DTB file
+-----------------
+Before starting QEMU we need a device tree binary.  We use a slightly different
+device tree than real builds which is defined in the meta-xilinx layer and we
+just add Xsilon specific stuff in a device tree fragment file (.dtsi).
+The structure for QEMU-Zynq device tree is
+	$POKY_INSTALL_DIR/meta-xsilon/conf/machine/boards/han9250-qemuzynq/qemuzynq-han9250.dts
+            |
+            +--> $POKY_INSTALL_DIR/meta-xilinx/conf/machine/boards/common/zynq7-base.dtsi
+            +--> $POKY_INSTALL_DIR/meta-xilinx/conf/machine/boards/qemu/qemuzynq-base.dtsi
+            +--> $POKY_INSTALL_DIR/meta-xsilon/conf/machine/boards/han9250-zynq/pl.dtsi
+
+There is a script for creating the device tree binary:
+./scripts/create-xsilon-zynq-dtb.sh
+This script depends on the device tree compiler (dtc) which is built as part of
+the kernel so if it complains about not finding dtc:
+bitbake virtual/kernel
+
+Yocto will also deploy the device tree binary into tmp-glibc/deploy/images/han9250-qemuzynq
+
+You should be able to use either and the QEMU start script will also you to chose.
+
+Setup Environment
+=================
+
+(NFS Root FS)
+-------------
+After building core-image-minimal in this debug build directory we can take
+the zipped up rootfs and use it to create a directory that can be used as
+an NFS for network boots.  To create this directory run the following script:
+
+sudo ./scripts/xsi-populate-tftp-nfs.sh -n 1
+
+change -n 1 to equal a QEMU node number, this will result in a directory called
+/export/han9250-zynq-rootfs-aa-NN-NN
+Where NN-NN is taken from the node number.  Unique node numbers allow us to
+create a network of QEMU nodes as it will determine the hostname and also be
+used to create a unique MAC address for ethernet and 802.15.4.
+Ensure that your /etc/exports file contains the following line: (Remember to 
+restart the NFS server if you add it).
+/export/ *(rw,sync,no_root_squash,no_subtree_check,crossmnt) 
+
+Ethernet Bridge
+---------------
+
+To provide Ethernet Network we need to create a bridge (br0).  So if this hasn't
+already been created run the following script as root:
+sudo ./scripts/setup-br0.sh
+
+You should now see the bridge in ifconfig.
+
+
+Running QEMU
+============
+
+First up build QEMU
+
+bitbake qemuzynq-xsilon-native or
+bitbake meta-ide-support (for debugger)
+
+QEMU for arm-softmmu will now be in
+tmp-glibc/sysroots/x86_64-linux/usr/bin/qemu-system-arm
+
+The script ./scripts/qemu-start.sh is used to start QEMU and takes a number of
+parameters listed by running the script with -h
+
+only -n is mandatory but for testing you would want to set the NFS server ip and
+NetSim Server IP address, log level.  e.g.
+
+./scripts/qemu-start.sh -n 1 -l 20 -s 10.4.18.104 -N 10.4.18.104
+
+A few notes on this script. It will use the following QEMU configuration
+options:
+
+-M arm-generic-fdt -smp 2 -machine linux=on --display none -serial mon:stdio 
+This tells QEMU we are using a ARM machine using FDT.  The Xilinx QEMU currently
+only supports SMP set to 2, setting to 1 won't work.  As we don't have any 
+graphical output display is turned off and we redirect the serial port to STOUT.
+
+-gdb tcp::12001 
+Wait for gdb connection on port 12001, only valid if -S is passed to
+qemu-start.sh.  This can be used to debug code running within QEMU, ie to 
+debug the kernel.  See following section on this
+
+-xsilon dipafe=0x04,nsaddr=10.4.18.104,nsport=11555
+The Xsilon specific parameters, the first part sets the AFE dip switches, as
+there are 8 we pass a hexadecimal value.  The next 2 give the Network Simulators
+IP address and Port.  This simulator will need to be started first before
+running QEMU.  QEMU will send and receive 802.15.4 packets using a socket
+connection to the network simulator which will decide on whether the packet
+is delivered or not depending on it's parameters for that link.
+
+-dtb ./tmp/deploy/images/han9250-qemuzynq//qemuzynq-han9250.dtb
+device tree binary
+
+-kernel ././tmp/deploy/images/han9250-qemuzynq/uImage 
+kernel
+
+-netdev bridge,helper=/usr/local/libexec/qemu-bridge-helper,id=hn0 
+network backend, connects a host TAP network interface to a host bridge 
+device 'br'
+
+-net nic,macaddr=00:03:9a:aa:00:01,model=cadence_gem,name=nic1,netdev=hn0  
+create a new Network Interface Card, for the Xilinx zynq they use the
+cadence_gem which is modelled in QEMU.  This doesn't match a real zynq but
+works well for QEMU.
+
+-append "console=ttyPS0,115200 earlyprintk eth=00:03:9a:aa:00:01 ip=:::::eth0:dhcp rootfstype=nfs root=/dev/nfs rw nfsroot=10.4.18.104:/export/han9250-zynq-rootfs-aa-00-01,tcp,nolock,wsize=4096,rsize=4096 loglevel=20"
+The bootargs string to be passed to the kernel.  Note the QEMU zynq uses PS0
+for the console UART but the HAN9250 B1 uses PS1 as this was how the board
+was wired up. The nfsroot=10.4.18.104 will be whater ever Server IP you
+pass to the script or the default 10.4.18.4 IP address.
+
+Debugging Linux Kernel Running in QEMU
+======================================
+
+Ensure that we have configured the kernel so that debug symbols are available
+and there are a couple of other options which are useful for GDB in the 
+latest 4.x kernels.
+There is a feature in the kernel recipe meta data, kernel-gdb.scc that will
+enable these options, here are the options it changes
+
+CONFIG_DEBUG_KERNEL
+    This option just makes other debugging options available; it should be
+    turned on but does not, by itself, enable any features.
+#CONFIG_DEBUG_INFO_REDUCED is not set
+    Ensure we don't reduce the debug info.
+CONFIG_DEBUG_INFO
+    Compile the kernel with debug info
+CONFIG_DEBUG_INFO_SPLIT
+    Produce split debuginfo in .dwo files (Requires recent gcc (4.7+) and 
+    recent gdb/binutils.)
+CONFIG_DEBUG_INFO_DWARF4
+    Use latest dwarf4 format
+CONFIG_GDB_SCRIPTS
+    This creates the required links to GDB helper scripts in the build
+    directory. If you load vmlinux into gdb, the helper scripts will be
+    automatically imported by gdb as well, and additional functions are
+    available to analyze a Linux kernel instance. See 
+    Documentation/gdb-kernel-debugging.txt for further details.
+
+command line
+------------
+There is a script './script/gdb-kernel.sh' that can be used to setup a kernel
+gdb session from the command line.  It will create a .gdbinit file
+in the kernel build directory and launch the debugger from there so that the 
+python helper scripts work.  If there are multiple kernel builds then the script
+should prompt you with which one you are debugging.
+
+Now as gdb has security built-in you have to tell it that the kernel build
+directory is safe to use.  You can do this by adding the following line in
+/home/$USER/.gdbinit
+
+add-auto-load-safe-path /path/to/kernel/build
+e.g.
+add-auto-load-safe-path /home/martin/xsi_workspace/poky-1.7/yocto-build/han9250-qemuzynq/debug/tmp-glibc/work/han9250_qemuzynq-oe-linux-gnueabi/linux-xsilon/4.0-brian+gitAUTOINC+133be0264f-r1/linux-han9250_qemuzynq-standard-build/.gdbinit
+
+After building meta-ide-support you should have a debugger:
+tmp/sysroots/x86_64-linux/usr/bin/arm-oe-linux-gnueabi/arm-oe-linux-gnueabi-gdb
+
+The gdb script will add this to your path and open it with the selected kernel.
+
+To debug start QEMU with the -S option to halt and wait for debugger connection
+and then in another terminal window run ./script/gdb-kernel.sh
+
+Once debugger is running:
+
+target remote :12001
+break start_kernel
+cont
+
+And hey presto it breaks at the start of the kernel initialisation.
+
+modules
+-------
+
+With gdb 7.8.2 and onwards it is possible to debug modules. 7.8.1 contains a
+bug where it crashes gdb when loading a module.  To debug a module first up
+set a break point somewhere in the kernel init:
+start_kernel
+free_initmem
+kernel_init
+
+Then continue until breakpoint is hit:
+
+As we probably want to debug one of our modules you have to call lx-symbols
+with the path to the out of tree module, if module is within kernel tree
+gdb will find it automatically.
+
+e.g.
+lx-symbols ../../../hanadu-mod/0.3-r2/git ../../../hanadu-adc-mod/0.1-r5/git
+
+Then you can set a breakpoint within the module and continue.  To help things
+the ./script/gdb-kernel.sh script will automatically create a .gdbhanmod file
+in the linux build directory so after gdb starts it will connect to target and
+set a breakpoint on start_kernel and run to this.  At the prompt if you then
+type:
+source .gdbhanmod
+it will call lx-symbols with the calculated hanadu module path.  Please feel
+free to add other modules by editing ./script/gdb-kernel.sh
+
+eclipse
+-------
+
+Author(s): Martin Townsend <martin.townsend@xsilon.com>
+Last Updated: 16th June 2015
+
+

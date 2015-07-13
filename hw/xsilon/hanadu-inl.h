@@ -405,6 +405,18 @@ han_mac_max_sifs_frame_size_get(struct han_mac_dev *s) __attribute__((always_inl
 static inline bool 
 han_mac_ifs_enable_get(struct han_mac_dev *s) __attribute__((always_inline));
 
+static inline uint32_t
+han_mac_ctrl_ea_lower_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint32_t
+han_mac_ctrl_ea_upper_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_mac_ctrl_short_addr_get(struct han_mac_dev *s) __attribute__((always_inline));
+
+static inline uint16_t
+han_mac_ctrl_pan_id_get(struct han_mac_dev *s) __attribute__((always_inline));
+
 static inline bool 
 han_mac_ctrl_pan_coord_get(struct han_mac_dev *s) __attribute__((always_inline));
 
@@ -498,6 +510,18 @@ han_mac_max_sifs_frame_size_set(struct han_mac_dev *s, uint8_t value) __attribut
 
 static inline void 
 han_mac_ifs_enable_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
+
+static inline void
+han_mac_ctrl_ea_lower_set(struct han_mac_dev *s, uint32_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ctrl_ea_upper_set(struct han_mac_dev *s, uint32_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ctrl_short_addr_set(struct han_mac_dev *s, uint16_t value) __attribute__((always_inline));
+
+static inline void
+han_mac_ctrl_pan_id_set(struct han_mac_dev *s, uint16_t value) __attribute__((always_inline));
 
 static inline void 
 han_mac_ctrl_pan_coord_set(struct han_mac_dev *s, bool value) __attribute__((always_inline));
@@ -1750,6 +1774,42 @@ han_mac_ifs_enable_get(struct han_mac_dev *s)
     return (s->regs.mac_ifs & (1 << MAC_IFS_ENABLE_SHIFT)) ? true : false;
 }
 
+static inline uint32_t
+han_mac_ctrl_ea_lower_get(struct han_mac_dev *s)
+{
+    uint32_t value;
+
+    value = (uint32_t)s->regs.mac_filter_ea_lower;
+    return value;
+}
+
+static inline uint32_t
+han_mac_ctrl_ea_upper_get(struct han_mac_dev *s)
+{
+    uint32_t value;
+
+    value = (uint32_t)s->regs.mac_filter_ea_upper;
+    return value;
+}
+
+static inline uint16_t
+han_mac_ctrl_short_addr_get(struct han_mac_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)s->regs.mac_filter_sa;
+    return value;
+}
+
+static inline uint16_t
+han_mac_ctrl_pan_id_get(struct han_mac_dev *s)
+{
+    uint16_t value;
+
+    value = (uint16_t)s->regs.mac_filter_pan_id;
+    return value;
+}
+
 static inline bool 
 han_mac_ctrl_pan_coord_get(struct han_mac_dev *s)
 {
@@ -1990,6 +2050,30 @@ han_mac_ifs_enable_set(struct han_mac_dev *s, bool value)
     if(value)
 	    reg_val |= ((1 << MAC_IFS_ENABLE_SHIFT) & MAC_IFS_ENABLE_MASK);
     s->regs.mac_ifs = reg_val;
+}
+
+static inline void
+han_mac_ctrl_ea_lower_set(struct han_mac_dev *s, uint32_t value)
+{
+    s->regs.mac_filter_ea_lower = value;
+}
+
+static inline void
+han_mac_ctrl_ea_upper_set(struct han_mac_dev *s, uint32_t value)
+{
+    s->regs.mac_filter_ea_upper = value;
+}
+
+static inline void
+han_mac_ctrl_short_addr_set(struct han_mac_dev *s, uint16_t value)
+{
+    s->regs.mac_filter_sa = value;
+}
+
+static inline void
+han_mac_ctrl_pan_id_set(struct han_mac_dev *s, uint16_t value)
+{
+    s->regs.mac_filter_pan_id = value;
 }
 
 

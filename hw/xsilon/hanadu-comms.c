@@ -199,68 +199,6 @@ netsim_tx_data_ind(void)
 	free(data_ind_pkt);
 }
 
-// TODO: This will end up in the State Machine
-#if 0
-void
-hanadu_rx_buffer_from_netsim(struct han_trxm_dev *s, struct netsim_pkt_hdr *rx_pkt)
-{
-	int i;
-	uint8_t fifo_used;
-	uint8_t *rxbuf;
-	uint8_t * data;
-
-	/* first up get next available buffer */
-	i=0;
-	while(!(han.rx.bufs_avail_bitmap & (1<<i)) && i < 4)
-		i++;
-	if (i == 4) {
-		/* Overflow */
-		han_trxm_rx_mem_bank_overflow_set(s, true);
-	} else {
-		/* Clear the buffer from the bitmap as we are going to use it. */
-		han.rx.bufs_avail_bitmap &= ~(1<<i);
-		han_trxm_rx_mem_bank_overflow_set(s, false);
-		assert(i>=0 && i<4);
-		assert(!fifo8_is_full(&han.rx.nextbuf));
-		switch(i) {
-		case 0:
-			han_trxm_rx_psdulen0_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode0_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full0_flag_set(s, 1);
-			break;
-		case 1:
-			han_trxm_rx_psdulen1_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode1_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full1_flag_set(s, 1);
-			break;
-		case 2:
-			han_trxm_rx_psdulen2_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode2_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full2_flag_set(s, 1);
-			break;
-		case 3:
-			han_trxm_rx_psdulen3_set(s, rx_pkt->psdu_len);
-			han_trxm_rx_repcode3_set(s, rx_pkt->rep_code);
-			han_trxm_rx_mem_bank_full3_flag_set(s, 1);
-			break;
-		}
-		fifo8_push(&han.rx.nextbuf, i);
-		fifo_used = (uint8_t)han.rx.nextbuf.num;
-		han_trxm_rx_nextbuf_fifo_wr_level_set(s, fifo_used);
-		han_trxm_rx_nextbuf_fifo_rd_level_set(s, fifo_used);
-		han_trxm_rx_rssi_latched_set(s, rx_pkt->rssi);
-
-		/* copy data into the relevant buffer */
-		rxbuf = han.rx.buf[i].data;
-		data = (uint8_t *)rx_pkt + NETSIM_PKT_HDR_SZ;
-		for(i=0;i<rx_pkt->psdu_len;i++)
-			*rxbuf++ = *data++;
-	}
-	/* Raise Rx Interrupt */
-	qemu_irq_pulse(s->rx_irq);
-}
-#endif
-
 ssize_t
 netsim_tx_reg_con(void)
 {

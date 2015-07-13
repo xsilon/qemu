@@ -48,6 +48,8 @@ typedef void (* han_state_handle_tx_done_ind)(int);
 typedef void (* han_state_handle_backoff_timer_expires)(void);
 typedef void (* han_state_handle_tx_timer_expires)(void);
 typedef void (* han_state_handle_ifs_timer_expires)(void);
+typedef void (* han_state_handle_ack_wait_timer_expires)(void);
+
 
 struct han_state {
 	enum han_state_enum id;
@@ -62,13 +64,17 @@ struct han_state {
 	han_state_handle_backoff_timer_expires handle_backoff_timer_expires;
 	han_state_handle_tx_timer_expires handle_tx_timer_expires;
 	han_state_handle_ifs_timer_expires handle_ifs_timer_expires;
+	han_state_handle_ack_wait_timer_expires handle_ack_wait_timer_expires;
 };
 
 void hs_wait_sysinfo_handle_sysinfo_event(void);
+void hs_wait_sysinfo_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 
 void hs_idle_enter(void);
 void hs_idle_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_idle_handle_start_tx(void);
+
+void hs_rx_pkt_enter(void);
 
 void hs_csma_enter(void);
 void hs_csma_exit(void);
@@ -79,7 +85,13 @@ void hs_tx_pkt_enter(void);
 void hs_tx_pkt_handle_tx_done_ind(int tx_result);
 void hs_tx_pkt_handle_tx_timer_expires(void);
 
+void hs_wait_rx_ack_enter(void);
+void hs_wait_rx_ack_wait_timer_expires(void);
+
+void hs_tx_ack_enter(void);
+
 void hs_ifs_enter(void);
+void hs_ifs_exit(void);
 void hs_ifs_handle_start_tx(void);
 void hs_ifs_handle_ifs_timer_expires(void);
 
@@ -109,14 +121,14 @@ static struct han_state han_state_wait_sysinfo = {
 	.enter = NULL,
 	.exit = NULL,
 	.handle_sysinfo_event = hs_wait_sysinfo_handle_sysinfo_event,
-	.handle_rx_pkt = invalid_event_rx_pkt,
+	.handle_rx_pkt = hs_wait_sysinfo_handle_rx_pkt,
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
-
+	.handle_ack_wait_timer_expires = invalid_event,
 };
 
 static struct han_state han_state_idle = {
@@ -131,12 +143,12 @@ static struct han_state han_state_idle = {
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
+	.handle_ack_wait_timer_expires = invalid_event,
 };
 
-#if 0
 static struct han_state han_state_rx_pkt = {
 	.id = HAN_STATE_RX_PKT,
-	.enter = NULL,
+	.enter = hs_rx_pkt_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
@@ -146,8 +158,9 @@ static struct han_state han_state_rx_pkt = {
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
+	.handle_ack_wait_timer_expires = invalid_event,
 };
-#endif
+
 static struct han_state han_state_csma = {
 	.id = HAN_STATE_CSMA,
 	.enter = hs_csma_enter,
@@ -160,6 +173,7 @@ static struct han_state han_state_csma = {
 	.handle_backoff_timer_expires = hs_csma_handle_backoff_timer_expires,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
+	.handle_ack_wait_timer_expires = invalid_event,
 };
 static struct han_state han_state_tx_pkt = {
 	.id = HAN_STATE_TX_PKT,
@@ -173,10 +187,11 @@ static struct han_state han_state_tx_pkt = {
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = hs_tx_pkt_handle_tx_timer_expires,
 	.handle_ifs_timer_expires = invalid_event,
+	.handle_ack_wait_timer_expires = invalid_event,
 };
 static struct han_state han_state_wait_rx_ack = {
 	.id = HAN_STATE_WAIT_RX_ACK,
-	.enter = NULL,
+	.enter = hs_wait_rx_ack_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
@@ -186,11 +201,12 @@ static struct han_state han_state_wait_rx_ack = {
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
+	.handle_ack_wait_timer_expires = hs_wait_rx_ack_wait_timer_expires,
 };
-#if 0
+
 static struct han_state han_state_tx_ack = {
 	.id = HAN_STATE_TX_ACK,
-	.enter = NULL,
+	.enter = hs_tx_ack_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
@@ -200,13 +216,13 @@ static struct han_state han_state_tx_ack = {
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
+	.handle_ack_wait_timer_expires = invalid_event,
 };
-#endif
 
 static struct han_state han_state_ifs = {
 	.id = HAN_STATE_IFS,
 	.enter = hs_ifs_enter,
-	.exit = NULL,
+	.exit = hs_ifs_exit,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
 	.handle_start_tx = hs_ifs_handle_start_tx,
@@ -215,6 +231,7 @@ static struct han_state han_state_ifs = {
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = hs_ifs_handle_ifs_timer_expires,
+	.handle_ack_wait_timer_expires = invalid_event,
 };
 
 int
@@ -273,6 +290,33 @@ hanadu_state_change(struct han_state *new_state)
 		han.state->enter();
 }
 
+static void
+start_timer(int timer, long nsecs)
+{
+	struct itimerspec ts;
+
+	ts.it_interval.tv_sec = 0;
+	ts.it_interval.tv_nsec = 0;
+	ts.it_value.tv_sec = nsecs / 1000000000;
+	ts.it_value.tv_nsec = (nsecs % 1000000000);
+
+	timerfd_settime(timer, 0, &ts, NULL);
+}
+
+static void
+stop_timer(int timer)
+{
+	struct itimerspec ts;
+
+	ts.it_interval.tv_sec = 0;
+	ts.it_interval.tv_nsec = 0;
+	ts.it_value.tv_sec = 0;
+	ts.it_value.tv_nsec = 0;
+
+	timerfd_settime(timer, 0, &ts, NULL);
+}
+
+
 /* ______________________________________________________ HAN_STATE_WAIT_SYSINFO
  */
 
@@ -284,6 +328,14 @@ hs_wait_sysinfo_handle_sysinfo_event(void)
 	hanadu_state_change(&han_state_idle);
 }
 
+void
+hs_wait_sysinfo_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
+{
+	/* TODO: For now drop packets in this state */
+	assert(data_ind);
+	free(data_ind);
+	assert(han.rx.data_ind == NULL);
+}
 /* ______________________________________________________________ HAN_STATE_IDLE
  */
 
@@ -303,7 +355,9 @@ hs_idle_enter(void)
 void
 hs_idle_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 {
-
+	assert(han.rx.data_ind == NULL);
+	han.rx.data_ind = data_ind;
+	hanadu_state_change(&han_state_rx_pkt);
 }
 
 /*
@@ -312,8 +366,6 @@ hs_idle_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 void
 hs_idle_handle_start_tx(void)
 {
-	fprintf(stderr, "IDLE: Handle Tx Start\n");
-
 	/* If MAC Bypassed then go straight to transmitting packet,
 	 * otherwise we go into the CSMA state. */
 	if (han_mac_lower_mac_bypass_get(han.mac_dev)) {
@@ -325,6 +377,177 @@ hs_idle_handle_start_tx(void)
 
 /* ____________________________________________________________ HAN_STATE_RX_PKT
  */
+
+static void
+hanadu_rx_frame_fill_buffer(void)
+{
+	int i;
+	uint8_t fifo_used;
+	uint8_t *rxbuf;
+	uint8_t * data;
+
+	/* first up get next available buffer */
+	i=0;
+	while(!(han.rx.bufs_avail_bitmap & (1<<i)) && i < 4)
+		i++;
+	if (i == 4) {
+		/* Overflow */
+		han_trxm_rx_mem_bank_overflow_set(han.trx_dev, true);
+	} else {
+		/* Clear the buffer from the bitmap as we are going to use it. */
+		han.rx.bufs_avail_bitmap &= ~(1<<i);
+		han_trxm_rx_mem_bank_overflow_set(han.trx_dev, false);
+		assert(i>=0 && i<4);
+		assert(!fifo8_is_full(&han.rx.nextbuf));
+		switch(i) {
+		case 0:
+			han_trxm_rx_psdulen0_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_repcode0_set(han.trx_dev, han.rx.data_ind->rep_code);
+			han_trxm_rx_mem_bank_full0_flag_set(han.trx_dev, 1);
+			break;
+		case 1:
+			han_trxm_rx_psdulen1_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_repcode1_set(han.trx_dev, han.rx.data_ind->rep_code);
+			han_trxm_rx_mem_bank_full1_flag_set(han.trx_dev, 1);
+			break;
+		case 2:
+			han_trxm_rx_psdulen2_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_repcode2_set(han.trx_dev, han.rx.data_ind->rep_code);
+			han_trxm_rx_mem_bank_full2_flag_set(han.trx_dev, 1);
+			break;
+		case 3:
+			han_trxm_rx_psdulen3_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_repcode3_set(han.trx_dev, han.rx.data_ind->rep_code);
+			han_trxm_rx_mem_bank_full3_flag_set(han.trx_dev, 1);
+			break;
+		}
+		fifo8_push(&han.rx.nextbuf, i);
+		fifo_used = (uint8_t)han.rx.nextbuf.num;
+		han_trxm_rx_nextbuf_fifo_wr_level_set(han.trx_dev, fifo_used);
+		han_trxm_rx_nextbuf_fifo_rd_level_set(han.trx_dev, fifo_used);
+		han_trxm_rx_rssi_latched_set(han.trx_dev, han.rx.data_ind->rssi);
+
+		/* copy data into the relevant buffer */
+		rxbuf = han.rx.buf[i].data;
+		data = (uint8_t *)han.rx.data_ind->pktData;
+		for(i=0;i<han.rx.data_ind->psdu_len;i++)
+			*rxbuf++ = *data++;
+	}
+}
+
+static bool
+hanadu_rx_frame_filter_accept(void)
+{
+	uint8_t frame_type;
+	uint8_t sa_mode;
+	uint8_t da_mode;
+	uint16_t dst_pan_id;
+	uint16_t our_pan_id;
+
+	assert(han.rx.data_ind);
+
+	if (!han_mac_ctrl_filter_enable_get(han.mac_dev)) {
+		return true;
+	}
+
+	frame_type = han.rx.data_ind->pktData[0] & 0x07;
+	sa_mode = (han.rx.data_ind->pktData[1] & 0xC0) >> 6;
+	da_mode = (han.rx.data_ind->pktData[1] & 0x0C) >> 2;
+	if (frame_type == FRAME_TYPE_ACK) {
+		return false;
+	}
+	our_pan_id = han_mac_ctrl_pan_id_get(han.mac_dev);
+	if (frame_type == FRAME_TYPE_BEACON) {
+		uint16_t src_pan_id;
+		src_pan_id = han.rx.data_ind->pktData[3];
+		src_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
+
+		if (our_pan_id == 0xffff || our_pan_id == src_pan_id)
+			return true;
+		else
+			return false;
+	}
+	if (da_mode == ADDR_MODE_ELIDED) {
+		uint16_t src_pan_id;
+		src_pan_id = han.rx.data_ind->pktData[3];
+		src_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
+		if (sa_mode != ADDR_MODE_ELIDED
+			&& han_mac_ctrl_pan_coord_get(han.mac_dev)
+			&& src_pan_id == our_pan_id)
+			return true;
+		else
+			return false;
+	}
+	dst_pan_id = han.rx.data_ind->pktData[3];
+	dst_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
+	/* We know destination PAN ID isn't elided */
+	if (dst_pan_id != 0xffff && dst_pan_id != our_pan_id)
+		return false;
+
+	if (da_mode == ADDR_MODE_SHORT) {
+		uint16_t dst_short_addr;
+		uint16_t our_short_addr;
+
+		dst_short_addr = han.rx.data_ind->pktData[5];
+		dst_short_addr |= (uint16_t)han.rx.data_ind->pktData[6] << 8;
+		our_short_addr = han_mac_ctrl_short_addr_get(han.mac_dev);
+		if (dst_short_addr != 0xffff && dst_short_addr != our_short_addr)
+			return false;
+		else
+			return true;
+	}
+
+	if (da_mode == ADDR_MODE_EXTENDED) {
+		uint64_t dst_ext_addr;
+		uint64_t our_ext_addr;
+
+		dst_ext_addr = han.rx.data_ind->pktData[5];
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[6]) << 8;
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[7]) << 16;
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[8]) << 24;
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[9]) << 32;
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[10]) << 40;
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[11]) << 48;
+		dst_ext_addr |= ((uint64_t)han.rx.data_ind->pktData[12]) << 56;
+
+		our_ext_addr = han_mac_ctrl_ea_upper_get(han.mac_dev);
+		our_ext_addr <<= 32;
+		our_ext_addr |= han_mac_ctrl_ea_lower_get(han.mac_dev);
+
+		if (dst_ext_addr == our_ext_addr)
+			return true;
+		else
+			return false;
+	}
+
+	/* Unknown destination addressing mode */
+	return false;
+}
+
+void
+hs_rx_pkt_enter(void)
+{
+	/* Filter frame and if for us populate rx buffer and generate
+	 * Rx Interrupt. Otherwise drop. */
+	if (hanadu_rx_frame_filter_accept()) {
+
+		hanadu_rx_frame_fill_buffer();
+		qemu_irq_pulse(han.trx_dev->rx_irq);
+
+		/* If Ack Requests goto Tx Ack state, otherwise Idle */
+		if (han.rx.data_ind->pktData[0] & IEEE802154_FC0_AR_BIT) {
+			hanadu_state_change(&han_state_tx_ack);
+		} else {
+			hanadu_state_change(&han_state_idle);
+		}
+	} else {
+		/* Drop frame */
+		free(han.rx.data_ind);
+		han.rx.data_ind = NULL;
+		hanadu_state_change(&han_state_idle);
+	}
+
+}
 
 /* ______________________________________________________________ HAN_STATE_CSMA
  */
@@ -352,7 +575,6 @@ static void
 start_backoff_timer(void)
 {
 	int backoff_usecs;
-	struct itimerspec ts;
 
 	if (han.mac.wait_free) {
 		/* Check channel free every 500 usec */
@@ -365,13 +587,7 @@ start_backoff_timer(void)
 		backoff_usecs = ((backoff_usecs % (ipow(2, han.mac.be) - 1)) + 1) * 10;
 	}
 	assert(backoff_usecs > 0);
-	fprintf(stderr, "CCA Backoff %d usecs\n", backoff_usecs);
-	ts.it_interval.tv_sec = 0;
-	ts.it_interval.tv_nsec = 0;
-	ts.it_value.tv_sec = 0;
-	ts.it_value.tv_nsec = backoff_usecs * 1000;
-
-	timerfd_settime(han.mac.backoff_timer, 0, &ts, NULL);
+	start_timer(han.mac.backoff_timer, backoff_usecs * 1000);
 }
 
 static void
@@ -379,7 +595,6 @@ clear_channel_assessment(void)
 {
 	ssize_t rv;
 
-	fprintf(stderr, "CCA\n");
 	rv = netsim_tx_cca_req();
 	/* TODO: Check return and log error */
 	assert(rv > 0);
@@ -423,12 +638,13 @@ hs_csma_exit(void)
 {
 	/* Ensure wait free is cleared */
 	han.mac.wait_free = false;
+	/* Stop Backoff timer if started */
+	stop_timer(han.mac.backoff_timer);
 }
 
 void
 hs_csma_handle_cca_con(int cca_result)
 {
-	fprintf(stderr, "CCA CON [%d]\n", cca_result);
 	/* Channel Idle? */
 	if (cca_result) {
 		/* yes */
@@ -459,7 +675,6 @@ hs_csma_handle_cca_con(int cca_result)
 				han_mac_status_tx_timeout_occured_set(han.mac_dev, true);
 				han_mac_status_backoff_attempts_set(han.mac_dev, han.mac.nb);
 				/* Generate Tx Interrupt */
-				fprintf(stderr, "TX INTERRUPT: FAIL\n");
 				qemu_irq_pulse(han.trx_dev->tx_irq);
 				hanadu_state_change(&han_state_idle);
 				break;
@@ -502,33 +717,6 @@ getTimeOnWire(void)
 }
 #endif
 
-
-static void
-start_tx_timer(void)
-{
-	struct itimerspec ts;
-
-	ts.it_interval.tv_sec = 0;
-	ts.it_interval.tv_nsec = 0;
-	ts.it_value.tv_sec = 2;
-	ts.it_value.tv_nsec = 0;
-
-	timerfd_settime(han.mac.tx_timer, 0, &ts, NULL);
-}
-
-static void
-stop_tx_timer(void)
-{
-	struct itimerspec ts;
-
-	ts.it_interval.tv_sec = 0;
-	ts.it_interval.tv_nsec = 0;
-	ts.it_value.tv_sec = 0;
-	ts.it_value.tv_nsec = 0;
-
-	timerfd_settime(han.mac.tx_timer, 0, &ts, NULL);
-}
-
 void
 hs_tx_pkt_enter(void)
 {
@@ -537,15 +725,15 @@ hs_tx_pkt_enter(void)
 
 	han_trxm_tx_busy_set(han.trx_dev, true);
 
-	/* Now we wait for tx done indication */
-	start_tx_timer();
+	/* Now we wait for tx done indication for 2 seconds */
+	start_timer(han.mac.tx_timer, 2000000000);
 }
 
 void
 hs_tx_pkt_handle_tx_done_ind(int tx_result)
 {
 	han_trxm_tx_busy_set(han.trx_dev, false);
-	stop_tx_timer();
+	stop_timer(han.mac.tx_timer);
 	if (han.mac.ack_requested)
 		hanadu_state_change(&han_state_wait_rx_ack);
 	else
@@ -563,16 +751,35 @@ hs_tx_pkt_handle_tx_timer_expires(void)
 /* _______________________________________________________ HAN_STATE_WAIT_RX_ACK
  */
 
+void
+hs_wait_rx_ack_enter(void)
+{
+	/* TODO: Start tAck the ack wait timer, which is defined in the ack wait duration
+	 * register. */
+}
+
+void
+hs_wait_rx_ack_wait_timer_expires(void)
+{
+	/* TODO: No ack received, increase retry attempts and go back to CSMA
+	 * state. */
+}
+
 /* ____________________________________________________________ HAN_STATE_TX_ACK
  */
+
+void
+hs_tx_ack_enter(void)
+{
+	/* TODO: Transmit Ack */
+}
 
 /* _______________________________________________________________ HAN_STATE_IFS
  */
 
-static void
-start_ifs_timer(void)
+void
+hs_ifs_enter(void)
 {
-	struct itimerspec ts;
 	uint16_t psdu_len;
 	uint8_t ifs_period;
 
@@ -585,27 +792,21 @@ start_ifs_timer(void)
 		ifs_period = han_mac_sifs_period_get(han.mac_dev);
 	else
 		ifs_period = han_mac_lifs_period_get(han.mac_dev);
-
 	assert(ifs_period > 0);
-	ts.it_interval.tv_sec = 0;
-	ts.it_interval.tv_nsec = 0;
-	ts.it_value.tv_sec = 0;
-	ts.it_value.tv_nsec = ifs_period * IFS_PERIOD_UNIT_NSECS;
 
-	timerfd_settime(han.mac.ifs_timer, 0, &ts, NULL);
-}
-
-void
-hs_ifs_enter(void)
-{
 	han.mac.tx_started = false;
 
 	/* Even though we have 2 paths into IFS state we can generate Tx
 	 * interrupt here to catch both cases. */
 	qemu_irq_pulse(han.trx_dev->tx_irq);
-	fprintf(stderr, "TX INTERRUPT: GOOD\n");
 
-	start_ifs_timer();
+	start_timer(han.mac.ifs_timer, ifs_period * IFS_PERIOD_UNIT_NSECS);
+}
+
+void
+hs_ifs_exit(void)
+{
+	stop_timer(han.mac.ifs_timer);
 }
 
 void
@@ -655,6 +856,11 @@ sm_setup_readfs(fd_set * read_fd_set)
 	if (han.mac.ifs_timer > fd_max)
 		fd_max = han.mac.ifs_timer;
 
+	/* IFS Timer */
+	FD_SET(han.mac.ack_wait_timer, read_fd_set);
+	if (han.mac.ack_wait_timer > fd_max)
+		fd_max = han.mac.ack_wait_timer;
+
 	/* Start Tx Event */
 	FD_SET(han.txstart_event.pipe_fds[EVENT_PIPE_FD_READ], read_fd_set);
 	if (han.txstart_event.pipe_fds[EVENT_PIPE_FD_READ] > fd_max)
@@ -675,6 +881,8 @@ static void
 hanadu_handle_events(int count, fd_set * read_fd_set)
 {
 	bool event_handled = false;
+
+	/* TODO: Handle case where x6losim has shutdown */
 
 	if (FD_ISSET(han.netsim.rxmcast.sockfd, read_fd_set)) {
 		struct netsim_pkt_hdr *hdr;
@@ -806,6 +1014,22 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		count--;
 	}
 
+	if (FD_ISSET(han.mac.ack_wait_timer, read_fd_set)) {
+		uint64_t expirations;
+		int n;
+
+		do {
+			n = read(han.mac.ack_wait_timer, &expirations, sizeof(expirations));
+			if (n == -1 && errno == EINTR)
+				continue;
+		} while(0);
+		assert(n == 8);
+		assert(expirations == 1);
+		han.state->handle_ack_wait_timer_expires();
+		event_handled = true;
+		count--;
+	}
+
 	if (FD_ISSET(han.sysinfo_available.pipe_fds[EVENT_PIPE_FD_READ], read_fd_set)) {
 		char tmp;
 		int n;
@@ -825,7 +1049,6 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		char tmp;
 		int n;
 
-		fprintf(stderr, "TX START EVENT");
 		do {
 			n = read(han.txstart_event.pipe_fds[EVENT_PIPE_FD_READ], &tmp, 1);
 			if (n == -1 && errno == EINTR)

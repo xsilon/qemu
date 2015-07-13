@@ -368,6 +368,42 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 
         break;
 
+    case MAC_FILTER_EA_LOWER:
+        if ((value & MAC_EA_LOWER_MASK) != (s->regs.mac_filter_ea_lower & MAC_EA_LOWER_MASK)) {
+            if (s->regs.field_changed.ctrl_ea_lower_changed) {
+                s->regs.field_changed.ctrl_ea_lower_changed(((uint32_t)value & MAC_EA_LOWER_MASK) >> MAC_EA_LOWER_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case MAC_FILTER_EA_UPPER:
+        if ((value & MAC_EA_UPPER_MASK) != (s->regs.mac_filter_ea_upper & MAC_EA_UPPER_MASK)) {
+            if (s->regs.field_changed.ctrl_ea_upper_changed) {
+                s->regs.field_changed.ctrl_ea_upper_changed(((uint32_t)value & MAC_EA_UPPER_MASK) >> MAC_EA_UPPER_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case MAC_FILTER_SA:
+        if ((value & MAC_SA_MASK) != (s->regs.mac_filter_sa & MAC_SA_MASK)) {
+            if (s->regs.field_changed.ctrl_short_addr_changed) {
+                s->regs.field_changed.ctrl_short_addr_changed(((uint32_t)value & MAC_SA_MASK) >> MAC_SA_SHIFT, s);
+            }
+        }
+
+        break;
+
+    case MAC_FILTER_PAN_ID:
+        if ((value & MAC_PAN_ID_MASK) != (s->regs.mac_filter_pan_id & MAC_PAN_ID_MASK)) {
+            if (s->regs.field_changed.ctrl_pan_id_changed) {
+                s->regs.field_changed.ctrl_pan_id_changed(((uint32_t)value & MAC_PAN_ID_MASK) >> MAC_PAN_ID_SHIFT, s);
+            }
+        }
+
+        break;
+
     case MAC_FILTER_CTRL:
         if ((value & MAC_CTRL_PAN_COORD_MASK) != (s->regs.mac_filter_ctrl & MAC_CTRL_PAN_COORD_MASK)) {
             if (s->regs.field_changed.ctrl_pan_coord_changed) {

@@ -91,6 +91,11 @@ netsim_init(struct han_trxm_dev *s)
 	if (han.mac.ifs_timer == -1)
 		exit(EXIT_FAILURE);
 
+	/* Create Ack wait timer */
+	han.mac.ack_wait_timer = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC | TFD_NONBLOCK);
+	if (han.mac.ack_wait_timer == -1)
+		exit(EXIT_FAILURE);
+
 	/* Create txstart event */
 	if (han_event_init(&han.txstart_event) == -1) {
 		perror("Failed to create txstart event");
@@ -109,6 +114,7 @@ netsim_init(struct han_trxm_dev *s)
 		exit(EXIT_FAILURE);
 	}
 
+	han.rx.data_ind = NULL;
 	netsim_rxmcast_init();
 
 	rv = pthread_create(&han.sm_threadinfo, NULL,

@@ -179,6 +179,7 @@ struct hanadu {
 		uint64_t node_id;
 	} netsim;
 	struct han_rx {
+		struct netsim_data_ind_pkt *data_ind;
 		struct rxbuf buf[4];
 		unsigned bufs_avail_bitmap;
 		Fifo8 nextbuf;
@@ -212,6 +213,8 @@ struct hanadu {
 		int tx_timer;
 		/* Interframe Spacing timer */
 		int ifs_timer;
+		/* ack wait timer */
+		int ack_wait_timer;
 	} mac;
 	struct han_ad9865 {
 		uint32_t regs[5];

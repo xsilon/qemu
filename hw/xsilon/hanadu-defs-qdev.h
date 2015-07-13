@@ -300,6 +300,10 @@ struct han_regmap_mac
         field_changed_fn sifs_period_changed;
         field_changed_fn max_sifs_frame_size_changed;
         field_changed_fn ifs_enable_changed;
+        field_changed_fn ctrl_ea_lower_changed;
+        field_changed_fn ctrl_ea_upper_changed;
+        field_changed_fn ctrl_short_addr_changed;
+        field_changed_fn ctrl_pan_id_changed;
         field_changed_fn ctrl_pan_coord_changed;
         field_changed_fn ctrl_filter_enable_changed;
         field_changed_fn timeout_strategy_changed;

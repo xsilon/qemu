@@ -2,7 +2,7 @@
 
 set -e
 
-DEPLOY_DIR=./tmp/deploy/images/han9250-qemuzynq/
+DEPLOY_DIR=/opt/poky-1.7/yocto-build/han9250-qemuzynq/debug/tmp/deploy/images/han9250-qemuzynq/
 
 
 FLASH_DEV_SIZE_KB=$((64 * 1024))
@@ -12,7 +12,7 @@ FLASH_NUM_SECT=$(($FLASH_DEV_SIZE_KB / $SECTOR_SIZE_KB))
 # @todo change to relative path once Xilinx QEMU is integrated into our build environment.
 #QEMU_APP=~/ws/qemu/arm-softmmu/qemu-system-arm
 #QEMU_APP=~/workspace/qemu/arm-softmmu/qemu-system-arm
-QEMU_APP=tmp/sysroots/x86_64-linux/usr/bin/qemu-system-arm
+QEMU_APP=./arm-softmmu/qemu-system-arm
 #QEMU_APP=~/zynq_ws/qemu/arm-softmmu/qemu-system-arm
 #QEMU_MAIN_OPTS=' --display none -smp 1 -machine xilinx-zynq-a9 -serial mon:stdio'
 #QEMU_MAIN_OPTS='-M arm-generic-fdt -smp 2 -machine linux=on -chardev stdio,id=mon0 -mon chardev=mon0,mode=readline'
@@ -21,7 +21,7 @@ SERVER_IP=10.4.18.4
 ZYNQ_DTB_YOCTO=$DEPLOY_DIR/qemuzynq-han9250.dtb
 ZYNQ_DTB_TEST=./cache/xsilon-zynq.dtb
 ZYNQ_DTB=${ZYNQ_DTB_YOCTO}
-ZYNQ_KERNEL=./$DEPLOY_DIR/uImage
+ZYNQ_KERNEL=$DEPLOY_DIR/uImage
 #ZYNQ_KERNEL=./tmp/work/han9250_zynq-oe-linux-gnueabi/linux-xsilon/4.0-brian+gitAUTOINC+133be0264f-r1/linux-han9250_zynq-standard-build/arch/arm/boot/zImage
 #DEBUG_ARGS='-D qemu.log -d int'
 DEBUG_ARGS=''
@@ -36,6 +36,9 @@ create_zynq_env()
 	FILENAME=$(basename "$UBOOT_ENV_TEMPLATE")
 	UBOOT_ENV_FILE="cache/han9250-uboot-env-$1.txt"
 
+	if [ ! -e cache ]; then
+		mkdir cache;
+	fi
 	cp ${UBOOT_ENV_TEMPLATE} ${UBOOT_ENV_FILE}
 	echo "Substituting ${MACADDR_COLONS} in ${UBOOT_ENV_FILE}"
 	sed -i "s/!ETHADDR!/$MACADDR_COLONS/g" ${UBOOT_ENV_FILE}
@@ -97,7 +100,7 @@ while getopts “hl:m:n:s:tSuN:P:a:” OPTION; do
 		NODE_NUM=${OPTARG}
 		;;
 	S)
-		SUSPEND_QEMU=-S
+		SUSPEND_QEMU="-S -gdb tcp::12001"
 		;;
 	s)
 		SERVER_IP=${OPTARG}
@@ -145,7 +148,7 @@ ZYNQ_KERNEL_ARGS_RAM="console=ttyPS0,115200 earlyprintk ip=:::::eth0:dhcp root=/
 # Start the emulator
 #-drive file=riscos-2014-06-04-RC12a.img,if=sd
 #-sd sdimage.bin
-CMD="${QEMU_APP} ${QEMU_MAIN_OPTS} -gdb tcp::12001 ${XSILON_ARGS} ${FLASH_ARGS} ${DEBUG_ARGS} -dtb ${ZYNQ_DTB} -kernel ${ZYNQ_KERNEL} ${SUSPEND_QEMU} ${QEMU_BRIDGE_NET_OPTS} ${SERIAL_DEVICE_OPTS} -append \"$ZYNQ_KERNEL_ARGS_NFS\""
+CMD="${QEMU_APP} ${QEMU_MAIN_OPTS} ${XSILON_ARGS} ${FLASH_ARGS} ${DEBUG_ARGS} -dtb ${ZYNQ_DTB} -kernel ${ZYNQ_KERNEL} ${SUSPEND_QEMU} ${QEMU_BRIDGE_NET_OPTS} ${SERIAL_DEVICE_OPTS} -append \"$ZYNQ_KERNEL_ARGS_NFS\""
 echo "Running ${CMD}"
 eval ${CMD}
 

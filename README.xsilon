@@ -1,24 +1,27 @@
 Introduction
 ============
 
-This Yocto build directory is for the HAN9250 QEMU Zynq platform.  To setup
-Yocto you run:
-source oe-init-build-env yocto-build/han9250-qemuzynq/debug
+This guide is for configuring, building and running QEMU from the main git repository.
 
-from your Poky installation directory, e.g. /opt/poky
+Needed Packages
+---------------
 
-Main build targets are
-virtual/kernel
-	Will build the Linux Kernel
-core-image-minimal
-	Will build the Linux Kernel and root-fs for our Brian Distro
-meta-ide-support
-	Will build QEMU and GDB as well as all the files necessary for 
-	debugging using eclipse.
+libfdt-dev
 
 
-QEMU
-====
+
+Configuring
+-----------
+
+./configure --target-list="arm-softmmu" --enable-fdt --disable-kvm
+
+
+Building
+--------
+
+make
+
+
 
 Creating DTB file
 -----------------

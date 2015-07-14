@@ -9,6 +9,7 @@
  */
 #include "hanadu.h"
 #include "hanadu-inl.h"
+#include "hanadu-defs.h"
 
 
 static uint16_t
@@ -144,19 +145,22 @@ const char* tx_power_hex_to_dbstring(u8 hexvalue){
 }
 #endif
 
-void
+ssize_t
 netsim_tx_data_ind(void)
 {
 	uint16_t psdu_len;
 	uint8_t rep_code;
+	uint16_t extra_hdr;
 	uint8_t * buf;
 	int8_t tx_power;
 	int msg_len;
 	struct netsim_data_ind_pkt *data_ind_pkt;
+	int rv;
 
 	if (han_trxm_tx_mem_bank_select_get(han.trx_dev) == 0) {
 		psdu_len = han_trxm_tx_psdu_len0_get(han.trx_dev);
 		rep_code = han_trxm_tx_rep_code0_get(han.trx_dev);
+		extra_hdr = han_trxm_tx_hdr_extra0_get(han.trx_dev);
 		buf = han.tx.buf[0].data;
 		tx_power = han_trxm_tx_pga_gain0_get(han.trx_dev);
 		if (han_trxm_tx_att_20db0_get(han.trx_dev))
@@ -166,6 +170,7 @@ netsim_tx_data_ind(void)
 	} else {
 		psdu_len = han_trxm_tx_psdu_len1_get(han.trx_dev);
 		rep_code = han_trxm_tx_rep_code1_get(han.trx_dev);
+		extra_hdr = han_trxm_tx_hdr_extra1_get(han.trx_dev);
 		buf = han.tx.buf[1].data;
 		tx_power = han_trxm_tx_pga_gain1_get(han.trx_dev);
 		if (han_trxm_tx_att_20db1_get(han.trx_dev))
@@ -187,16 +192,65 @@ netsim_tx_data_ind(void)
 	memcpy(&data_ind_pkt->source_addr, han.mac_addr, sizeof(data_ind_pkt->source_addr));
 	data_ind_pkt->psdu_len = htons(psdu_len);
 	data_ind_pkt->rep_code = rep_code;
+	data_ind_pkt->extra_hdr = extra_hdr;
 	data_ind_pkt->cca_mode = 0;
 	data_ind_pkt->tx_power = tx_power;
 	memcpy(data_ind_pkt->pktData, buf, psdu_len);
 
 	data_ind_pkt->hdr.cksum = htons(generate_checksum(data_ind_pkt, msg_len));
-	sendto(han.netsim.sockfd, data_ind_pkt, msg_len, 0,
+	rv = sendto(han.netsim.sockfd, data_ind_pkt, msg_len, 0,
 		   (struct sockaddr *)&han.netsim.server_addr,
 		   sizeof(han.netsim.server_addr));
 	/* TODO: Check return value and log if error */
 	free(data_ind_pkt);
+
+	return rv;
+}
+
+ssize_t
+netsim_tx_ack_data_ind(uint8_t seq_num)
+{
+	uint8_t rep_code;
+	int8_t tx_power;
+	int msg_len;
+	struct netsim_data_ind_pkt *data_ind_pkt;
+	int rv;
+	uint8_t ack_buf[ACK_FRAME_LENGTH];
+
+	ack_buf[0] = han_mac_ack_fc0_get(han.mac_dev);
+	ack_buf[1] = han_mac_ack_fc1_get(han.mac_dev);;
+	ack_buf[2] = seq_num;
+
+	rep_code = han_mac_ack_rep_code_get(han.mac_dev);
+	tx_power = han_mac_ack_pga_gain_get(han.mac_dev);
+
+	msg_len = sizeof(struct netsim_data_ind_pkt) - 1 + ACK_FRAME_LENGTH;
+	data_ind_pkt = (struct netsim_data_ind_pkt *)malloc(msg_len);
+
+	memset(data_ind_pkt, 0, msg_len);
+	netsim_tx_fill_header(&data_ind_pkt->hdr, msg_len, MSG_TYPE_TX_DATA_IND);
+
+	/* han.mac_addr is in big endian format as we copy the bytes of EA ADDR
+	 * register into this array so we can copy it into data_ind_pkt->source_addr
+	 * and it will be in network byte order.
+	 */
+	memcpy(&data_ind_pkt->source_addr, han.mac_addr, sizeof(data_ind_pkt->source_addr));
+	data_ind_pkt->psdu_len = htons(ACK_FRAME_LENGTH);
+	data_ind_pkt->rep_code = rep_code;
+	data_ind_pkt->extra_hdr = han_mac_ack_extra_hdr_get(han.mac_dev);
+	/* CCA not used for acks, set to 0 */
+	data_ind_pkt->cca_mode = 0;
+	data_ind_pkt->tx_power = tx_power;
+	memcpy(data_ind_pkt->pktData, ack_buf, ACK_FRAME_LENGTH);
+
+	data_ind_pkt->hdr.cksum = htons(generate_checksum(data_ind_pkt, msg_len));
+	rv = sendto(han.netsim.sockfd, data_ind_pkt, msg_len, 0,
+		   (struct sockaddr *)&han.netsim.server_addr,
+		   sizeof(han.netsim.server_addr));
+	/* TODO: Check return value and log if error */
+	free(data_ind_pkt);
+
+	return rv;
 }
 
 ssize_t

@@ -53,6 +53,7 @@ typedef void (* han_state_handle_ack_wait_timer_expires)(void);
 
 struct han_state {
 	enum han_state_enum id;
+	const char *name;
 
 	han_state_enter enter;
 	han_state_exit exit;
@@ -86,6 +87,7 @@ void hs_tx_pkt_handle_tx_done_ind(int tx_result);
 void hs_tx_pkt_handle_tx_timer_expires(void);
 
 void hs_wait_rx_ack_enter(void);
+void hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_wait_rx_ack_wait_timer_expires(void);
 
 void hs_tx_ack_enter(void);
@@ -98,26 +100,31 @@ void hs_ifs_handle_ifs_timer_expires(void);
 static void
 invalid_event(void)
 {
+	fprintf(stderr, "Erroneously received event whilst in %s", han.state->name);
 	abort();
 }
 static void
 invalid_event_cca_con(int cca_result)
 {
+	fprintf(stderr, "Erroneously received CCA Con whilst in %s", han.state->name);
 	abort();
 }
 static void
 invalid_event_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 {
+	fprintf(stderr, "Erroneously received packet whilst in %s", han.state->name);
 	abort();
 }
 static void
 invalid_event_tx_done(int tx_done_result)
 {
+	fprintf(stderr, "Erroneously received tx done whilst in %s", han.state->name);
 	abort();
 }
 
 static struct han_state han_state_wait_sysinfo = {
 	.id = HAN_STATE_WAIT_SYSINFO,
+	.name = "HAN_STATE_WAIT_SYSINFO",
 	.enter = NULL,
 	.exit = NULL,
 	.handle_sysinfo_event = hs_wait_sysinfo_handle_sysinfo_event,
@@ -133,6 +140,7 @@ static struct han_state han_state_wait_sysinfo = {
 
 static struct han_state han_state_idle = {
 	.id = HAN_STATE_IDLE,
+	.name = "HAN_STATE_IDLE",
 	.enter = hs_idle_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
@@ -148,11 +156,14 @@ static struct han_state han_state_idle = {
 
 static struct han_state han_state_rx_pkt = {
 	.id = HAN_STATE_RX_PKT,
+	.name = "HAN_STATE_RX_PKT",
 	.enter = hs_rx_pkt_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
 	.handle_start_tx = invalid_event,
+	/* TODO: Should we handle this, we could potentially get an Rx Packet
+	 * during CSMA and then while in Rx Pkt get the CCA result. */
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
 	.handle_backoff_timer_expires = invalid_event,
@@ -163,6 +174,7 @@ static struct han_state han_state_rx_pkt = {
 
 static struct han_state han_state_csma = {
 	.id = HAN_STATE_CSMA,
+	.name = "HAN_STATE_CSMA",
 	.enter = hs_csma_enter,
 	.exit = hs_csma_exit,
 	.handle_sysinfo_event = invalid_event,
@@ -177,6 +189,7 @@ static struct han_state han_state_csma = {
 };
 static struct han_state han_state_tx_pkt = {
 	.id = HAN_STATE_TX_PKT,
+	.name = "HAN_STATE_TX_PKT",
 	.enter = hs_tx_pkt_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
@@ -191,10 +204,11 @@ static struct han_state han_state_tx_pkt = {
 };
 static struct han_state han_state_wait_rx_ack = {
 	.id = HAN_STATE_WAIT_RX_ACK,
+	.name = "HAN_STATE_WAIT_RX_ACK",
 	.enter = hs_wait_rx_ack_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
-	.handle_rx_pkt = invalid_event_rx_pkt,
+	.handle_rx_pkt = hs_wait_rx_ack_handle_rx_pkt,
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
@@ -206,6 +220,7 @@ static struct han_state han_state_wait_rx_ack = {
 
 static struct han_state han_state_tx_ack = {
 	.id = HAN_STATE_TX_ACK,
+	.name = "HAN_STATE_TX_ACK",
 	.enter = hs_tx_ack_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
@@ -221,6 +236,7 @@ static struct han_state han_state_tx_ack = {
 
 static struct han_state han_state_ifs = {
 	.id = HAN_STATE_IFS,
+	.name = "HAN_STATE_IFS",
 	.enter = hs_ifs_enter,
 	.exit = hs_ifs_exit,
 	.handle_sysinfo_event = invalid_event,
@@ -265,16 +281,6 @@ hanadu_state_is_transmitting(void)
 {
 	return !hanadu_state_is_listening();
 }
-
-/* TODO: Eventually these may have to be protected by a mutex as we have 2
- * different threads accessing the han.state variable.  */
-#if 0
-static enum han_state_enum
-hanadu_state_get(void)
-{
-	return han.state->id;
-}
-#endif
 
 static void
 hanadu_state_change(struct han_state *new_state)
@@ -336,6 +342,8 @@ hs_wait_sysinfo_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 	free(data_ind);
 	assert(han.rx.data_ind == NULL);
 }
+
+
 /* ______________________________________________________________ HAN_STATE_IDLE
  */
 
@@ -374,6 +382,7 @@ hs_idle_handle_start_tx(void)
 		hanadu_state_change(&han_state_csma);
 	}
 }
+
 
 /* ____________________________________________________________ HAN_STATE_RX_PKT
  */
@@ -538,6 +547,8 @@ hs_rx_pkt_enter(void)
 		if (han.rx.data_ind->pktData[0] & IEEE802154_FC0_AR_BIT) {
 			hanadu_state_change(&han_state_tx_ack);
 		} else {
+			free(han.rx.data_ind);
+			han.rx.data_ind = NULL;
 			hanadu_state_change(&han_state_idle);
 		}
 	} else {
@@ -546,15 +557,11 @@ hs_rx_pkt_enter(void)
 		han.rx.data_ind = NULL;
 		hanadu_state_change(&han_state_idle);
 	}
-
 }
+
 
 /* ______________________________________________________________ HAN_STATE_CSMA
  */
-/*  */
-//hanadu_tx_buffer_to_netsim();
-//hanadu_state_change(&han_state_idle);
-
 
 static int
 ipow(int base, int exp)
@@ -611,12 +618,18 @@ void
 hs_csma_enter(void)
 {
 	if (!han.mac.tx_started) {
+		han.mac.tx_attempt = 0;
+		han_mac_ack_retry_attempts_set(han.mac_dev, 0);
+		han.mac.tx_started = true;
+		assert(!han.mac.csma_started);
+	}
+	if (!han.mac.csma_started) {
 		uint8_t txbuf;
 
 		/* As per 802.15.4 spec set NB to 0 and BE to macMinBE */
 		han.mac.nb = 0;
 		han.mac.be = han_mac_min_be_get(han.mac_dev);
-		han.mac.tx_started = true;
+		han.mac.csma_started = true;
 
 		txbuf = han_trxm_tx_mem_bank_select_get(han.trx_dev);
 		assert(txbuf < 2);
@@ -656,6 +669,8 @@ hs_csma_handle_cca_con(int cca_result)
 
 		/* TODO: Do we updated register to reflect num back offs here or
 		 * once we CSMA finishes */
+		/* TODO: Find out from HW guys if num backoffs is accumulated
+		 * for each retry or reflects just the last attempt. */
 		han.mac.nb++;
 		han.mac.be++;
 		assert(!han_mac_status_tx_timeout_occured_get(han.mac_dev));
@@ -704,9 +719,9 @@ hs_csma_handle_backoff_timer_expires(void)
 	clear_channel_assessment();
 }
 
+
 /* ____________________________________________________________ HAN_STATE_TX_PKT
  */
-
 
 #if 0
 /* TODO: Get number of milliseconds that the current transmission would take. */
@@ -734,7 +749,9 @@ hs_tx_pkt_handle_tx_done_ind(int tx_result)
 {
 	han_trxm_tx_busy_set(han.trx_dev, false);
 	stop_timer(han.mac.tx_timer);
+
 	if (han.mac.ack_requested)
+		/* TODO: Do we only go into this state if (han_mac_ack_enable_get(han.mac_dev)) { */
 		hanadu_state_change(&han_state_wait_rx_ack);
 	else
 		hanadu_state_change(&han_state_ifs);
@@ -751,19 +768,98 @@ hs_tx_pkt_handle_tx_timer_expires(void)
 /* _______________________________________________________ HAN_STATE_WAIT_RX_ACK
  */
 
+static void
+tx_attempt_failed(void)
+{
+	/* No ack received or seq numbers don't match, increase retry attempts */
+	uint8_t max_retries;
+
+	max_retries = han_mac_max_retries_get(han.mac_dev);
+
+	han.mac.tx_attempt++;
+	han_mac_ack_retry_attempts_set(han.mac_dev, han.mac.tx_attempt);
+
+	/* Once we reach the Max retries we set the ack success register flag
+	 * to false, retries has been set above so that leaves raising the
+	 * Tx Interrupt so the driver can drop the packet and update it's stats.
+	 */
+	if (han.mac.tx_attempt >= max_retries) {
+		han_mac_ack_success_set(han.mac_dev, false);
+
+		qemu_irq_pulse(han.trx_dev->tx_irq);
+
+		hanadu_state_change(&han_state_idle);
+	} else {
+		/* As the Tx Attempt has not been acknowledged we need to try
+		 * again and perform clear channel assessment again to try and
+		 * gain access to the medium. */
+		hanadu_state_change(&han_state_csma);
+	}
+}
+
 void
 hs_wait_rx_ack_enter(void)
 {
-	/* TODO: Start tAck the ack wait timer, which is defined in the ack wait duration
-	 * register. */
+	uint16_t wait_dur;
+
+	/* These are 10usecs units */
+	wait_dur = han_mac_ack_wait_dur_get(han.mac_dev);
+	/* 10000 = 10 usecs in nanoseconds. */
+	start_timer(han.mac.ack_wait_timer, wait_dur * 10000);
+}
+
+void
+hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
+{
+	uint8_t ack_seq_num;
+	uint16_t ack_fc;
+
+	ack_fc = data_ind->pktData[0];
+	ack_fc |= ((uint16_t)data_ind->pktData[1]) >> 8;
+	ack_seq_num = data_ind->pktData[2];
+	if (han_mac_ack_destination_get(han.mac_dev)) {
+		/* Ack data goes to ack data register */
+		han_mac_ack_rx_seq_num_set(han.mac_dev, ack_seq_num);
+		han_mac_ack_rx_fc_set(han.mac_dev, ack_fc);
+
+	} else {
+		/* TODO: for the moment handle han_mac_ack_destination_get() set to register
+		 * then for future implement buffer. */
+
+	}
+
+	if (han_mac_ack_seq_check_get(han.mac_dev)) {
+		uint8_t tx_pkt_seq_num;
+
+		if (han_trxm_tx_mem_bank_select_get(han.trx_dev) == 0)
+			tx_pkt_seq_num = han.tx.buf[0].data[2];
+		else
+			tx_pkt_seq_num = han.tx.buf[1].data[2];
+
+		if (tx_pkt_seq_num != ack_seq_num) {
+			/* TODO: If seq check fails then we should do what we do in expires
+			 * and either go back to CSMA or if max retries go to Idle.
+			 * Check with HW numpties that this is the case. */
+			tx_attempt_failed();
+			return;
+		}
+
+	}
+
+
+
+	/* TODO: IF all is well han_mac_ack_success_set(han.mac_dev, true); */
+
+
+	hanadu_state_change(&han_state_ifs);
 }
 
 void
 hs_wait_rx_ack_wait_timer_expires(void)
 {
-	/* TODO: No ack received, increase retry attempts and go back to CSMA
-	 * state. */
+	tx_attempt_failed();
 }
+
 
 /* ____________________________________________________________ HAN_STATE_TX_ACK
  */
@@ -771,8 +867,23 @@ hs_wait_rx_ack_wait_timer_expires(void)
 void
 hs_tx_ack_enter(void)
 {
-	/* TODO: Transmit Ack */
+	uint8_t seq_num;
+
+	seq_num = han.rx.data_ind->pktData[2];
+	/* Transmit Ack to Network Simulator */
+	netsim_tx_ack_data_ind(seq_num);
+
+	/* Now we have finished with Last Received packet so free it */
+	free(han.rx.data_ind);
+	han.rx.data_ind = NULL;
+
+	/* TODO: We will makes acks instant for the moment, may change this to
+	 * timer driven, if we stay with the current then we could potentially
+	 * lose this state and just move to Rx Pkt.
+	 */
+	hanadu_state_change(&han_state_idle);
 }
+
 
 /* _______________________________________________________________ HAN_STATE_IFS
  */
@@ -820,6 +931,7 @@ hs_ifs_handle_ifs_timer_expires(void)
 {
 	hanadu_state_change(&han_state_idle);
 }
+
 
 /* ___________________________________________________ Main State Machine Thread
  */
@@ -1118,3 +1230,4 @@ hanadu_modem_model_thread(void *arg)
 	close(han.netsim.rxmcast.sockfd);
 	pthread_exit(NULL);
 }
+

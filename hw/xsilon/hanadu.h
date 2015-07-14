@@ -193,6 +193,8 @@ struct hanadu {
 	struct han_mac {
 		/* Flag to indicate that we have started a transmission. */
 		bool tx_started;
+		/* Flag set when CSMA is first entered. */
+		bool csma_started;
 		/* Set when TOS is tx when channel next idle */
 		bool wait_free;
 		/* For the current transmission is the AR bit set */
@@ -204,6 +206,11 @@ struct hanadu {
 		int nb;
 		/* current backoff exponent */
 		int be;
+		/* When acks are requests this indicates the current Tx Attempt
+		 * starts at 0 for first packet, incremented to 1 if ack not
+		 * received so at this point contains the number of retries.
+		 */
+		int tx_attempt;
 
 		/* Timer for random backoff for CSMA state. */
 		int backoff_timer;
@@ -236,9 +243,10 @@ ssize_t
 netsim_tx_reg_con(void);
 ssize_t
 netsim_tx_cca_req(void);
-/* TODO: return ssize_t */
-void
+ssize_t
 netsim_tx_data_ind(void);
+ssize_t
+netsim_tx_ack_data_ind(uint8_t seq_num);
 
 void *
 netsim_rx_read_msg(void);

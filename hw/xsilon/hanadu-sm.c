@@ -79,6 +79,7 @@ void hs_rx_pkt_enter(void);
 
 void hs_csma_enter(void);
 void hs_csma_exit(void);
+void hs_csma_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_csma_handle_cca_con(int cca_result);
 void hs_csma_handle_backoff_timer_expires(void);
 
@@ -178,7 +179,7 @@ static struct han_state han_state_csma = {
 	.enter = hs_csma_enter,
 	.exit = hs_csma_exit,
 	.handle_sysinfo_event = invalid_event,
-	.handle_rx_pkt = invalid_event_rx_pkt,
+	.handle_rx_pkt = hs_csma_handle_rx_pkt,
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = hs_csma_handle_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
@@ -351,11 +352,17 @@ void
 hs_idle_enter(void)
 {
 	/* Check so see if tx start has been set which may have happened whilst
-	 * we were in IFS state. */
-	if (han.mac.start_tx_latched) {
+	 * we were in IFS state or we are currently in the process of transmitting
+	 * a packet.  The latter can occur when we receive a packet whilst
+	 * doing CSMA. */
+	if (han.mac.start_tx_latched || han.mac.tx_started) {
 		assert(han_trxm_tx_start_get(han.trx_dev));
 
-		hanadu_state_change(&han_state_tx_pkt);
+		if (han_mac_lower_mac_bypass_get(han.mac_dev)) {
+			hanadu_state_change(&han_state_tx_pkt);
+		} else {
+			hanadu_state_change(&han_state_csma);
+		}
 		han.mac.start_tx_latched = false;
 	}
 }
@@ -368,9 +375,6 @@ hs_idle_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 	hanadu_state_change(&han_state_rx_pkt);
 }
 
-/*
- * QEMU Context: CPU thread (han_trxm_mem_region_write)
- */
 void
 hs_idle_handle_start_tx(void)
 {
@@ -403,29 +407,32 @@ hanadu_rx_frame_fill_buffer(void)
 		/* Overflow */
 		han_trxm_rx_mem_bank_overflow_set(han.trx_dev, true);
 	} else {
+		uint16_t rxind_psdu_len;
 		/* Clear the buffer from the bitmap as we are going to use it. */
 		han.rx.bufs_avail_bitmap &= ~(1<<i);
 		han_trxm_rx_mem_bank_overflow_set(han.trx_dev, false);
 		assert(i>=0 && i<4);
 		assert(!fifo8_is_full(&han.rx.nextbuf));
+
+		rxind_psdu_len = ntohs(han.rx.data_ind->psdu_len);
 		switch(i) {
 		case 0:
-			han_trxm_rx_psdulen0_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_psdulen0_set(han.trx_dev, rxind_psdu_len);
 			han_trxm_rx_repcode0_set(han.trx_dev, han.rx.data_ind->rep_code);
 			han_trxm_rx_mem_bank_full0_flag_set(han.trx_dev, 1);
 			break;
 		case 1:
-			han_trxm_rx_psdulen1_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_psdulen1_set(han.trx_dev, rxind_psdu_len);
 			han_trxm_rx_repcode1_set(han.trx_dev, han.rx.data_ind->rep_code);
 			han_trxm_rx_mem_bank_full1_flag_set(han.trx_dev, 1);
 			break;
 		case 2:
-			han_trxm_rx_psdulen2_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_psdulen2_set(han.trx_dev, rxind_psdu_len);
 			han_trxm_rx_repcode2_set(han.trx_dev, han.rx.data_ind->rep_code);
 			han_trxm_rx_mem_bank_full2_flag_set(han.trx_dev, 1);
 			break;
 		case 3:
-			han_trxm_rx_psdulen3_set(han.trx_dev, han.rx.data_ind->psdu_len);
+			han_trxm_rx_psdulen3_set(han.trx_dev, rxind_psdu_len);
 			han_trxm_rx_repcode3_set(han.trx_dev, han.rx.data_ind->rep_code);
 			han_trxm_rx_mem_bank_full3_flag_set(han.trx_dev, 1);
 			break;
@@ -439,7 +446,9 @@ hanadu_rx_frame_fill_buffer(void)
 		/* copy data into the relevant buffer */
 		rxbuf = han.rx.buf[i].data;
 		data = (uint8_t *)han.rx.data_ind->pktData;
-		for(i=0;i<han.rx.data_ind->psdu_len;i++)
+		/* TODO: Remove Magic number */
+		assert(rxind_psdu_len <= 127);
+		for(i=0;i<rxind_psdu_len;i++)
 			*rxbuf++ = *data++;
 	}
 }
@@ -456,6 +465,7 @@ hanadu_rx_frame_filter_accept(void)
 	assert(han.rx.data_ind);
 
 	if (!han_mac_ctrl_filter_enable_get(han.mac_dev)) {
+		fprintf(stderr, "FILTER ACCEPT: Promiscuous\n");
 		return true;
 	}
 
@@ -463,6 +473,7 @@ hanadu_rx_frame_filter_accept(void)
 	sa_mode = (han.rx.data_ind->pktData[1] & 0xC0) >> 6;
 	da_mode = (han.rx.data_ind->pktData[1] & 0x0C) >> 2;
 	if (frame_type == FRAME_TYPE_ACK) {
+		fprintf(stderr, "FILTER REJECT: ACK\n");
 		return false;
 	}
 	our_pan_id = han_mac_ctrl_pan_id_get(han.mac_dev);
@@ -471,10 +482,13 @@ hanadu_rx_frame_filter_accept(void)
 		src_pan_id = han.rx.data_ind->pktData[3];
 		src_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
 
-		if (our_pan_id == 0xffff || our_pan_id == src_pan_id)
+		if (our_pan_id == 0xffff || our_pan_id == src_pan_id) {
+			fprintf(stderr, "FILTER ACCEPT: Beacon for us\n");
 			return true;
-		else
+		} else {
+			fprintf(stderr, "FILTER REJECT: Beacon not for us\n");
 			return false;
+		}
 	}
 	if (da_mode == ADDR_MODE_ELIDED) {
 		uint16_t src_pan_id;
@@ -482,16 +496,21 @@ hanadu_rx_frame_filter_accept(void)
 		src_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
 		if (sa_mode != ADDR_MODE_ELIDED
 			&& han_mac_ctrl_pan_coord_get(han.mac_dev)
-			&& src_pan_id == our_pan_id)
+			&& src_pan_id == our_pan_id) {
+			fprintf(stderr, "FILTER ACCEPT: DA_ELIDED\n");
 			return true;
-		else
+		} else {
+			fprintf(stderr, "FILTER REJECT: DA_ELIDED\n");
 			return false;
+		}
 	}
 	dst_pan_id = han.rx.data_ind->pktData[3];
 	dst_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
 	/* We know destination PAN ID isn't elided */
-	if (dst_pan_id != 0xffff && dst_pan_id != our_pan_id)
+	if (dst_pan_id != 0xffff && dst_pan_id != our_pan_id) {
+		fprintf(stderr, "FILTER REJECT: DEST PAN (0x%04x) not ours (0x%04x) or broadcast\n", dst_pan_id, our_pan_id);
 		return false;
+	}
 
 	if (da_mode == ADDR_MODE_SHORT) {
 		uint16_t dst_short_addr;
@@ -500,10 +519,15 @@ hanadu_rx_frame_filter_accept(void)
 		dst_short_addr = han.rx.data_ind->pktData[5];
 		dst_short_addr |= (uint16_t)han.rx.data_ind->pktData[6] << 8;
 		our_short_addr = han_mac_ctrl_short_addr_get(han.mac_dev);
-		if (dst_short_addr != 0xffff && dst_short_addr != our_short_addr)
-			return false;
-		else
+		if (dst_short_addr == 0xffff || dst_short_addr == our_short_addr) {
+			fprintf(stderr, "FILTER ACCEPT: DA_SHORT DST_SA(0x%04x) OURS(0x%04x)\n",
+					dst_short_addr, our_short_addr);
 			return true;
+		} else {
+			fprintf(stderr, "FILTER REJET: DA_SHORT DST_SA(0x%04x) OURS(0x%04x)\n",
+					dst_short_addr, our_short_addr);
+			return false;
+		}
 	}
 
 	if (da_mode == ADDR_MODE_EXTENDED) {
@@ -523,13 +547,19 @@ hanadu_rx_frame_filter_accept(void)
 		our_ext_addr <<= 32;
 		our_ext_addr |= han_mac_ctrl_ea_lower_get(han.mac_dev);
 
-		if (dst_ext_addr == our_ext_addr)
+		if (dst_ext_addr == our_ext_addr) {
+			fprintf(stderr, "FILTER ACCEPT: DA_EXT DST_EXT(0x%016llx) OURS(0x%016llx)\n",
+					(long long unsigned int)dst_ext_addr, (long long unsigned int)our_ext_addr);
 			return true;
-		else
+		} else {
+			fprintf(stderr, "FILTER REJECT: DA_EXT DST_EXT(0x%016llx) OURS(0x%016llx)\n",
+					(long long unsigned int)dst_ext_addr, (long long unsigned int)our_ext_addr);
 			return false;
+		}
 	}
 
 	/* Unknown destination addressing mode */
+	fprintf(stderr, "FILTER REJECT: DA_UNKNOWN\n");
 	return false;
 }
 
@@ -578,6 +608,7 @@ ipow(int base, int exp)
 	return result;
 }
 
+
 static void
 start_backoff_timer(void)
 {
@@ -597,6 +628,7 @@ start_backoff_timer(void)
 	start_timer(han.mac.backoff_timer, backoff_usecs * 1000);
 }
 
+
 static void
 clear_channel_assessment(void)
 {
@@ -606,6 +638,7 @@ clear_channel_assessment(void)
 	/* TODO: Check return and log error */
 	assert(rv > 0);
 }
+
 
 /*
  * We can enter this state under 2 conditions, 1 from Idle in which case we
@@ -646,13 +679,22 @@ hs_csma_enter(void)
 	}
 }
 
+
 void
 hs_csma_exit(void)
 {
-	/* Ensure wait free is cleared */
-	han.mac.wait_free = false;
 	/* Stop Backoff timer if started */
 	stop_timer(han.mac.backoff_timer);
+}
+
+
+void
+hs_csma_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
+{
+	assert(han.rx.data_ind == NULL);
+	han.rx.data_ind = data_ind;
+	/* State change will stop back off timer */
+	hanadu_state_change(&han_state_rx_pkt);
 }
 
 void
@@ -662,6 +704,8 @@ hs_csma_handle_cca_con(int cca_result)
 	if (cca_result) {
 		/* yes */
 		han_mac_status_tx_timeout_occured_set(han.mac_dev, false);
+		han.mac.csma_started = false;
+		han.mac.wait_free = false;
 		hanadu_state_change(&han_state_tx_pkt);
 	} else {
 		int macMaxBE;
@@ -691,11 +735,13 @@ hs_csma_handle_cca_con(int cca_result)
 				han_mac_status_backoff_attempts_set(han.mac_dev, han.mac.nb);
 				/* Generate Tx Interrupt */
 				qemu_irq_pulse(han.trx_dev->tx_irq);
+				han.mac.csma_started = false;
 				hanadu_state_change(&han_state_idle);
 				break;
 			case TOS_TX_IMMEDIATE:
 				/* TODO: Do we set tx_timeout_occured to false here? ask Ian */
 				/* CCA failed, just go ahead and Tranmit */
+				han.mac.csma_started = false;
 				hanadu_state_change(&han_state_tx_pkt);
 				break;
 			case TOS_CCA_WAIT_THEN_TX:
@@ -740,8 +786,8 @@ hs_tx_pkt_enter(void)
 
 	han_trxm_tx_busy_set(han.trx_dev, true);
 
-	/* Now we wait for tx done indication for 2 seconds */
-	start_timer(han.mac.tx_timer, 2000000000);
+	/* Now we wait for tx done indication for 5 seconds */
+	start_timer(han.mac.tx_timer, 5000000000);
 }
 
 void
@@ -749,6 +795,8 @@ hs_tx_pkt_handle_tx_done_ind(int tx_result)
 {
 	han_trxm_tx_busy_set(han.trx_dev, false);
 	stop_timer(han.mac.tx_timer);
+
+	fprintf(stderr, "TxDoneInd(%d)\n", tx_result);
 
 	if (han.mac.ack_requested)
 		/* TODO: Do we only go into this state if (han_mac_ack_enable_get(han.mac_dev)) { */
@@ -760,7 +808,8 @@ hs_tx_pkt_handle_tx_done_ind(int tx_result)
 void
 hs_tx_pkt_handle_tx_timer_expires(void)
 {
-	/* Not received Tx Done Indication */
+	/* Not received Tx Done Indication, shouldn't happend */
+	fprintf(stderr, "Tx Done Ind not received within 5 seconds.");
 	abort();
 }
 
@@ -814,6 +863,7 @@ hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 	uint8_t ack_seq_num;
 	uint16_t ack_fc;
 
+	/* TODO: Check it is an ack. */
 	ack_fc = data_ind->pktData[0];
 	ack_fc |= ((uint16_t)data_ind->pktData[1]) >> 8;
 	ack_seq_num = data_ind->pktData[2];

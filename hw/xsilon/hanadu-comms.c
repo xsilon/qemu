@@ -179,7 +179,7 @@ netsim_tx_data_ind(void)
 			tx_power |= 0X40;
 	}
 
-	msg_len = sizeof(struct netsim_data_ind_pkt) -1 + psdu_len;
+	msg_len = sizeof(struct netsim_data_ind_pkt) - 1 + psdu_len;
 	data_ind_pkt = (struct netsim_data_ind_pkt *)malloc(msg_len);
 
 	memset(data_ind_pkt, 0, msg_len);
@@ -192,7 +192,7 @@ netsim_tx_data_ind(void)
 	memcpy(&data_ind_pkt->source_addr, han.mac_addr, sizeof(data_ind_pkt->source_addr));
 	data_ind_pkt->psdu_len = htons(psdu_len);
 	data_ind_pkt->rep_code = rep_code;
-	data_ind_pkt->extra_hdr = extra_hdr;
+	data_ind_pkt->extra_hdr = htons(extra_hdr);
 	data_ind_pkt->cca_mode = 0;
 	data_ind_pkt->tx_power = tx_power;
 	memcpy(data_ind_pkt->pktData, buf, psdu_len);
@@ -237,7 +237,7 @@ netsim_tx_ack_data_ind(uint8_t seq_num)
 	memcpy(&data_ind_pkt->source_addr, han.mac_addr, sizeof(data_ind_pkt->source_addr));
 	data_ind_pkt->psdu_len = htons(ACK_FRAME_LENGTH);
 	data_ind_pkt->rep_code = rep_code;
-	data_ind_pkt->extra_hdr = han_mac_ack_extra_hdr_get(han.mac_dev);
+	data_ind_pkt->extra_hdr = htons(han_mac_ack_extra_hdr_get(han.mac_dev));
 	/* CCA not used for acks, set to 0 */
 	data_ind_pkt->cca_mode = 0;
 	data_ind_pkt->tx_power = tx_power;

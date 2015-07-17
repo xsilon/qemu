@@ -176,7 +176,10 @@ han_trxm_rx_next_membank_to_proc_read(uint32_t *value_out, void *hw_block)
 
 	assert(!fifo8_is_empty(&han.rx.nextbuf));
 	next_membank = fifo8_pop(&han.rx.nextbuf);
+	if (fifo8_is_empty(&han.rx.nextbuf))
+		han_trxm_rx_mem_bank_fifo_empty_set(han.trx_dev, true);
 	han_trxm_rx_mem_bank_next_to_process_set(s, next_membank);
+fprintf(stderr, "NEXT MEMBANK READ %d\n", next_membank);
 	fifo8_push(&han.rx.proc, next_membank);
 
 	/* The buffer would be moved from nextbuf FIFO to proc FIFO */
@@ -187,6 +190,8 @@ han_trxm_rx_next_membank_to_proc_read(uint32_t *value_out, void *hw_block)
 	han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
 	han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
+fprintf(stderr, "NEXTBUF FIFO %d\n", han.rx.nextbuf.num);
+fprintf(stderr, "PROC FIFO %d\n", han.rx.proc.num);
 	/* We aren't going to terminate the read so return 0 so it's handled by
 	 * the caller which will go ahead and return the next bank bank to process */
 	return 0;
@@ -204,11 +209,14 @@ han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t m
 		/* when high adjust fifo levels. */
 		assert(!fifo8_is_empty(&han.rx.proc));
 		membank_processed = fifo8_pop(&han.rx.proc);
+fprintf(stderr, "CLEAR MEMBANK READ %d\n", membank_processed);
 		assert(membank == membank_processed);
 		fifo_used = (uint8_t)han.rx.proc.num;
 		han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
 		han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
+fprintf(stderr, "NEXTBUF FIFO %d\n", han.rx.nextbuf.num);
+fprintf(stderr, "PROC FIFO %d\n", han.rx.proc.num);
 	} else {
 		assert((han.rx.bufs_avail_bitmap & (1 << membank)) == 0);
 		han.rx.bufs_avail_bitmap |= 1 << membank;
@@ -328,7 +336,6 @@ static void han_trxm_instance_init(Object *obj)
 	s->regs.field_changed.rx_clear_membank_full2_changed = han_trxm_rx_clear_membank_full2_changed;
 	s->regs.field_changed.rx_clear_membank_full3_changed = han_trxm_rx_clear_membank_full3_changed;
 	s->regs.field_changed.rx_clear_membank_oflow_changed = han_trxm_rx_clear_membank_oflow_changed;
-
 	han_trxm_reg_reset(s);
 	/* Setup callbacks to capture filter reg changes */
 	han.trx_dev = s;

@@ -31,7 +31,7 @@ FLASH_ARGS=''
 # $2 = Node Number
 create_zynq_env()
 {
-	MACADDR_COLONS=${1//:/_}
+	MACADDR_COLONS=${1//-/:}
 	UBOOT_ENV_TEMPLATE=./scripts/uboot-env.txt
 	FILENAME=$(basename "$UBOOT_ENV_TEMPLATE")
 	UBOOT_ENV_FILE="cache/han9250-uboot-env-$1.txt"

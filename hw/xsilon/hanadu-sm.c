@@ -356,7 +356,8 @@ hs_idle_enter(void)
 	 * a packet.  The latter can occur when we receive a packet whilst
 	 * doing CSMA. */
 	if (han.mac.start_tx_latched || han.mac.tx_started) {
-		assert(han_trxm_tx_start_get(han.trx_dev));
+		if (han.mac.start_tx_latched)
+			assert(han_trxm_tx_start_get(han.trx_dev));
 
 		if (han_mac_lower_mac_bypass_get(han.mac_dev)) {
 			hanadu_state_change(&han_state_tx_pkt);
@@ -392,12 +393,84 @@ hs_idle_handle_start_tx(void)
  */
 
 static void
+log_hexdump(
+	const void * start_addr,
+	uint16_t dump_byte_len,
+	const void * print_address)
+{
+#define HEXDUMP_BYTES_PER_LINE		(16)
+#define HEXDUMP_MAX_HEX_LENGTH		(80)
+	char *hex_buff_p;
+	char * char_buff_p;
+	char *hex_wr_p;
+	const char *dump_p = (const char*) start_addr;
+	void * row_start_addr =
+			(void *)((long long unsigned)print_address & ~((HEXDUMP_BYTES_PER_LINE - 1)));
+	unsigned int first_row_start_column = (long long unsigned)print_address % HEXDUMP_BYTES_PER_LINE;
+	unsigned int column = 0;
+	unsigned int bytes_left = dump_byte_len;
+	unsigned int i;
+
+	hex_buff_p = (char *)malloc(HEXDUMP_MAX_HEX_LENGTH + 1);
+	char_buff_p = (char *)malloc(HEXDUMP_BYTES_PER_LINE + 1);
+	hex_wr_p = hex_buff_p;
+
+	// Print the lead in
+	for (i = 0; i < first_row_start_column; i++) {
+		hex_wr_p += sprintf(hex_wr_p, ".. ");
+		char_buff_p[column++] = ' ';
+	}
+
+	while (bytes_left) {
+		hex_wr_p += sprintf(hex_wr_p, "%02X ", ((unsigned int)*dump_p) & 0xFF);
+		if ((*dump_p >= ' ') && (*dump_p <= '~')) {
+			char_buff_p[column] = *dump_p;
+		} else {
+			char_buff_p[column] = '.';
+		}
+
+		dump_p++;
+		column++;
+		bytes_left--;
+
+		if (column >= HEXDUMP_BYTES_PER_LINE) {
+			// Print the completed line
+			hex_buff_p[HEXDUMP_MAX_HEX_LENGTH] = '\0';
+			char_buff_p[HEXDUMP_BYTES_PER_LINE] = '\0';
+
+			fprintf(stderr, "%p: %s  [%s]\n", row_start_addr, hex_buff_p, char_buff_p);
+
+			row_start_addr = ((char *)row_start_addr + HEXDUMP_BYTES_PER_LINE);
+			hex_wr_p = hex_buff_p;
+			column = 0;
+		}
+	}
+
+	if (column) {
+		// Print the lead out
+		for (i = column; i < HEXDUMP_BYTES_PER_LINE; i++) {
+			hex_wr_p += sprintf(hex_wr_p, ".. ");
+			char_buff_p[i] = ' ';
+		}
+
+		hex_buff_p[HEXDUMP_MAX_HEX_LENGTH] = '\0';
+		char_buff_p[HEXDUMP_BYTES_PER_LINE] = '\0';
+
+		fprintf(stderr, "%p: %s  [%s]\n", row_start_addr, hex_buff_p, char_buff_p);
+	}
+
+	free(hex_buff_p);
+	free(char_buff_p);
+}
+
+
+static void
 hanadu_rx_frame_fill_buffer(void)
 {
 	int i;
 	uint8_t fifo_used;
 	uint8_t *rxbuf;
-	uint8_t * data;
+	uint8_t *data;
 
 	/* first up get next available buffer */
 	i=0;
@@ -419,6 +492,8 @@ hanadu_rx_frame_fill_buffer(void)
 		case 0:
 			han_trxm_rx_psdulen0_set(han.trx_dev, rxind_psdu_len);
 			han_trxm_rx_repcode0_set(han.trx_dev, han.rx.data_ind->rep_code);
+			//TODO: Premable
+			//han_trxm_rx_preamble0_set(han.trx_dev, han.rx.data_ind->preamble);
 			han_trxm_rx_mem_bank_full0_flag_set(han.trx_dev, 1);
 			break;
 		case 1:
@@ -438,9 +513,11 @@ hanadu_rx_frame_fill_buffer(void)
 			break;
 		}
 		fifo8_push(&han.rx.nextbuf, i);
+		han_trxm_rx_mem_bank_fifo_empty_set(han.trx_dev, false);
 		fifo_used = (uint8_t)han.rx.nextbuf.num;
 		han_trxm_rx_nextbuf_fifo_wr_level_set(han.trx_dev, fifo_used);
 		han_trxm_rx_nextbuf_fifo_rd_level_set(han.trx_dev, fifo_used);
+		//TODO: Do this per packet once Ian has changed HW.
 		han_trxm_rx_rssi_latched_set(han.trx_dev, han.rx.data_ind->rssi);
 
 		/* copy data into the relevant buffer */
@@ -448,8 +525,7 @@ hanadu_rx_frame_fill_buffer(void)
 		data = (uint8_t *)han.rx.data_ind->pktData;
 		/* TODO: Remove Magic number */
 		assert(rxind_psdu_len <= 127);
-		for(i=0;i<rxind_psdu_len;i++)
-			*rxbuf++ = *data++;
+		memcpy(rxbuf, data, rxind_psdu_len);
 	}
 }
 
@@ -568,6 +644,7 @@ hs_rx_pkt_enter(void)
 {
 	/* Filter frame and if for us populate rx buffer and generate
 	 * Rx Interrupt. Otherwise drop. */
+log_hexdump(han.rx.data_ind->pktData, ntohs(han.rx.data_ind->psdu_len), han.rx.data_ind->pktData);
 	if (hanadu_rx_frame_filter_accept()) {
 
 		hanadu_rx_frame_fill_buffer();
@@ -1074,6 +1151,7 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		 * sends them over the multicast channel. */
 		assert(n > sizeof(*hdr));
 		hdr = (struct netsim_pkt_hdr *)rxbuf;
+		assert(n == ntohs(hdr->len));
 		if(!(ntohll(hdr->node_id) == han.netsim.node_id)) {
 			data_ind = netsim_rx_tx_data_ind_msg((struct netsim_data_ind_pkt *)hdr);
 			han.state->handle_rx_pkt(data_ind);

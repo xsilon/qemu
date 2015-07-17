@@ -147,7 +147,7 @@ struct netsim_data_ind_pkt
 	uint8_t cca_mode; /* the cca mode used */
 	int8_t rssi; /* Received signal strength, set by simulator */
 
-	char pktData[1];
+	uint8_t pktData[1];
 } __attribute__((__packed__ ));
 
 

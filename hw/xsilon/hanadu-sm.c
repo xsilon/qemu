@@ -76,6 +76,7 @@ void hs_idle_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_idle_handle_start_tx(void);
 
 void hs_rx_pkt_enter(void);
+void hs_rx_pkt_handle_start_tx(void);
 
 void hs_csma_enter(void);
 void hs_csma_exit(void);
@@ -92,6 +93,8 @@ void hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_wait_rx_ack_wait_timer_expires(void);
 
 void hs_tx_ack_enter(void);
+void hs_tx_ack_handle_start_tx(void);
+void hs_tx_ack_handle_tx_done_ind(int tx_result);
 
 void hs_ifs_enter(void);
 void hs_ifs_exit(void);
@@ -162,7 +165,7 @@ static struct han_state han_state_rx_pkt = {
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
-	.handle_start_tx = invalid_event,
+	.handle_start_tx = hs_rx_pkt_handle_start_tx,
 	/* TODO: Should we handle this, we could potentially get an Rx Packet
 	 * during CSMA and then while in Rx Pkt get the CCA result. */
 	.handle_cca_con = invalid_event_cca_con,
@@ -226,9 +229,9 @@ static struct han_state han_state_tx_ack = {
 	.exit = NULL,
 	.handle_sysinfo_event = invalid_event,
 	.handle_rx_pkt = invalid_event_rx_pkt,
-	.handle_start_tx = invalid_event,
+	.handle_start_tx = hs_tx_ack_handle_start_tx,
 	.handle_cca_con = invalid_event_cca_con,
-	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_tx_done_ind = hs_tx_ack_handle_tx_done_ind,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
@@ -666,6 +669,15 @@ log_hexdump(han.rx.data_ind->pktData, ntohs(han.rx.data_ind->psdu_len), han.rx.d
 	}
 }
 
+void
+hs_rx_pkt_handle_start_tx(void)
+{
+	/* It is possible to receive a tx start event whilst receiving a packet
+	 * as we may have entered IFS, received a packet and transmitted an
+	 * ack so in either of these states we need to latch the txstart. */
+	han.mac.start_tx_latched = true;
+}
+
 
 /* ______________________________________________________________ HAN_STATE_CSMA
  */
@@ -783,11 +795,13 @@ hs_csma_handle_cca_con(int cca_result)
 		han_mac_status_tx_timeout_occured_set(han.mac_dev, false);
 		han.mac.csma_started = false;
 		han.mac.wait_free = false;
+fprintf(stderr, "Channel Clear\n");
 		hanadu_state_change(&han_state_tx_pkt);
 	} else {
 		int macMaxBE;
 		/* no */
 
+fprintf(stderr, "Channel Busy\n");
 		/* TODO: Do we updated register to reflect num back offs here or
 		 * once we CSMA finishes */
 		/* TODO: Find out from HW guys if num backoffs is accumulated
@@ -914,11 +928,14 @@ tx_attempt_failed(void)
 
 		qemu_irq_pulse(han.trx_dev->tx_irq);
 
+fprintf(stderr, "Tx Packet failed as attempts(%d) >= MaxRetries(%d)\n", han.mac.tx_attempt, max_retries);
+		han.mac.tx_started = false;
 		hanadu_state_change(&han_state_idle);
 	} else {
 		/* As the Tx Attempt has not been acknowledged we need to try
 		 * again and perform clear channel assessment again to try and
 		 * gain access to the medium. */
+fprintf(stderr, "Tx Packet failed but attempts(%d) < MaxRetries(%d)\n", han.mac.tx_attempt, max_retries);
 		hanadu_state_change(&han_state_csma);
 	}
 }
@@ -932,6 +949,10 @@ hs_wait_rx_ack_enter(void)
 	wait_dur = han_mac_ack_wait_dur_get(han.mac_dev);
 	/* 10000 = 10 usecs in nanoseconds. */
 	start_timer(han.mac.ack_wait_timer, wait_dur * 10000);
+
+	/* TODO: We can't really guarantee that the ack will come back in this
+	 * time?? Unless we revert to a discrete simulator we may have to
+	 * increase this time artificially. */
 }
 
 void
@@ -939,6 +960,8 @@ hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 {
 	uint8_t ack_seq_num;
 	uint16_t ack_fc;
+
+	stop_timer(han.mac.ack_wait_timer);
 
 	/* TODO: Check it is an ack. */
 	ack_fc = data_ind->pktData[0];
@@ -968,9 +991,13 @@ hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 			 * and either go back to CSMA or if max retries go to Idle.
 			 * Check with HW numpties that this is the case. */
 			tx_attempt_failed();
+fprintf(stderr, "Ack Sequence Number mismatch TxPkt(%d) != Ack(%d)\n", tx_pkt_seq_num, ack_seq_num);
 			return;
+		} else {
+			han_mac_ack_success_set(han.mac_dev, true);
 		}
-
+	} else {
+		han_mac_ack_success_set(han.mac_dev, true);
 	}
 
 
@@ -984,6 +1011,8 @@ hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 void
 hs_wait_rx_ack_wait_timer_expires(void)
 {
+fprintf(stderr, "Ack Wait Dur expires\n");
+
 	tx_attempt_failed();
 }
 
@@ -997,9 +1026,23 @@ hs_tx_ack_enter(void)
 	uint8_t seq_num;
 
 	seq_num = han.rx.data_ind->pktData[2];
-	/* Transmit Ack to Network Simulator */
+	/* Transmit Ack to Network Simulator then wait for Tx Done Ind */
 	netsim_tx_ack_data_ind(seq_num);
 
+}
+
+void
+hs_tx_ack_handle_start_tx(void)
+{
+	/* It is possible to receive a tx start event whilst transmitting the ack
+	 * as we may have entered IFS, received a packet and transmitted an
+	 * ack so in either of these states we need to latch the txstart. */
+	han.mac.start_tx_latched = true;
+}
+
+void
+hs_tx_ack_handle_tx_done_ind(int tx_result)
+{
 	/* Now we have finished with Last Received packet so free it */
 	free(han.rx.data_ind);
 	han.rx.data_ind = NULL;
@@ -1010,7 +1053,6 @@ hs_tx_ack_enter(void)
 	 */
 	hanadu_state_change(&han_state_idle);
 }
-
 
 /* _______________________________________________________________ HAN_STATE_IFS
  */

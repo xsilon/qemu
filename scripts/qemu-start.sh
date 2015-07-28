@@ -136,6 +136,7 @@ if [ -z ${MAC_ADDR} ]; then
 	MAC_ADDR="aa-"$(printf "%.4x" $NODE_NUM |sed 's/^\([0-9A-Fa-f]\{2\}\)\([0-9A-Fa-f]\{2\}\).*$/\1-\2/')
 fi
 
+QEMU_LOG_OPTS="-d xsilon -D /tmp/qemu-node-$NODE_NUM.log"
 QEMU_BRIDGE_NET_OPTS="-netdev bridge,helper=/usr/local/libexec/qemu-bridge-helper,id=hn0 -net nic,macaddr=00:03:9a:${MAC_ADDR//-/:},model=cadence_gem,name=nic1,netdev=hn0"
 XSILON_ARGS="-xsilon dipafe=${AFE_DIPS},nsaddr=${NETSIM_ADDR},nsport=${NETSIM_PORT}"
 
@@ -148,7 +149,7 @@ ZYNQ_KERNEL_ARGS_RAM="console=ttyPS0,115200 earlyprintk ip=:::::eth0:dhcp root=/
 # Start the emulator
 #-drive file=riscos-2014-06-04-RC12a.img,if=sd
 #-sd sdimage.bin
-CMD="${QEMU_APP} ${QEMU_MAIN_OPTS} ${XSILON_ARGS} ${FLASH_ARGS} ${DEBUG_ARGS} -dtb ${ZYNQ_DTB} -kernel ${ZYNQ_KERNEL} ${SUSPEND_QEMU} ${QEMU_BRIDGE_NET_OPTS} ${SERIAL_DEVICE_OPTS} -append \"$ZYNQ_KERNEL_ARGS_NFS\""
+CMD="${QEMU_APP} ${QEMU_LOG_OPTS} ${QEMU_MAIN_OPTS} ${XSILON_ARGS} ${FLASH_ARGS} ${DEBUG_ARGS} -dtb ${ZYNQ_DTB} -kernel ${ZYNQ_KERNEL} ${SUSPEND_QEMU} ${QEMU_BRIDGE_NET_OPTS} ${SERIAL_DEVICE_OPTS} -append \"$ZYNQ_KERNEL_ARGS_NFS\""
 echo "Running ${CMD}"
 eval ${CMD}
 

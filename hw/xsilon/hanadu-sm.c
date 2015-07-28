@@ -98,31 +98,32 @@ void hs_tx_ack_handle_tx_done_ind(int tx_result);
 
 void hs_ifs_enter(void);
 void hs_ifs_exit(void);
+void hs_ifs_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_ifs_handle_start_tx(void);
 void hs_ifs_handle_ifs_timer_expires(void);
 
 static void
 invalid_event(void)
 {
-	fprintf(stderr, "Erroneously received event whilst in %s", han.state->name);
+	qemu_log_mask(LOG_XSILON, "Erroneously received event whilst in %s", han.state->name);
 	abort();
 }
 static void
 invalid_event_cca_con(int cca_result)
 {
-	fprintf(stderr, "Erroneously received CCA Con whilst in %s", han.state->name);
+	qemu_log_mask(LOG_XSILON, "Erroneously received CCA Con whilst in %s", han.state->name);
 	abort();
 }
 static void
 invalid_event_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 {
-	fprintf(stderr, "Erroneously received packet whilst in %s", han.state->name);
+	qemu_log_mask(LOG_XSILON, "Erroneously received packet whilst in %s", han.state->name);
 	abort();
 }
 static void
 invalid_event_tx_done(int tx_done_result)
 {
-	fprintf(stderr, "Erroneously received tx done whilst in %s", han.state->name);
+	qemu_log_mask(LOG_XSILON, "Erroneously received tx done whilst in %s", han.state->name);
 	abort();
 }
 
@@ -244,7 +245,7 @@ static struct han_state han_state_ifs = {
 	.enter = hs_ifs_enter,
 	.exit = hs_ifs_exit,
 	.handle_sysinfo_event = invalid_event,
-	.handle_rx_pkt = invalid_event_rx_pkt,
+	.handle_rx_pkt = hs_ifs_handle_rx_pkt,
 	.handle_start_tx = hs_ifs_handle_start_tx,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
@@ -286,16 +287,21 @@ hanadu_state_is_transmitting(void)
 	return !hanadu_state_is_listening();
 }
 
+/*
+ * NOTE: It is important that the caller ensures that it returns straight
+ * away after performing a state change otherwise we will be running code
+ * whilst in a different state.
+ */
 static void
 hanadu_state_change(struct han_state *new_state)
 {
 	if (han.state)
-		fprintf(stderr, "Leaving %s\n", han_state_str[han.state->id]);
+		qemu_log_mask(LOG_XSILON, "Leaving %s\n", han_state_str[han.state->id]);
 	if (han.state != NULL)
 		if (han.state->exit != NULL)
 			han.state->exit();
 	han.state = new_state;
-	fprintf(stderr, "Entering %s\n", han_state_str[han.state->id]);
+	qemu_log_mask(LOG_XSILON, "Entering %s\n", han_state_str[han.state->id]);
 	if (han.state->enter != NULL)
 		han.state->enter();
 }
@@ -441,7 +447,7 @@ log_hexdump(
 			hex_buff_p[HEXDUMP_MAX_HEX_LENGTH] = '\0';
 			char_buff_p[HEXDUMP_BYTES_PER_LINE] = '\0';
 
-			fprintf(stderr, "%p: %s  [%s]\n", row_start_addr, hex_buff_p, char_buff_p);
+			qemu_log_mask(LOG_XSILON, "%p: %s  [%s]\n", row_start_addr, hex_buff_p, char_buff_p);
 
 			row_start_addr = ((char *)row_start_addr + HEXDUMP_BYTES_PER_LINE);
 			hex_wr_p = hex_buff_p;
@@ -459,7 +465,7 @@ log_hexdump(
 		hex_buff_p[HEXDUMP_MAX_HEX_LENGTH] = '\0';
 		char_buff_p[HEXDUMP_BYTES_PER_LINE] = '\0';
 
-		fprintf(stderr, "%p: %s  [%s]\n", row_start_addr, hex_buff_p, char_buff_p);
+		qemu_log_mask(LOG_XSILON, "%p: %s  [%s]\n", row_start_addr, hex_buff_p, char_buff_p);
 	}
 
 	free(hex_buff_p);
@@ -544,7 +550,7 @@ hanadu_rx_frame_filter_accept(void)
 	assert(han.rx.data_ind);
 
 	if (!han_mac_ctrl_filter_enable_get(han.mac_dev)) {
-		fprintf(stderr, "FILTER ACCEPT: Promiscuous\n");
+		qemu_log_mask(LOG_XSILON, "FILTER ACCEPT: Promiscuous\n");
 		return true;
 	}
 
@@ -552,7 +558,7 @@ hanadu_rx_frame_filter_accept(void)
 	sa_mode = (han.rx.data_ind->pktData[1] & 0xC0) >> 6;
 	da_mode = (han.rx.data_ind->pktData[1] & 0x0C) >> 2;
 	if (frame_type == FRAME_TYPE_ACK) {
-		fprintf(stderr, "FILTER REJECT: ACK\n");
+		qemu_log_mask(LOG_XSILON, "FILTER REJECT: ACK\n");
 		return false;
 	}
 	our_pan_id = han_mac_ctrl_pan_id_get(han.mac_dev);
@@ -562,10 +568,10 @@ hanadu_rx_frame_filter_accept(void)
 		src_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
 
 		if (our_pan_id == 0xffff || our_pan_id == src_pan_id) {
-			fprintf(stderr, "FILTER ACCEPT: Beacon for us\n");
+			qemu_log_mask(LOG_XSILON, "FILTER ACCEPT: Beacon for us\n");
 			return true;
 		} else {
-			fprintf(stderr, "FILTER REJECT: Beacon not for us\n");
+			qemu_log_mask(LOG_XSILON, "FILTER REJECT: Beacon not for us\n");
 			return false;
 		}
 	}
@@ -576,10 +582,10 @@ hanadu_rx_frame_filter_accept(void)
 		if (sa_mode != ADDR_MODE_ELIDED
 			&& han_mac_ctrl_pan_coord_get(han.mac_dev)
 			&& src_pan_id == our_pan_id) {
-			fprintf(stderr, "FILTER ACCEPT: DA_ELIDED\n");
+			qemu_log_mask(LOG_XSILON, "FILTER ACCEPT: DA_ELIDED\n");
 			return true;
 		} else {
-			fprintf(stderr, "FILTER REJECT: DA_ELIDED\n");
+			qemu_log_mask(LOG_XSILON, "FILTER REJECT: DA_ELIDED\n");
 			return false;
 		}
 	}
@@ -587,7 +593,7 @@ hanadu_rx_frame_filter_accept(void)
 	dst_pan_id |= (uint16_t)han.rx.data_ind->pktData[4] << 8;
 	/* We know destination PAN ID isn't elided */
 	if (dst_pan_id != 0xffff && dst_pan_id != our_pan_id) {
-		fprintf(stderr, "FILTER REJECT: DEST PAN (0x%04x) not ours (0x%04x) or broadcast\n", dst_pan_id, our_pan_id);
+		qemu_log_mask(LOG_XSILON, "FILTER REJECT: DEST PAN (0x%04x) not ours (0x%04x) or broadcast\n", dst_pan_id, our_pan_id);
 		return false;
 	}
 
@@ -599,11 +605,11 @@ hanadu_rx_frame_filter_accept(void)
 		dst_short_addr |= (uint16_t)han.rx.data_ind->pktData[6] << 8;
 		our_short_addr = han_mac_ctrl_short_addr_get(han.mac_dev);
 		if (dst_short_addr == 0xffff || dst_short_addr == our_short_addr) {
-			fprintf(stderr, "FILTER ACCEPT: DA_SHORT DST_SA(0x%04x) OURS(0x%04x)\n",
+			qemu_log_mask(LOG_XSILON, "FILTER ACCEPT: DA_SHORT DST_SA(0x%04x) OURS(0x%04x)\n",
 					dst_short_addr, our_short_addr);
 			return true;
 		} else {
-			fprintf(stderr, "FILTER REJET: DA_SHORT DST_SA(0x%04x) OURS(0x%04x)\n",
+			qemu_log_mask(LOG_XSILON, "FILTER REJET: DA_SHORT DST_SA(0x%04x) OURS(0x%04x)\n",
 					dst_short_addr, our_short_addr);
 			return false;
 		}
@@ -627,18 +633,18 @@ hanadu_rx_frame_filter_accept(void)
 		our_ext_addr |= han_mac_ctrl_ea_lower_get(han.mac_dev);
 
 		if (dst_ext_addr == our_ext_addr) {
-			fprintf(stderr, "FILTER ACCEPT: DA_EXT DST_EXT(0x%016llx) OURS(0x%016llx)\n",
+			qemu_log_mask(LOG_XSILON, "FILTER ACCEPT: DA_EXT DST_EXT(0x%016llx) OURS(0x%016llx)\n",
 					(long long unsigned int)dst_ext_addr, (long long unsigned int)our_ext_addr);
 			return true;
 		} else {
-			fprintf(stderr, "FILTER REJECT: DA_EXT DST_EXT(0x%016llx) OURS(0x%016llx)\n",
+			qemu_log_mask(LOG_XSILON, "FILTER REJECT: DA_EXT DST_EXT(0x%016llx) OURS(0x%016llx)\n",
 					(long long unsigned int)dst_ext_addr, (long long unsigned int)our_ext_addr);
 			return false;
 		}
 	}
 
 	/* Unknown destination addressing mode */
-	fprintf(stderr, "FILTER REJECT: DA_UNKNOWN\n");
+	qemu_log_mask(LOG_XSILON, "FILTER REJECT: DA_UNKNOWN\n");
 	return false;
 }
 
@@ -648,6 +654,7 @@ hs_rx_pkt_enter(void)
 	/* Filter frame and if for us populate rx buffer and generate
 	 * Rx Interrupt. Otherwise drop. */
 log_hexdump(han.rx.data_ind->pktData, ntohs(han.rx.data_ind->psdu_len), han.rx.data_ind->pktData);
+
 	if (hanadu_rx_frame_filter_accept()) {
 
 		hanadu_rx_frame_fill_buffer();
@@ -723,7 +730,9 @@ clear_channel_assessment(void)
 {
 	ssize_t rv;
 
+	qemu_log_mask(LOG_XSILON, "CCA request cca_started=true\n");
 	rv = netsim_tx_cca_req();
+	han.mac.cca_started = true;
 	/* TODO: Check return and log error */
 	assert(rv > 0);
 }
@@ -774,6 +783,7 @@ hs_csma_exit(void)
 {
 	/* Stop Backoff timer if started */
 	stop_timer(han.mac.backoff_timer);
+	han.mac.backoff_timer_stopped = true;
 }
 
 
@@ -782,32 +792,46 @@ hs_csma_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 {
 	assert(han.rx.data_ind == NULL);
 	han.rx.data_ind = data_ind;
-	/* State change will stop back off timer */
-	hanadu_state_change(&han_state_rx_pkt);
+	if (!han.mac.cca_started)
+		/* State change will stop back off timer */
+		hanadu_state_change(&han_state_rx_pkt);
+	else
+		qemu_log_mask(LOG_XSILON, "Received data packet in CSMA but we are waiting for CCA result, latch and wait\n");
 }
 
 void
 hs_csma_handle_cca_con(int cca_result)
 {
+	han.mac.cca_started = false;
+	qemu_log_mask(LOG_XSILON, "hs_csma_handle_cca_con cca_started=false\n");
+
+	/* TODO: What shall we do with the CCA result? for the moment we just
+	 * lose it and the CCA procedure will be restarted with the same
+	 * parameters. */
+	if (han.rx.data_ind) {
+		hanadu_state_change(&han_state_rx_pkt);
+		return;
+	}
+
 	/* Channel Idle? */
 	if (cca_result) {
 		/* yes */
 		han_mac_status_tx_timeout_occured_set(han.mac_dev, false);
 		han.mac.csma_started = false;
 		han.mac.wait_free = false;
-fprintf(stderr, "Channel Clear\n");
+		qemu_log_mask(LOG_XSILON, "Channel Clear\n");
 		hanadu_state_change(&han_state_tx_pkt);
 	} else {
 		int macMaxBE;
 		/* no */
 
-fprintf(stderr, "Channel Busy\n");
 		/* TODO: Do we updated register to reflect num back offs here or
 		 * once we CSMA finishes */
 		/* TODO: Find out from HW guys if num backoffs is accumulated
 		 * for each retry or reflects just the last attempt. */
 		han.mac.nb++;
 		han.mac.be++;
+		qemu_log_mask(LOG_XSILON, "Channel Busy NB=%d BE=%d\n", han.mac.nb, han.mac.be);
 		assert(!han_mac_status_tx_timeout_occured_get(han.mac_dev));
 		han_mac_status_backoff_attempts_set(han.mac_dev, han.mac.nb);
 		macMaxBE = han_mac_max_be_get(han.mac_dev);
@@ -817,16 +841,18 @@ fprintf(stderr, "Channel Busy\n");
 		if (han.mac.nb > han_mac_max_csma_backoffs_get(han.mac_dev)) {
 			/* CSMA Failure (Tx Timeout) What happens now depends
 			 * on the Timeout Strategy (TOS). */
+			qemu_log_mask(LOG_XSILON, "CSMA Failure, TOS=%d", han_mac_timeout_strategy_get(han.mac_dev));
 			switch(han_mac_timeout_strategy_get(han.mac_dev)) {
 			case TOS_DISCARD_TX:
 				/* Usual case - Tx failed, set tx timeout and
 				 * num backoffs and then generate Tx Interrupt. */
-				assert(!han_trxm_tx_start_get(han.trx_dev));
+				assert(han_trxm_tx_start_get(han.trx_dev));
 				han_mac_status_tx_timeout_occured_set(han.mac_dev, true);
 				han_mac_status_backoff_attempts_set(han.mac_dev, han.mac.nb);
 				/* Generate Tx Interrupt */
 				qemu_irq_pulse(han.trx_dev->tx_irq);
 				han.mac.csma_started = false;
+				han.mac.tx_started = false;
 				hanadu_state_change(&han_state_idle);
 				break;
 			case TOS_TX_IMMEDIATE:
@@ -887,7 +913,7 @@ hs_tx_pkt_handle_tx_done_ind(int tx_result)
 	han_trxm_tx_busy_set(han.trx_dev, false);
 	stop_timer(han.mac.tx_timer);
 
-	fprintf(stderr, "TxDoneInd(%d)\n", tx_result);
+	qemu_log_mask(LOG_XSILON, "TxDoneInd(%d)\n", tx_result);
 
 	if (han.mac.ack_requested)
 		/* TODO: Do we only go into this state if (han_mac_ack_enable_get(han.mac_dev)) { */
@@ -900,7 +926,7 @@ void
 hs_tx_pkt_handle_tx_timer_expires(void)
 {
 	/* Not received Tx Done Indication, shouldn't happend */
-	fprintf(stderr, "Tx Done Ind not received within 5 seconds.");
+	qemu_log_mask(LOG_XSILON, "Tx Done Ind not received within 5 seconds.");
 	abort();
 }
 
@@ -928,14 +954,14 @@ tx_attempt_failed(void)
 
 		qemu_irq_pulse(han.trx_dev->tx_irq);
 
-fprintf(stderr, "Tx Packet failed as attempts(%d) >= MaxRetries(%d)\n", han.mac.tx_attempt, max_retries);
+		qemu_log_mask(LOG_XSILON, "Tx Packet failed as attempts(%d) >= MaxRetries(%d)\n", han.mac.tx_attempt, max_retries);
 		han.mac.tx_started = false;
 		hanadu_state_change(&han_state_idle);
 	} else {
 		/* As the Tx Attempt has not been acknowledged we need to try
 		 * again and perform clear channel assessment again to try and
 		 * gain access to the medium. */
-fprintf(stderr, "Tx Packet failed but attempts(%d) < MaxRetries(%d)\n", han.mac.tx_attempt, max_retries);
+		qemu_log_mask(LOG_XSILON, "Tx Packet failed but attempts(%d) < MaxRetries(%d)\n", han.mac.tx_attempt, max_retries);
 		hanadu_state_change(&han_state_csma);
 	}
 }
@@ -991,7 +1017,7 @@ hs_wait_rx_ack_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
 			 * and either go back to CSMA or if max retries go to Idle.
 			 * Check with HW numpties that this is the case. */
 			tx_attempt_failed();
-fprintf(stderr, "Ack Sequence Number mismatch TxPkt(%d) != Ack(%d)\n", tx_pkt_seq_num, ack_seq_num);
+			qemu_log_mask(LOG_XSILON, "Ack Sequence Number mismatch TxPkt(%d) != Ack(%d)\n", tx_pkt_seq_num, ack_seq_num);
 			return;
 		} else {
 			han_mac_ack_success_set(han.mac_dev, true);
@@ -1004,14 +1030,14 @@ fprintf(stderr, "Ack Sequence Number mismatch TxPkt(%d) != Ack(%d)\n", tx_pkt_se
 
 	/* TODO: IF all is well han_mac_ack_success_set(han.mac_dev, true); */
 
-
+	free(data_ind);
 	hanadu_state_change(&han_state_ifs);
 }
 
 void
 hs_wait_rx_ack_wait_timer_expires(void)
 {
-fprintf(stderr, "Ack Wait Dur expires\n");
+	qemu_log_mask(LOG_XSILON, "Ack Wait Dur expires\n");
 
 	tx_attempt_failed();
 }
@@ -1037,6 +1063,7 @@ hs_tx_ack_handle_start_tx(void)
 	/* It is possible to receive a tx start event whilst transmitting the ack
 	 * as we may have entered IFS, received a packet and transmitted an
 	 * ack so in either of these states we need to latch the txstart. */
+	qemu_log_mask(LOG_XSILON, "StartTx while in Tx Ack state, latch it.\n");
 	han.mac.start_tx_latched = true;
 }
 
@@ -1047,6 +1074,7 @@ hs_tx_ack_handle_tx_done_ind(int tx_result)
 	free(han.rx.data_ind);
 	han.rx.data_ind = NULL;
 
+	qemu_log_mask(LOG_XSILON, "TxDone while in Tx Ack state, goto idle.\n");
 	/* TODO: We will makes acks instant for the moment, may change this to
 	 * timer driven, if we stay with the current then we could potentially
 	 * lose this state and just move to Rx Pkt.
@@ -1087,11 +1115,23 @@ void
 hs_ifs_exit(void)
 {
 	stop_timer(han.mac.ifs_timer);
+	han.mac.ifs_timer_stopped = true;
+}
+
+void
+hs_ifs_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind)
+{
+	assert(han.rx.data_ind == NULL);
+	han.rx.data_ind = data_ind;
+	assert (han.mac.cca_started);
+	/* State change will stop IFS timer */
+	hanadu_state_change(&han_state_rx_pkt);
 }
 
 void
 hs_ifs_handle_start_tx(void)
 {
+	qemu_log_mask(LOG_XSILON, "StartTx whilst in IFS state, latching Tx.\n");
 	han.mac.start_tx_latched = true;
 }
 
@@ -1162,16 +1202,24 @@ static void
 hanadu_handle_events(int count, fd_set * read_fd_set)
 {
 	bool event_handled = false;
+	struct netsim_data_ind_pkt *data_ind = NULL;
 
+	han.mac.backoff_timer_stopped = false;
+	han.mac.ifs_timer_stopped = false;
+	qemu_log_mask(LOG_XSILON, "%s: count=%d\n", __FUNCTION__, count);
 	/* TODO: Handle case where x6losim has shutdown */
 
+	/* If packet pending on receive multicast socket, read it and create
+	 * data indication message.  We delay handling as we want to handle
+	 * before CCA confirm messages but after Tx Done messages if both
+	 * events are received at the same time. */
 	if (FD_ISSET(han.netsim.rxmcast.sockfd, read_fd_set)) {
 		struct netsim_pkt_hdr *hdr;
-		struct netsim_data_ind_pkt *data_ind;
 		struct sockaddr_in cliaddr;
 		socklen_t len;
 		int n;
 
+		qemu_log_mask(LOG_XSILON, "Event: RxDataPkt %d\n", count);
 		do {
 			len = sizeof(cliaddr);
 			n = recvfrom(han.netsim.rxmcast.sockfd, rxbuf, 256, 0,
@@ -1196,19 +1244,16 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		assert(n == ntohs(hdr->len));
 		if(!(ntohll(hdr->node_id) == han.netsim.node_id)) {
 			data_ind = netsim_rx_tx_data_ind_msg((struct netsim_data_ind_pkt *)hdr);
-			han.state->handle_rx_pkt(data_ind);
-			event_handled = true;
 		}
 		count--;
 	}
 
-	/* TODO: What to do if we receive a packet and something on the control
-	 * channel. */
 
 	if (FD_ISSET(han.netsim.sockfd, read_fd_set)) {
 		struct netsim_pkt_hdr *hdr;
 		void * msg;
 
+		qemu_log_mask(LOG_XSILON, "Event: RxControlPkt %d\n", count);
 		/* This will dynamically allocate msg */
 		msg = netsim_rx_read_msg();
 		hdr = msg;
@@ -1228,6 +1273,15 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 			abort();
 			break;
 		case MSG_TYPE_CCA_CON:
+			if (data_ind) {
+				han.state->handle_rx_pkt(data_ind);
+				event_handled = true;
+				data_ind = NULL;
+			}
+			/* We must handle CCA con even if data indication has
+			 * been received. The CSMA state will latch the rx packet
+			 * but will wait for the CCA confirm before aborting
+			 * CCA and going to Rx Pkt state. */
 			han.state->handle_cca_con(netsim_rx_cca_con_msg(msg));
 			break;
 		case MSG_TYPE_TX_DONE_IND:
@@ -1245,20 +1299,38 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		count--;
 	}
 
+	if (data_ind) {
+		han.state->handle_rx_pkt(data_ind);
+		event_handled = true;
+		data_ind = NULL;
+	}
+
 	if (FD_ISSET(han.mac.backoff_timer, read_fd_set)) {
 		uint64_t expirations;
 		int n;
 
-		assert(han.state->id == HAN_STATE_CSMA);
+		qemu_log_mask(LOG_XSILON, "Event: Backoff Timer Expires %d\n", count);
+		if (!han.mac.backoff_timer_stopped)
+			assert(han.state->id == HAN_STATE_CSMA);
 		do {
 			n = read(han.mac.backoff_timer, &expirations, sizeof(expirations));
 			if (n == -1 && errno == EINTR)
 				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
 		} while(0);
-		assert(n == 8);
-		assert(expirations == 1);
-		han.state->handle_backoff_timer_expires();
-		event_handled = true;
+		if (n != -1) {
+			assert(n == 8);
+			assert(expirations == 1);
+			/* We may get a case where the backoff timer has expired
+			 * at the same time we receive a control or data message
+			 * that moves the state out of CSMA and stops the timer.
+			 * In this instance we process the expired timer but
+			 * do not action the expiry function. */
+			if (!han.mac.backoff_timer_stopped)
+				han.state->handle_backoff_timer_expires();
+			event_handled = true;
+		}
 		count--;
 	}
 
@@ -1266,17 +1338,22 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		uint64_t expirations;
 		int n;
 
+		qemu_log_mask(LOG_XSILON, "Event: Tx Timer Expires %d\n", count);
 		assert(hanadu_state_is_transmitting());
 		do {
 			n = read(han.mac.tx_timer, &expirations, sizeof(expirations));
 			if (n == -1 && errno == EINTR)
 				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
 		} while(0);
-		assert(n == 8);
-		assert(expirations == 1);
-		han.state->handle_tx_timer_expires();
+		if (n != -1) {
+			assert(n == 8);
+			assert(expirations == 1);
+			han.state->handle_tx_timer_expires();
 
-		event_handled = true;
+			event_handled = true;
+		}
 		count--;
 	}
 
@@ -1284,15 +1361,23 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		uint64_t expirations;
 		int n;
 
+		qemu_log_mask(LOG_XSILON, "Event: IFS Timer Expires %d\n", count);
 		do {
 			n = read(han.mac.ifs_timer, &expirations, sizeof(expirations));
 			if (n == -1 && errno == EINTR)
 				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
 		} while(0);
-		assert(n == 8);
-		assert(expirations == 1);
-		han.state->handle_ifs_timer_expires();
-		event_handled = true;
+		if (n != -1) {
+			assert(n == 8);
+			assert(expirations == 1);
+			/* IFS timer might expire at the same time we receive
+			 * a packet in the IFS state so we check here. */
+			if (!han.mac.ifs_timer_stopped)
+				han.state->handle_ifs_timer_expires();
+			event_handled = true;
+		}
 		count--;
 	}
 
@@ -1300,15 +1385,20 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		uint64_t expirations;
 		int n;
 
+		qemu_log_mask(LOG_XSILON, "Event: Ack Wait Timer Expires %d\n", count);
 		do {
 			n = read(han.mac.ack_wait_timer, &expirations, sizeof(expirations));
 			if (n == -1 && errno == EINTR)
 				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
 		} while(0);
-		assert(n == 8);
-		assert(expirations == 1);
-		han.state->handle_ack_wait_timer_expires();
-		event_handled = true;
+		if (n != -1) {
+			assert(n == 8);
+			assert(expirations == 1);
+			han.state->handle_ack_wait_timer_expires();
+			event_handled = true;
+		}
 		count--;
 	}
 
@@ -1316,14 +1406,19 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		char tmp;
 		int n;
 
+		qemu_log_mask(LOG_XSILON, "Event: Sys Info Available %d\n", count);
 		do {
 			n = read(han.sysinfo_available.pipe_fds[EVENT_PIPE_FD_READ], &tmp, 1);
 			if (n == -1 && errno == EINTR)
 				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
 		} while(0);
-		assert(n == 1);
-		han.state->handle_sysinfo_event();
-		event_handled = true;
+		if (n != -1) {
+			assert(n == 1);
+			han.state->handle_sysinfo_event();
+			event_handled = true;
+		}
 		count --;
 	}
 
@@ -1331,14 +1426,19 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		char tmp;
 		int n;
 
+		qemu_log_mask(LOG_XSILON, "Event: Tx Start %d\n", count);
 		do {
 			n = read(han.txstart_event.pipe_fds[EVENT_PIPE_FD_READ], &tmp, 1);
 			if (n == -1 && errno == EINTR)
 				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
 		} while(0);
-		assert(n == 1);
-		han.state->handle_start_tx();
-		event_handled = true;
+		if (n != -1) {
+			assert(n == 1);
+			han.state->handle_start_tx();
+			event_handled = true;
+		}
 		count --;
 	}
 

@@ -53,7 +53,7 @@ netsim_init(struct han_trxm_dev *s)
 {
 	int rv;
 
-	qemu_log("NetSim Initialisation");
+	qemu_log_mask(LOG_XSILON, "NetSim Initialisation");
 
 	/* Create TCP connection to Network Simulator */
 	han.netsim.sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -76,6 +76,7 @@ netsim_init(struct han_trxm_dev *s)
 
 	han.mac.tx_started = false;
 	han.mac.start_tx_latched = false;
+	han.mac.cca_started = false;
 	/* Create CSMA Backoff timer */
 	han.mac.backoff_timer = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC | TFD_NONBLOCK);
 	if (han.mac.backoff_timer == -1)
@@ -159,12 +160,13 @@ han_trxm_tx_start_changed(uint32_t value, void *hw_block)
 {
 	if (value) {
 		/* Start transmission */
+		qemu_log_mask(LOG_XSILON, "txstart=1\n");
 		han_event_signal(&han.txstart_event);
-
 	} else {
 		/* The Hanadu Tx IRQ will call xsi_hal_txm_transmit_stop(...)
 		 * which will end up here so any Hanadu HW emulation code for
 		 * this event should go here. */
+		qemu_log_mask(LOG_XSILON, "txstart=0\n");
 	}
 }
 
@@ -179,7 +181,7 @@ han_trxm_rx_next_membank_to_proc_read(uint32_t *value_out, void *hw_block)
 	if (fifo8_is_empty(&han.rx.nextbuf))
 		han_trxm_rx_mem_bank_fifo_empty_set(han.trx_dev, true);
 	han_trxm_rx_mem_bank_next_to_process_set(s, next_membank);
-fprintf(stderr, "NEXT MEMBANK READ %d\n", next_membank);
+	qemu_log_mask(LOG_XSILON, "NEXT MEMBANK READ %d\n", next_membank);
 	fifo8_push(&han.rx.proc, next_membank);
 
 	/* The buffer would be moved from nextbuf FIFO to proc FIFO */
@@ -190,8 +192,8 @@ fprintf(stderr, "NEXT MEMBANK READ %d\n", next_membank);
 	han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
 	han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
-fprintf(stderr, "NEXTBUF FIFO %d\n", han.rx.nextbuf.num);
-fprintf(stderr, "PROC FIFO %d\n", han.rx.proc.num);
+	qemu_log_mask(LOG_XSILON, "NEXTBUF FIFO %d\n", han.rx.nextbuf.num);
+	qemu_log_mask(LOG_XSILON, "PROC FIFO %d\n", han.rx.proc.num);
 	/* We aren't going to terminate the read so return 0 so it's handled by
 	 * the caller which will go ahead and return the next bank bank to process */
 	return 0;
@@ -209,14 +211,14 @@ han_trxm_rx_clear_membank_full_changed(uint32_t value, void *hw_block, uint8_t m
 		/* when high adjust fifo levels. */
 		assert(!fifo8_is_empty(&han.rx.proc));
 		membank_processed = fifo8_pop(&han.rx.proc);
-fprintf(stderr, "CLEAR MEMBANK READ %d\n", membank_processed);
+		qemu_log_mask(LOG_XSILON, "CLEAR MEMBANK READ %d\n", membank_processed);
 		assert(membank == membank_processed);
 		fifo_used = (uint8_t)han.rx.proc.num;
 		han_trxm_rx_proc_fifo_wr_level_set(s, fifo_used);
 		han_trxm_rx_proc_fifo_rd_level_set(s, fifo_used);
 
-fprintf(stderr, "NEXTBUF FIFO %d\n", han.rx.nextbuf.num);
-fprintf(stderr, "PROC FIFO %d\n", han.rx.proc.num);
+		qemu_log_mask(LOG_XSILON, "NEXTBUF FIFO %d\n", han.rx.nextbuf.num);
+		qemu_log_mask(LOG_XSILON, "PROC FIFO %d\n", han.rx.proc.num);
 	} else {
 		assert((han.rx.bufs_avail_bitmap & (1 << membank)) == 0);
 		han.rx.bufs_avail_bitmap |= 1 << membank;
@@ -410,13 +412,10 @@ static const MemoryRegionOps han_pwr_mem_region_ops = {
 static void
 han_pup_kick_off_spi_write_changed(uint32_t value, void *hw_block)
 {
-	struct han_pwr_dev *s = HANADU_PWR_DEV(hw_block);
 
 	if (value) {
-		assert(han_pwr_pup_kick_off_spi_write_get(s) == false);
 		han_afe_afe_ad9865_spi_write_done_set(han.afe_dev, false);
 	} else {
-		assert(han_pwr_pup_kick_off_spi_write_get(s) == true);
 		/* When it's de-asserted copy the contents of the AD9865 registers in
 		 * the AFE into our internal AD9865 registers */
 		han.ad9865.regs[0] = han.afe_dev->regs.afe_ad9865_write_reg_0_3;
@@ -431,13 +430,9 @@ han_pup_kick_off_spi_write_changed(uint32_t value, void *hw_block)
 static void
 han_pup_kick_off_spi_read_changed(uint32_t value, void *hw_block)
 {
-	struct han_pwr_dev *s = HANADU_PWR_DEV(hw_block);
-
 	if (value) {
-		assert(han_pwr_pup_kick_off_spi_read_get(s) == false);
 		han_afe_afe_ad9865_spi_read_done_set(han.afe_dev, false);
 	} else {
-		assert(han_pwr_pup_kick_off_spi_read_get(s) == true);
 		han.afe_dev->regs.afe_ad9865_read_reg_0_3 = han.ad9865.regs[0];
 		han.afe_dev->regs.afe_ad9865_read_reg_4_7 = han.ad9865.regs[1];
 		han.afe_dev->regs.afe_ad9865_read_reg_8_11 = han.ad9865.regs[2];

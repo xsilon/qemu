@@ -201,6 +201,9 @@ struct hanadu {
 		bool ack_requested;
 		/* Used if start_tx is set when in IFS */
 		bool start_tx_latched;
+
+		bool cca_started;
+
 		/* Number of times CSMA algorithm was required to back off for
 		 * current transmission attempt */
 		int nb;
@@ -214,12 +217,14 @@ struct hanadu {
 
 		/* Timer for random backoff for CSMA state. */
 		int backoff_timer;
+		bool backoff_timer_stopped;
 		/* Timer for transmissions.  NetSim will wait for the time it
 		 * would take for the packet to be transmitted before sending
 		 * it out on the multicast channel and sending the tx done ind. */
 		int tx_timer;
 		/* Interframe Spacing timer */
 		int ifs_timer;
+		bool ifs_timer_stopped;
 		/* ack wait timer */
 		int ack_wait_timer;
 	} mac;

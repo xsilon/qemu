@@ -32,6 +32,8 @@ void qemu_log(const char *fmt, ...)
     va_start(ap, fmt);
     if (qemu_logfile) {
         vfprintf(qemu_logfile, fmt, ap);
+    } else {
+        vfprintf(stderr, fmt, ap);
     }
     va_end(ap);
 }
@@ -117,6 +119,8 @@ const QEMULogItem qemu_log_items[] = {
     { LOG_GUEST_ERROR, "guest_errors",
       "log when the guest OS does something invalid (eg accessing a\n"
       "non-existent register)" },
+    { LOG_XSILON, "xsilon",
+        "log for Xsilon Hanadu Device Model" },
     { 0, NULL, NULL },
 };
 

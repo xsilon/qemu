@@ -645,7 +645,7 @@ static void han_txb_instance_init(Object *obj)
 	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
 
 	memory_region_init_io(&s->iomem, &han_txb_mem_region_ops, s,
-			      "hantxb", 0x10000);
+			      "hantxb", 0x2000);
 	sysbus_init_mmio(sbd, &s->iomem);
 }
 
@@ -748,10 +748,21 @@ han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 		return 9999;
 	case 3:
 		return 1;
+	case 10:
+		return 0xDABBAD00;
+
 	}
 
 	return 0;
 }
+
+//static int
+//hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size, uint64_t *value)
+//{
+//	*value = han_hwvers_mem_region_read_internal(opaque, addr, size);
+//
+//	return 1;
+//}
 
 void
 han_hwvers_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
@@ -801,7 +812,8 @@ static void han_hwvers_instance_init(Object *obj)
 	memory_region_init_io(&s->iomem, &han_hwvers_mem_region_ops, s,
 			      "hanhwv", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
-	s->mem_region_write = NULL;
+//	s->mem_region_write = NULL;
+//	s->mem_region_read = hwvers_mem_region_read;
 }
 
 /* __________________________________________________________ Hanadu System Info
@@ -818,15 +830,22 @@ han_sysinfo_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned
 {
 	uint8_t * buf;
 
-	assert(size == 1);
-	if (addr < 0x1000) {
-//		addr >>= 2;
-		buf = (uint8_t *)&han.sysinfo;
-		buf += addr;
-	}
+	assert(size == 1 || size == 4);
 	assert(addr <= 128);
+	buf = (uint8_t *)&han.sysinfo;
+	buf += addr;
+	if (size == 1) {
+		*buf = (uint8_t)value;
+	} else if (size == 4) {
+		*buf = (uint8_t)(value);
+		buf++;
+		*buf = (uint8_t)(value >> 8);
+		buf++;
+		*buf = (uint8_t)(value >> 16);
+		buf++;
+		*buf = (uint8_t)(value >> 24);
+	}
 
-	*buf = (uint8_t)value;
 
 	if (addr == sizeof(han.sysinfo) - 1) {
 		han_event_signal(&han.sysinfo_available);
@@ -867,6 +886,65 @@ static void han_sysinfo_instance_init(Object *obj)
 			      "hansysinfo", 0x10000);
 	sysbus_init_mmio(sbd, &s->iomem);
 }
+
+/* _________________________________________________________ Hanadu Preamble RAM
+ */
+
+static uint64_t
+han_preambleram_mem_region_read(void *opaque, hwaddr addr, unsigned size)
+{
+	assert(1==0);
+}
+
+static void
+han_preambleram_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
+{
+	uint32_t * buf;
+
+	assert(size == 4);
+	assert(addr < PREAMBLE_RAM_SIZE);
+//		addr >>= 2;
+	buf = han.preambleram;
+	buf += addr>>2;
+
+	*buf = (uint32_t)value;
+}
+
+static const MemoryRegionOps han_preambleram_mem_region_ops = {
+	.read = han_preambleram_mem_region_read,
+	.write = han_preambleram_mem_region_write,
+	.endianness = DEVICE_LITTLE_ENDIAN,
+};
+
+static void han_preambleram_realize(DeviceState *dev, Error **errp)
+{
+	return;
+}
+
+static void han_preambleram_reset(DeviceState *dev)
+{
+}
+
+
+static void han_preambleram_class_init(ObjectClass *klass, void *data)
+{
+	DeviceClass *dc = DEVICE_CLASS(klass);
+
+	dc->realize = han_preambleram_realize;
+	dc->props = NULL;
+	dc->reset = han_preambleram_reset;
+}
+
+static void han_preambleram_instance_init(Object *obj)
+{
+	struct han_preambleram_dev *s = HANADU_PREAMBLERAM_DEV(obj);
+	SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+
+	memory_region_init_io(&s->iomem, &han_preambleram_mem_region_ops, s,
+			      "hanpreambleram", PREAMBLE_RAM_SIZE);
+	sysbus_init_mmio(sbd, &s->iomem);
+}
+
 
 /* _________________________________________________________ Hanadu Registration
  */
@@ -930,9 +1008,17 @@ static const TypeInfo han_hwv_info = {
 static const TypeInfo han_sysinfo_info = {
 	.name  = TYPE_HANADU_SYSINFO,
 	.parent = TYPE_SYS_BUS_DEVICE,
-	.instance_size  = sizeof(struct han_hwvers_dev),
+	.instance_size  = sizeof(struct han_sysinfo_dev),
 	.class_init = han_sysinfo_class_init,
 	.instance_init = han_sysinfo_instance_init,
+};
+
+static const TypeInfo han_preambleram_info = {
+	.name  = TYPE_HANADU_PREAMBLERAM,
+	.parent = TYPE_SYS_BUS_DEVICE,
+	.instance_size  = sizeof(struct han_preambleram_dev),
+	.class_init = han_preambleram_class_init,
+	.instance_init = han_preambleram_instance_init,
 };
 
 static void han_register_types(void)
@@ -949,6 +1035,7 @@ static void han_register_types(void)
 	type_register_static(&han_rxb_info);
 	type_register_static(&han_hwv_info);
 	type_register_static(&han_sysinfo_info);
+	type_register_static(&han_preambleram_info);
 }
 
 type_init(han_register_types)

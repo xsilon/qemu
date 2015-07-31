@@ -19,43 +19,43 @@
  */
 
 void
-han_trxm_reg_reset(void *opaque) __attribute__((weak));
+han_trxm_reg_reset(void *opaque);
 uint64_t
-han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
+han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size);
 void
-han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
+han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size);
 
 
 void
-han_mac_reg_reset(void *opaque) __attribute__((weak));
+han_mac_reg_reset(void *opaque);
 uint64_t
-han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
+han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size);
 void
-han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
+han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size);
 
 
 void
-han_pwr_reg_reset(void *opaque) __attribute__((weak));
+han_pwr_reg_reset(void *opaque);
 uint64_t
-han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
+han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size);
 void
-han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
+han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size);
 
 
 void
-han_afe_reg_reset(void *opaque) __attribute__((weak));
+han_afe_reg_reset(void *opaque);
 uint64_t
-han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
+han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size);
 void
-han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
+han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size);
 
 
 void
-han_hwvers_reg_reset(void *opaque) __attribute__((weak));
+han_hwvers_reg_reset(void *opaque);
 uint64_t
-han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size) __attribute__((weak));
+han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size);
 void
-han_hwvers_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size) __attribute__((weak));
+han_hwvers_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size);
 
 
 

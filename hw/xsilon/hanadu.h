@@ -32,18 +32,21 @@ static inline uint64_t ntohll(uint64_t x)
 #define htonll ntohll
 #endif
 
+#define PREAMBLE_RAM_SIZE		(2*1024)
+
 #define BACKOFF_TIMER_SIG		(SIGRTMAX)
 #define TX_TIMER_SIG			(SIGRTMAX-1)
 #define IFS_TIMER_SIG			(SIGRTMAX-2)
 
-#define TYPE_HANADU_TRXM "xlnx,transceiver-1.00.a"
-#define TYPE_HANADU_AFE "xlnx,afe-controller-2.00.a"
-#define TYPE_HANADU_PWR "xlnx,powerup-controller-1.00.a"
-#define TYPE_HANADU_MAC "xlnx,traffic-monitor-1.00.a"
-#define TYPE_HANADU_TXB "xlnx,tx-buffer-3.00.a"
-#define TYPE_HANADU_RXB "xlnx,rx-buffer-3.00.a"
-#define TYPE_HANADU_HWVERS "xlnx,hardware-version-control-2.00.a"
-#define TYPE_HANADU_SYSINFO "xlnx,system-info-1.00.a"
+#define TYPE_HANADU_TRXM		"xlnx,transceiver-1.00.a"
+#define TYPE_HANADU_AFE			"xlnx,afe-controller-2.00.a"
+#define TYPE_HANADU_PWR			"xlnx,powerup-controller-1.00.a"
+#define TYPE_HANADU_MAC			"xlnx,traffic-monitor-1.00.a"
+#define TYPE_HANADU_TXB			"xlnx,tx-buffer-3.00.a"
+#define TYPE_HANADU_RXB			"xlnx,rx-buffer-3.00.a"
+#define TYPE_HANADU_HWVERS		"xlnx,hardware-version-control-2.00.a"
+#define TYPE_HANADU_SYSINFO		"xlnx,system-info-1.00.a"
+#define TYPE_HANADU_PREAMBLERAM		"xlnx,preamble-ram-1.00.a"
 
 
 #define HANADU_TRXM_DEV(obj) \
@@ -62,6 +65,8 @@ static inline uint64_t ntohll(uint64_t x)
      OBJECT_CHECK(struct han_hwvers_dev, (obj), TYPE_HANADU_HWVERS)
 #define HANADU_SYSINFO_DEV(obj) \
      OBJECT_CHECK(struct han_sysinfo_dev, (obj), TYPE_HANADU_SYSINFO)
+#define HANADU_PREAMBLERAM_DEV(obj) \
+     OBJECT_CHECK(struct han_preambleram_dev, (obj), TYPE_HANADU_PREAMBLERAM)
 
 typedef int (*mem_region_write_fnp)(void *opaque, hwaddr addr, uint64_t value, unsigned size);
 typedef int (*mem_region_read_fnp)(void *opaque, hwaddr addr, unsigned size, uint64_t *value);
@@ -134,6 +139,10 @@ struct han_sysinfo_dev {
     MemoryRegion iomem;
 };
 
+struct han_preambleram_dev {
+    SysBusDevice busdev;
+    MemoryRegion iomem;
+};
 
 #define EVENT_PIPE_FD_READ		(0)
 #define EVENT_PIPE_FD_WRITE		(1)
@@ -237,6 +246,7 @@ struct hanadu {
 	struct han_afe_dev *afe_dev;
 	struct system_info_reg sysinfo;
 	uint8_t mac_addr[8];
+	uint32_t preambleram[PREAMBLE_RAM_SIZE / sizeof(uint32_t)];
 };
 
 extern struct hanadu han;

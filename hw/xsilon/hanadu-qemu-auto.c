@@ -16,7 +16,7 @@
 /* ___________________ Transceiver
  */
 
-void
+void __attribute__((weak))
 han_trxm_reg_reset(void *opaque)
 {
     struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
@@ -31,7 +31,7 @@ han_trxm_reg_reset(void *opaque)
     s->regs.trx_membank_fifo_flags_rssi_tx_power = 0x93400080;
 }
 
-uint64_t
+uint64_t __attribute__((weak))
 han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
@@ -54,7 +54,7 @@ han_trxm_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     return regs[addr];
 }
 
-void
+void __attribute__((weak))
 han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     struct han_trxm_dev *s = HANADU_TRXM_DEV(opaque);
@@ -291,7 +291,7 @@ han_trxm_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned si
 /* ___________________ Medium Access Controller
  */
 
-void
+void __attribute__((weak))
 han_mac_reg_reset(void *opaque)
 {
     struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
@@ -305,7 +305,7 @@ han_mac_reg_reset(void *opaque)
     s->regs.mac_ack_processing_ctrl = 0x00040400;
 }
 
-uint64_t
+uint64_t __attribute__((weak))
 han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
@@ -328,7 +328,7 @@ han_mac_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     return regs[addr];
 }
 
-void
+void __attribute__((weak))
 han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     struct han_mac_dev *s = HANADU_MAC_DEV(opaque);
@@ -543,7 +543,7 @@ han_mac_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 /* ___________________ Power Up Controller
  */
 
-void
+void __attribute__((weak))
 han_pwr_reg_reset(void *opaque)
 {
     struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
@@ -552,7 +552,7 @@ han_pwr_reg_reset(void *opaque)
     s->regs.pup_afe_reset = 0x00000001;
 }
 
-uint64_t
+uint64_t __attribute__((weak))
 han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
@@ -575,7 +575,7 @@ han_pwr_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     return regs[addr];
 }
 
-void
+void __attribute__((weak))
 han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     struct han_pwr_dev *s = HANADU_PWR_DEV(opaque);
@@ -646,7 +646,7 @@ han_pwr_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 /* ___________________ AFE Controller
  */
 
-void
+void __attribute__((weak))
 han_afe_reg_reset(void *opaque)
 {
     struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
@@ -660,7 +660,7 @@ han_afe_reg_reset(void *opaque)
     s->regs.afe_ad9865_write_reg_16_19 = 0x00015492;
 }
 
-uint64_t
+uint64_t __attribute__((weak))
 han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
@@ -683,7 +683,7 @@ han_afe_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     return regs[addr];
 }
 
-void
+void __attribute__((weak))
 han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     struct han_afe_dev *s = HANADU_AFE_DEV(opaque);
@@ -732,7 +732,7 @@ han_afe_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned siz
 /* ___________________ Hardware Version Control
  */
 
-void
+void __attribute__((weak))
 han_hwvers_reg_reset(void *opaque)
 {
     struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);
@@ -740,7 +740,7 @@ han_hwvers_reg_reset(void *opaque)
     memset(&s->regs, 0, sizeof(uint32_t) * 32);
 }
 
-uint64_t
+uint64_t __attribute__((weak))
 han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
 {
     struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);
@@ -763,7 +763,7 @@ han_hwvers_mem_region_read(void *opaque, hwaddr addr, unsigned size)
     return regs[addr];
 }
 
-void
+void __attribute__((weak))
 han_hwvers_mem_region_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
 {
     struct han_hwvers_dev *s = HANADU_HWVERS_DEV(opaque);

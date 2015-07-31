@@ -98,6 +98,14 @@
 			compatible = "xlnx,tx-buffer-3.00.a";
 			reg = <0x7ea00000 0x10000>;
 		} ;		
+		transceiver_sub_system_preamble_ram_0: preamble-ram@7ea02000 {
+			compatible = "xlnx,preamble-ram-1.00.a";
+			reg = <0x7ea02000 0x1000>;
+		} ;
+		system_info_ram_0: system-info-ram@7fff8000 {
+			compatible = "xlnx,system-info-1.00.a";
+			reg = <0x7fff8000 0x1000>;
+		} ;
 		ps7_nor_0: flash@e2000000 {
 			compatible = "cfi-flash";
 			bank-width = <0x1>;

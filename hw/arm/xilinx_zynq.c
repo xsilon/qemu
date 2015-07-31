@@ -266,8 +266,8 @@ static void zynq_init(QEMUMachineInitArgs *args)
         pic[n] = qdev_get_gpio_in(dev, n);
     }
 
-    zynq_init_zc70x_i2c(0xE0004000, pic[57-IRQ_OFFSET]);
-    zynq_init_zc70x_i2c(0xE0005000, pic[80-IRQ_OFFSET]);
+//    zynq_init_zc70x_i2c(0xE0004000, pic[57-IRQ_OFFSET]);
+//    zynq_init_zc70x_i2c(0xE0005000, pic[80-IRQ_OFFSET]);
     dev = qdev_create(NULL, "xlnx,ps7-usb");
     dev->id = "zynq-usb-0";
     qdev_init_nofail(dev);
@@ -345,6 +345,63 @@ static void zynq_init(QEMUMachineInitArgs *args)
     busdev = SYS_BUS_DEVICE(dev);
     sysbus_connect_irq(busdev, 0, pic[40-IRQ_OFFSET]);
     sysbus_mmio_map(busdev, 0, 0xF8007000);
+
+    dev = qdev_create(NULL, "xlnx,transceiver-1.00.a");
+    dev->id = "zynq-hanadu-trx-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x74c00000);
+    sysbus_connect_irq(busdev, 0, pic[29]);
+    sysbus_connect_irq(busdev, 1, pic[30]);
+    sysbus_connect_irq(busdev, 2, pic[31]);
+
+    dev = qdev_create(NULL, "xlnx,afe-controller-2.00.a");
+    dev->id = "zynq-hanadu-afe-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x79400000);
+
+    dev = qdev_create(NULL, "xlnx,hardware-version-control-2.00.a");
+    dev->id = "zynq-hanadu-hwvers-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x77800000);
+
+    dev = qdev_create(NULL, "xlnx,powerup-controller-1.00.a");
+    dev->id = "zynq-hanadu-pup-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x70800000);
+
+    dev = qdev_create(NULL, "xlnx,rx-buffer-3.00.a");
+    dev->id = "zynq-hanadu-rxbuf-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x77c00000);
+
+    dev = qdev_create(NULL, "xlnx,traffic-monitor-1.00.a");
+    dev->id = "zynq-hanadu-trafmon-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x71000000);
+
+    dev = qdev_create(NULL, "xlnx,tx-buffer-3.00.a");
+    dev->id = "zynq-hanadu-txbuf-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x7ea00000);
+
+    dev = qdev_create(NULL, "xlnx,system-info-1.00.a");
+    dev->id = "zynq-hanadu-sysinfo-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x7fff8000);
+
+    dev = qdev_create(NULL, "xlnx,preamble-ram-1.00.a");
+    dev->id = "zynq-hanadu-preambleram-0";
+    qdev_init_nofail(dev);
+    busdev = SYS_BUS_DEVICE(dev);
+    sysbus_mmio_map(busdev, 0, 0x7ea02000);
 
     zynq_binfo.ram_size = ram_size;
     zynq_binfo.kernel_filename = kernel_filename;

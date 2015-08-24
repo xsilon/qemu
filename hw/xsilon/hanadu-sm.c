@@ -6,6 +6,12 @@
  *        skype: mtownsend1973
  *        email: martin.townsend@xsilon.com
  *               mtownsend1973@gmail.com
+ *
+ * TODO: Have a mode where we don't process Acks within the QEMU model, let the
+ * network simulator decide on whether the packet was successfuly acked and how
+ * many retries it took.   This is because we can't really process an ack
+ * in time and if there are network and processing delays we will always
+ * breach the ack waitdur.
  */
 #include "hanadu.h"
 #include "hanadu-inl.h"
@@ -25,6 +31,7 @@ enum han_state_enum {
 	HAN_STATE_WAIT_RX_ACK,
 	HAN_STATE_TX_ACK,
 	HAN_STATE_IFS,
+	HAN_STATE_RECONNECT_SERVER,
 	HAN_STATE_MAX
 };
 const char *han_state_str[HAN_STATE_MAX] = {
@@ -36,6 +43,7 @@ const char *han_state_str[HAN_STATE_MAX] = {
 	"HAN_STATE_WAIT_RX_ACK",
 	"HAN_STATE_TX_ACK",
 	"HAN_STATE_IFS",
+	"HAN_STATE_RECONNECT_SERVER",
 };
 
 typedef void (* han_state_enter)(void);
@@ -45,10 +53,13 @@ typedef void (* han_state_handle_rx_pkt)(struct netsim_data_ind_pkt *data_ind);
 typedef void (* han_state_handle_start_tx)(void);
 typedef void (* han_state_handle_cca_con)(int);
 typedef void (* han_state_handle_tx_done_ind)(int);
+typedef void (* han_state_handle_lost_server_conn)(void);
+typedef void (* han_state_handle_reg_req)(void);
 typedef void (* han_state_handle_backoff_timer_expires)(void);
 typedef void (* han_state_handle_tx_timer_expires)(void);
 typedef void (* han_state_handle_ifs_timer_expires)(void);
 typedef void (* han_state_handle_ack_wait_timer_expires)(void);
+typedef void (* han_state_handle_reconnect_timer_expires)(void);
 
 
 struct han_state {
@@ -62,12 +73,16 @@ struct han_state {
 	han_state_handle_start_tx handle_start_tx;
 	han_state_handle_cca_con handle_cca_con;
 	han_state_handle_tx_done_ind handle_tx_done_ind;
+	han_state_handle_lost_server_conn handle_lost_server_conn;
+	han_state_handle_reg_req handle_reg_req;
 	han_state_handle_backoff_timer_expires handle_backoff_timer_expires;
 	han_state_handle_tx_timer_expires handle_tx_timer_expires;
 	han_state_handle_ifs_timer_expires handle_ifs_timer_expires;
 	han_state_handle_ack_wait_timer_expires handle_ack_wait_timer_expires;
+	han_state_handle_reconnect_timer_expires handle_reconnect_timer_expires;
 };
 
+void hs_wait_sysinfo_enter(void);
 void hs_wait_sysinfo_handle_sysinfo_event(void);
 void hs_wait_sysinfo_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 
@@ -102,6 +117,18 @@ void hs_ifs_handle_rx_pkt(struct netsim_data_ind_pkt *data_ind);
 void hs_ifs_handle_start_tx(void);
 void hs_ifs_handle_ifs_timer_expires(void);
 
+void hs_reconnect_server_enter(void);
+void hs_reconnect_server_exit(void);
+void hs_reconnect_server_handle_start_tx(void);
+void hs_reconnect_server_handle_event_cca_con(int cca_result);
+void hs_reconnect_server_handle_event_tx_done(int tx_result);
+void hs_reconnect_server_handle_reg_req(void);
+void hs_reconnect_server_ignore_timer_expiry(void);
+void hs_reconnect_server_handle_reconnect_timer_expires(void);
+
+
+static void hw_all_handle_lost_server_conn(void);
+
 static void
 invalid_event(void)
 {
@@ -126,21 +153,29 @@ invalid_event_tx_done(int tx_done_result)
 	qemu_log_mask(LOG_XSILON, "Erroneously received tx done whilst in %s", han.state->name);
 	abort();
 }
+static void
+ignore_reconnect_timer_event(void)
+{
+	qemu_log_mask(LOG_XSILON, "Ignoring reconnect_timer event whilst in %s", han.state->name);
+};
 
 static struct han_state han_state_wait_sysinfo = {
 	.id = HAN_STATE_WAIT_SYSINFO,
 	.name = "HAN_STATE_WAIT_SYSINFO",
-	.enter = NULL,
+	.enter = hs_wait_sysinfo_enter,
 	.exit = NULL,
 	.handle_sysinfo_event = hs_wait_sysinfo_handle_sysinfo_event,
 	.handle_rx_pkt = hs_wait_sysinfo_handle_rx_pkt,
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 
 static struct han_state han_state_idle = {
@@ -153,10 +188,13 @@ static struct han_state han_state_idle = {
 	.handle_start_tx = hs_idle_handle_start_tx,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 
 static struct han_state han_state_rx_pkt = {
@@ -171,10 +209,13 @@ static struct han_state han_state_rx_pkt = {
 	 * during CSMA and then while in Rx Pkt get the CCA result. */
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 
 static struct han_state han_state_csma = {
@@ -187,10 +228,13 @@ static struct han_state han_state_csma = {
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = hs_csma_handle_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = hs_csma_handle_backoff_timer_expires,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 static struct han_state han_state_tx_pkt = {
 	.id = HAN_STATE_TX_PKT,
@@ -202,10 +246,13 @@ static struct han_state han_state_tx_pkt = {
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = hs_tx_pkt_handle_tx_done_ind,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = hs_tx_pkt_handle_tx_timer_expires,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 static struct han_state han_state_wait_rx_ack = {
 	.id = HAN_STATE_WAIT_RX_ACK,
@@ -217,10 +264,13 @@ static struct han_state han_state_wait_rx_ack = {
 	.handle_start_tx = invalid_event,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = hs_wait_rx_ack_wait_timer_expires,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 
 static struct han_state han_state_tx_ack = {
@@ -233,10 +283,13 @@ static struct han_state han_state_tx_ack = {
 	.handle_start_tx = hs_tx_ack_handle_start_tx,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = hs_tx_ack_handle_tx_done_ind,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = invalid_event,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
 
 static struct han_state han_state_ifs = {
@@ -249,16 +302,46 @@ static struct han_state han_state_ifs = {
 	.handle_start_tx = hs_ifs_handle_start_tx,
 	.handle_cca_con = invalid_event_cca_con,
 	.handle_tx_done_ind = invalid_event_tx_done,
+	.handle_lost_server_conn = hw_all_handle_lost_server_conn,
+	.handle_reg_req = invalid_event,
 	.handle_backoff_timer_expires = invalid_event,
 	.handle_tx_timer_expires = invalid_event,
 	.handle_ifs_timer_expires = hs_ifs_handle_ifs_timer_expires,
 	.handle_ack_wait_timer_expires = invalid_event,
+	.handle_reconnect_timer_expires = ignore_reconnect_timer_event,
 };
+
+static struct han_state han_state_reconnect_server = {
+	.id = HAN_STATE_RECONNECT_SERVER,
+	.name = "HAN_STATE_RECONNECT_SERVER",
+	.enter = hs_reconnect_server_enter,
+	.exit = hs_reconnect_server_exit,
+	.handle_sysinfo_event = invalid_event,
+	.handle_rx_pkt = invalid_event_rx_pkt,
+	.handle_start_tx = hs_reconnect_server_handle_start_tx,
+	.handle_cca_con = hs_reconnect_server_handle_event_cca_con,
+	.handle_tx_done_ind = hs_reconnect_server_handle_event_tx_done,
+	.handle_lost_server_conn = invalid_event,
+	.handle_reg_req = hs_reconnect_server_handle_reg_req,
+	.handle_backoff_timer_expires = hs_reconnect_server_ignore_timer_expiry,
+	.handle_tx_timer_expires = hs_reconnect_server_ignore_timer_expiry,
+	.handle_ifs_timer_expires = hs_reconnect_server_ignore_timer_expiry,
+	.handle_ack_wait_timer_expires = hs_reconnect_server_ignore_timer_expiry,
+	.handle_reconnect_timer_expires = hs_reconnect_server_handle_reconnect_timer_expires,
+};
+
 
 int
 han_event_init(struct han_event * event)
 {
 	return pipe2(event->pipe_fds, O_NONBLOCK | O_CLOEXEC);
+}
+
+void
+han_event_close(struct han_event * event)
+{
+	close(event->pipe_fds[0]);
+	close(event->pipe_fds[1]);
 }
 
 void
@@ -332,9 +415,26 @@ stop_timer(int timer)
 	timerfd_settime(timer, 0, &ts, NULL);
 }
 
+static void
+hw_all_handle_lost_server_conn(void)
+{
+	hanadu_state_change(&han_state_reconnect_server);
+}
 
 /* ______________________________________________________ HAN_STATE_WAIT_SYSINFO
  */
+
+void
+hs_wait_sysinfo_enter(void)
+{
+	/* Handle case where we receive sysinfo event before the registration
+	 * request, this can happen with RIOT. */
+	if (han.sysinfo_avail_latch) {
+		/* Simulate the event :) */
+		hs_wait_sysinfo_handle_sysinfo_event();
+		han.sysinfo_avail_latch = false;
+	}
+}
 
 void
 hs_wait_sysinfo_handle_sysinfo_event(void)
@@ -532,8 +632,8 @@ hanadu_rx_frame_fill_buffer(void)
 		/* copy data into the relevant buffer */
 		rxbuf = han.rx.buf[i].data;
 		data = (uint8_t *)han.rx.data_ind->pktData;
-		/* TODO: Remove Magic number */
-		assert(rxind_psdu_len <= 127);
+
+		assert(rxind_psdu_len <= HANADU_MTU);
 		memcpy(rxbuf, data, rxind_psdu_len);
 	}
 }
@@ -1141,6 +1241,83 @@ hs_ifs_handle_ifs_timer_expires(void)
 	hanadu_state_change(&han_state_idle);
 }
 
+/* __________________________________________________ HAN_STATE_RECONNECT_SERVER
+ */
+
+void
+hs_reconnect_server_enter(void)
+{
+	netsim_comms_close();
+	/* Stop all timers that have been started */
+	stop_timer(han.mac.backoff_timer);
+	han.mac.backoff_timer_stopped = true;
+	stop_timer(han.mac.tx_timer);
+	stop_timer(han.mac.ack_wait_timer);
+	stop_timer(han.mac.ifs_timer);
+	han.mac.ifs_timer_stopped = true;
+
+	start_timer(han.mac.reconnect_timer, 2000000000);
+
+}
+
+void
+hs_reconnect_server_exit(void)
+{
+	stop_timer(han.mac.reconnect_timer);
+}
+
+void
+hs_reconnect_server_handle_start_tx(void)
+{
+	/* We need to toggle the tx interrupt to stop the driver from
+	 * hanging itself. */
+	han_mac_status_tx_timeout_occured_set(han.mac_dev, false);
+	han_mac_status_backoff_attempts_set(han.mac_dev, 0);
+	han_mac_ack_retry_attempts_set(han.mac_dev, 0);
+	han_mac_ack_success_set(han.mac_dev, false);
+	qemu_irq_pulse(han.trx_dev->tx_irq);
+}
+
+void
+hs_reconnect_server_handle_event_cca_con(int cca_result)
+{
+	/* Can ignore */
+}
+
+void
+hs_reconnect_server_handle_event_tx_done(int tx_result)
+{
+	/* doesn't really matter any more if we get here so ignore. :) */
+}
+
+void
+hs_reconnect_server_handle_reg_req(void)
+{
+	/* TODO: Check return and log errors */
+	netsim_tx_reg_con();
+	hanadu_state_change(&han_state_idle);
+}
+
+void
+hs_reconnect_server_ignore_timer_expiry(void)
+{
+	/* None of the other timers expiring mean anything so we can ignore
+	 * in this state, only interested in reconnect timer. */
+}
+
+void
+hs_reconnect_server_handle_reconnect_timer_expires(void)
+{
+	/* See if server is back up and running */
+	qemu_log_mask(LOG_XSILON, "Trying to reconnect..\n");
+	if (netsim_comms_connect() == 0) {
+		netsim_rxmcast_init();
+		/* TODO Check ret value */
+	} else {
+		start_timer(han.mac.reconnect_timer, 2000000000);
+	}
+
+}
 
 /* ___________________________________________________ Main State Machine Thread
  */
@@ -1148,19 +1325,23 @@ hs_ifs_handle_ifs_timer_expires(void)
 static int
 sm_setup_readfs(fd_set * read_fd_set)
 {
-	int fd_max;
+	int fd_max = 0;
 	/* Set up the read file descriptor set to include the server or client
 	 * socket and the unblock socket pipe. */
 	FD_ZERO(read_fd_set);
 
 	/* TCP Control Socket for receiving messages */
-	FD_SET(han.netsim.sockfd, read_fd_set);
-	fd_max = han.netsim.sockfd;
+	if (han.netsim.sockfd != -1) {
+		FD_SET(han.netsim.sockfd, read_fd_set);
+		fd_max = han.netsim.sockfd;
+	}
 
 	/* Multicast socket used to receive 802.15.4 traffic */
-	FD_SET(han.netsim.rxmcast.sockfd, read_fd_set);
-	if (han.netsim.rxmcast.sockfd > fd_max)
-		fd_max = han.netsim.rxmcast.sockfd;
+	if (han.netsim.rxmcast.sockfd != -1) {
+		FD_SET(han.netsim.rxmcast.sockfd, read_fd_set);
+		if (han.netsim.rxmcast.sockfd > fd_max)
+			fd_max = han.netsim.rxmcast.sockfd;
+	}
 
 	/* Backoff Timer */
 	FD_SET(han.mac.backoff_timer, read_fd_set);
@@ -1182,6 +1363,11 @@ sm_setup_readfs(fd_set * read_fd_set)
 	if (han.mac.ack_wait_timer > fd_max)
 		fd_max = han.mac.ack_wait_timer;
 
+	/* Reconnect Timer */
+	FD_SET(han.mac.reconnect_timer, read_fd_set);
+	if (han.mac.reconnect_timer > fd_max)
+		fd_max = han.mac.reconnect_timer;
+
 	/* Start Tx Event */
 	FD_SET(han.txstart_event.pipe_fds[EVENT_PIPE_FD_READ], read_fd_set);
 	if (han.txstart_event.pipe_fds[EVENT_PIPE_FD_READ] > fd_max)
@@ -1192,7 +1378,6 @@ sm_setup_readfs(fd_set * read_fd_set)
 	if (han.sysinfo_available.pipe_fds[EVENT_PIPE_FD_READ] > fd_max)
 		fd_max = han.sysinfo_available.pipe_fds[EVENT_PIPE_FD_READ];
 
-
 	return fd_max;
 }
 
@@ -1201,7 +1386,6 @@ static uint8_t rxbuf[256];
 static void
 hanadu_handle_events(int count, fd_set * read_fd_set)
 {
-	bool event_handled = false;
 	struct netsim_data_ind_pkt *data_ind = NULL;
 
 	han.mac.backoff_timer_stopped = false;
@@ -1213,7 +1397,7 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 	 * data indication message.  We delay handling as we want to handle
 	 * before CCA confirm messages but after Tx Done messages if both
 	 * events are received at the same time. */
-	if (FD_ISSET(han.netsim.rxmcast.sockfd, read_fd_set)) {
+	if (han.netsim.rxmcast.sockfd != -1 && FD_ISSET(han.netsim.rxmcast.sockfd, read_fd_set)) {
 		struct netsim_pkt_hdr *hdr;
 		struct sockaddr_in cliaddr;
 		socklen_t len;
@@ -1249,59 +1433,73 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 	}
 
 
-	if (FD_ISSET(han.netsim.sockfd, read_fd_set)) {
+	if (han.netsim.sockfd != -1 && FD_ISSET(han.netsim.sockfd, read_fd_set)) {
 		struct netsim_pkt_hdr *hdr;
 		void * msg;
+		int n;
 
 		qemu_log_mask(LOG_XSILON, "Event: RxControlPkt %d\n", count);
 		/* This will dynamically allocate msg */
-		msg = netsim_rx_read_msg();
-		hdr = msg;
-		assert(hdr);
-		switch(ntohs(hdr->msg_type)) {
-		case MSG_TYPE_REG_REQ:
-			assert(han.state == NULL);
-			netsim_rx_reg_req_msg(msg);
-			hanadu_state_change(&han_state_wait_sysinfo);
-			break;
-		case MSG_TYPE_DEREG_REQ:
-			/* TODO implement MSG_TYPE_DEREG_REQ handler */
-			abort();
-			break;
-		case MSG_TYPE_DEREG_CON:
-			/* TODO implement MSG_TYPE_DEREG_CON handler */
-			abort();
-			break;
-		case MSG_TYPE_CCA_CON:
-			if (data_ind) {
-				han.state->handle_rx_pkt(data_ind);
-				event_handled = true;
-				data_ind = NULL;
-			}
-			/* We must handle CCA con even if data indication has
-			 * been received. The CSMA state will latch the rx packet
-			 * but will wait for the CCA confirm before aborting
-			 * CCA and going to Rx Pkt state. */
-			han.state->handle_cca_con(netsim_rx_cca_con_msg(msg));
-			break;
-		case MSG_TYPE_TX_DONE_IND:
-			han.state->handle_tx_done_ind(netsim_rx_tx_done_ind_msg(msg));
-			break;
-		case MSG_TYPE_REG_CON:
-		case MSG_TYPE_CCA_REQ:
-		case MSG_TYPE_TX_DATA_IND:
-		default:
-			abort();
+		n = netsim_rx_read_msg(&msg);
+		/* TODO: Handle -EPROTONOSUPPORT as this means the QEMU node
+		 * is not compatible with the server. */
+		if (n == -ESHUTDOWN) {
+			han.state->handle_lost_server_conn();
+		} else {
+			if (n > 0) {
+				hdr = msg;
+				assert(hdr);
+				switch(ntohs(hdr->msg_type)) {
+				case MSG_TYPE_REG_REQ:
+					/* This will extract the node id */
+					netsim_rx_reg_req_msg(msg);
+					if (han.state == NULL) {
+						hanadu_state_change(&han_state_wait_sysinfo);
+					} else {
+						/* Received due to reconnect */
+						han.state->handle_reg_req();
+					}
+					break;
+				case MSG_TYPE_DEREG_REQ:
+					/* TODO implement MSG_TYPE_DEREG_REQ handler */
+					abort();
+					break;
+				case MSG_TYPE_DEREG_CON:
+					/* TODO implement MSG_TYPE_DEREG_CON handler */
+					abort();
+					break;
+				case MSG_TYPE_CCA_CON:
+					if (data_ind) {
+						han.state->handle_rx_pkt(data_ind);
+						data_ind = NULL;
+					}
+					/* We must handle CCA con even if data indication has
+					 * been received. The CSMA state will latch the rx packet
+					 * but will wait for the CCA confirm before aborting
+					 * CCA and going to Rx Pkt state. */
+					han.state->handle_cca_con(netsim_rx_cca_con_msg(msg));
+					break;
+				case MSG_TYPE_TX_DONE_IND:
+					han.state->handle_tx_done_ind(netsim_rx_tx_done_ind_msg(msg));
+					break;
+				case MSG_TYPE_REG_CON:
+				case MSG_TYPE_CCA_REQ:
+				case MSG_TYPE_TX_DATA_IND:
+				default:
+					abort();
 
+				}
+				free(msg);
+			} else {
+				qemu_log_mask(LOG_XSILON, "Failed to read msg\n");
+				abort();
+			}
 		}
-		free(msg);
-		event_handled = true;
 		count--;
 	}
 
 	if (data_ind) {
 		han.state->handle_rx_pkt(data_ind);
-		event_handled = true;
 		data_ind = NULL;
 	}
 
@@ -1329,7 +1527,6 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 			 * do not action the expiry function. */
 			if (!han.mac.backoff_timer_stopped)
 				han.state->handle_backoff_timer_expires();
-			event_handled = true;
 		}
 		count--;
 	}
@@ -1351,8 +1548,6 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 			assert(n == 8);
 			assert(expirations == 1);
 			han.state->handle_tx_timer_expires();
-
-			event_handled = true;
 		}
 		count--;
 	}
@@ -1376,7 +1571,6 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 			 * a packet in the IFS state so we check here. */
 			if (!han.mac.ifs_timer_stopped)
 				han.state->handle_ifs_timer_expires();
-			event_handled = true;
 		}
 		count--;
 	}
@@ -1397,7 +1591,26 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 			assert(n == 8);
 			assert(expirations == 1);
 			han.state->handle_ack_wait_timer_expires();
-			event_handled = true;
+		}
+		count--;
+	}
+
+	if (FD_ISSET(han.mac.reconnect_timer, read_fd_set)) {
+		uint64_t expirations;
+		int n;
+
+		qemu_log_mask(LOG_XSILON, "Event: Reconnect Timer Expires %d\n", count);
+		do {
+			n = read(han.mac.reconnect_timer, &expirations, sizeof(expirations));
+			if (n == -1 && errno == EINTR)
+				continue;
+			if (n == -1)
+				qemu_log_mask(LOG_XSILON, "Read Fail: %s", strerror(errno));
+		} while(0);
+		if (n != -1) {
+			assert(n == 8);
+			assert(expirations == 1);
+			han.state->handle_reconnect_timer_expires();
 		}
 		count--;
 	}
@@ -1416,8 +1629,10 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		} while(0);
 		if (n != -1) {
 			assert(n == 1);
-			han.state->handle_sysinfo_event();
-			event_handled = true;
+			if (han.state)
+				han.state->handle_sysinfo_event();
+			else
+				han.sysinfo_avail_latch = true;
 		}
 		count --;
 	}
@@ -1437,15 +1652,10 @@ hanadu_handle_events(int count, fd_set * read_fd_set)
 		if (n != -1) {
 			assert(n == 1);
 			han.state->handle_start_tx();
-			event_handled = true;
 		}
 		count --;
 	}
 
-	//TODO: Remove, just here to get rid of compiler warning
-	if (event_handled) {
-
-	}
 	assert(count == 0);
 }
 
@@ -1487,6 +1697,8 @@ hanadu_modem_model_thread(void *arg)
 				 * the system call */
 				continue;
 			}
+			qemu_log_mask(LOG_XSILON, "%s: select failed (%s)",
+					__FUNCTION__, strerror(errno));
 			abort();
 		} else if(count == 0) {
 			/* Timeout Shouldn't happen!!!! */
@@ -1496,8 +1708,15 @@ hanadu_modem_model_thread(void *arg)
 		}
 	}
 
-	//TODO: Cleanup all file descriptors ???
+	close(han.netsim.sockfd);
 	close(han.netsim.rxmcast.sockfd);
+	han_event_close(&han.txstart_event);
+	han_event_close(&han.sysinfo_available);
+	close(han.mac.backoff_timer);
+	close(han.mac.tx_timer);
+	close(han.mac.ifs_timer);
+	close(han.mac.ack_wait_timer);
+
 	pthread_exit(NULL);
 }
 

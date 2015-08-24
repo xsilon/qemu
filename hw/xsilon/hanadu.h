@@ -172,6 +172,7 @@ struct hanadu {
 	pthread_t sm_threadinfo;
 	struct han_state * state;
 	struct han_event txstart_event;
+	bool sysinfo_avail_latch;
 	struct han_event sysinfo_available;
 
 	struct netsim {
@@ -236,6 +237,9 @@ struct hanadu {
 		bool ifs_timer_stopped;
 		/* ack wait timer */
 		int ack_wait_timer;
+
+		/* Reconnect to server timer */
+		int reconnect_timer;
 	} mac;
 	struct han_ad9865 {
 		uint32_t regs[5];
@@ -263,8 +267,8 @@ netsim_tx_data_ind(void);
 ssize_t
 netsim_tx_ack_data_ind(uint8_t seq_num);
 
-void *
-netsim_rx_read_msg(void);
+int
+netsim_rx_read_msg(void **returned_msg);
 void
 netsim_rx_reg_req_msg(struct netsim_to_node_registration_req_pkt *req_req);
 int
@@ -275,6 +279,12 @@ struct netsim_data_ind_pkt *
 netsim_rx_tx_data_ind_msg(struct netsim_data_ind_pkt *data_ind);
 void
 netsim_rxmcast_init(void);
+int
+netsim_comms_connect(void);
+void
+netsim_comms_init(void);
+void
+netsim_comms_close(void);
 
 
 
@@ -284,6 +294,8 @@ netsim_rxmcast_init(void);
 
 int
 han_event_init(struct han_event * event);
+void
+han_event_close(struct han_event * event);
 void
 han_event_signal(struct han_event * event);
 

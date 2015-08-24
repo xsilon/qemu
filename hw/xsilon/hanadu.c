@@ -16,11 +16,6 @@
 #include <stdint.h>
 #include <sys/timerfd.h>
 
-#define NETSIM_DEFAULT_PORT					(HANADU_NODE_PORT)
-#define NETSIM_DEFAULT_ADDR					(INADDR_LOOPBACK)
-#define NETSIM_PKT_LEN						(256)
-
-
 
 struct hanadu han;
 
@@ -55,24 +50,7 @@ netsim_init(struct han_trxm_dev *s)
 
 	qemu_log_mask(LOG_XSILON, "NetSim Initialisation");
 
-	/* Create TCP connection to Network Simulator */
-	han.netsim.sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (han.netsim.sockfd == -1) {
-		perror("Failed to create netsim socket");
-		exit(EXIT_FAILURE);
-	}
-	/* TODO: Non blocking and closeexec flags */
 
-	bzero(&han.netsim.server_addr,sizeof(han.netsim.server_addr));
-	han.netsim.server_addr.sin_family = AF_INET;
-	if (han.netsim.addr)
-		han.netsim.server_addr.sin_addr.s_addr=inet_addr(han.netsim.addr);
-	else
-		han.netsim.server_addr.sin_addr.s_addr=htonl(NETSIM_DEFAULT_ADDR);
-	if (han.netsim.port)
-		han.netsim.server_addr.sin_port=htons(han.netsim.port);
-	else
-		han.netsim.server_addr.sin_port=htons(NETSIM_DEFAULT_PORT);
 
 	han.mac.tx_started = false;
 	han.mac.start_tx_latched = false;
@@ -97,6 +75,11 @@ netsim_init(struct han_trxm_dev *s)
 	if (han.mac.ack_wait_timer == -1)
 		exit(EXIT_FAILURE);
 
+	han.mac.reconnect_timer = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC | TFD_NONBLOCK);
+	if (han.mac.reconnect_timer == -1)
+		exit(EXIT_FAILURE);
+
+
 	/* Create txstart event */
 	if (han_event_init(&han.txstart_event) == -1) {
 		perror("Failed to create txstart event");
@@ -107,16 +90,11 @@ netsim_init(struct han_trxm_dev *s)
 		perror("Failed to create sysinfo available event");
 		exit(EXIT_FAILURE);
 	}
-
-	/* Connect to NetSim server */
-	if (connect(han.netsim.sockfd, (struct sockaddr *)&han.netsim.server_addr,
-			sizeof(han.netsim.server_addr)) < 0) {
-		perror("Failed to connect to Network Simualtor TCP socket");
-		exit(EXIT_FAILURE);
-	}
+	han.sysinfo_avail_latch = false;
 
 	han.rx.data_ind = NULL;
-	netsim_rxmcast_init();
+
+	netsim_comms_init();
 
 	rv = pthread_create(&han.sm_threadinfo, NULL,
 			    hanadu_modem_model_thread, s);

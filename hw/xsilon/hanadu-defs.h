@@ -11,6 +11,7 @@
 #define FRAME_TYPE_COMMAND 				(3)
 
 #define ACK_FRAME_LENGTH				(3)
+#define HANADU_MTU					(127)
 
 #define ADDR_MODE_ELIDED				(0x00)
 #define ADDR_MODE_SHORT					(0x02)
